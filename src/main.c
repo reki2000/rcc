@@ -1,6 +1,8 @@
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
+extern int _read(int, void *, int);
+extern int _write(int, void *, int);
+extern int _strlen(char *);
+extern int _strcat(char *, char *);
+extern int _stritoa(char *, int);
 
 char src[1024];
 int pos = 0;
@@ -8,13 +10,13 @@ int len = 0;
 
 void out_label(char *str) {
     int len;
-    len = strlen(str);
-    write(1, str, len);
-    write(1, "\n", 1);
+    len = _strlen(str);
+    _write(1, str, len);
+    _write(1, "\n", 1);
 }
 
 void out(char *str) {
-    write(1, "\t", 1);
+    _write(1, "\t", 1);
     out_label(str);
 }
 
@@ -67,7 +69,10 @@ void parse() {
 
 void emit() {
     char buf[1024];
-    sprintf(buf, "movq $%d, %%rax", program);
+    buf[0] = 0;
+    _strcat(buf, "movq $");
+    _stritoa(buf, program);
+    _strcat(buf, ", %rax");
     out(buf);
 }
 
@@ -80,7 +85,7 @@ int main() {
     out("pushq  %rbp");
     out("movq   %rsp, %rbp");
 
-    len = read(0, src, 1024);
+    len = _read(0, src, 1024);
 
     parse();
     emit();
