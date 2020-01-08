@@ -2,11 +2,11 @@
 
 cd $(dirname $BASH_SOURCE)
 
-../bin/main < test.c > test.s
+../bin/main < test.c > out/test.s
 
-gcc -o test.out test.s
+gcc -o out/test.out out/test.s
 
-./test.out
+out/test.out
 
 echo $?
 
