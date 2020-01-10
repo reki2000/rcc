@@ -1,7 +1,12 @@
 #
 
 CC = gcc
-CFLAGS = -g -Wall -Wextra
+CFLAGS = -g -Wall -Wextra -I./include
+
+SRCDIR    = ./src
+SOURCES   = $(wildcard $(SRCDIR)/*.c)
+OBJDIR    = ./out
+OBJECTS   = $(addprefix $(OBJDIR)/, $(notdir $(SOURCES:.c=.o)))
 
 .PHONY: test
 
@@ -10,14 +15,12 @@ test: bin/main
 
 all: bin/main
 
-bin/main: out/main.o out/iolib.o
-	$(CC) -o bin/main out/main.o out/iolib.o
+bin/main: $(OBJECTS)
+	$(CC) -o bin/main $(OBJECTS)
 
-out/main.o: src/main.c
-	$(CC) $(CFLAGS) -c -o out/main.o src/main.c
-
-out/iolib.o: src/iolib.c
-	$(CC) $(CFLAGS) -c -o out/iolib.o src/iolib.c
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
+	mkdir -p $(OBJDIR)
+	$(COMPILER) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 clean:
 	$(RM) bin/main out/*.o

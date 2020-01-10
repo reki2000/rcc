@@ -1,5 +1,5 @@
-extern int _read(int, void *, int);
-extern int _write(int, void *, int);
+#include "rio.h"
+
 extern int _strlen(char *);
 extern int _strcat(char *, char *);
 extern int _stritoa(char *, int);
