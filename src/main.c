@@ -1,8 +1,5 @@
 #include "rio.h"
-
-extern int _strlen(char *);
-extern int _strcat(char *, char *);
-extern int _stritoa(char *, int);
+#include "rstring.h"
 
 char src[1024];
 int pos = 0;
@@ -42,6 +39,14 @@ void skip() {
     }
 }
 
+int op_add() {
+    if (ch() == '+') {
+        next();
+        return 0;
+    }
+    return 1;
+}
+
 int number(int* retval) {
     int c;
     int result = 0;
@@ -59,21 +64,44 @@ int number(int* retval) {
     return 0;
 }
 
-int program;
+int program[100];
 
 void parse() {
     skip();
-    number(&program);
+    number(&program[0]);
+    skip();
+    op_add();
+    skip();
+    number(&program[1]);
     skip();
 }
 
-void emit() {
+void emit_push(int i) {
     char buf[1024];
     buf[0] = 0;
     _strcat(buf, "movq $");
-    _stritoa(buf, program);
+    _stritoa(buf, i);
     _strcat(buf, ", %rax");
     out(buf);
+    out("pushq %rax");
+}
+
+void emit_pop() {
+    out("popq %rax");
+}
+
+void emit_add() {
+    out("popq %rdx");
+    out("popq %rax");
+    out("addq %rdx, %rax");
+    out("pushq %rax");
+}
+
+void emit() {
+    emit_push(program[0]);
+    emit_push(program[1]);
+    emit_add();
+    emit_pop();
 }
 
 int main() {
