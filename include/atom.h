@@ -6,6 +6,8 @@ enum {
     TYPE_MUL,
     TYPE_DIV,
     TYPE_MOD,
+    TYPE_EXPR_STATEMENT,
+    TYPE_BLOCK,
     TYPE_IDENT
 };
 

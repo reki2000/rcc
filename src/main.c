@@ -92,6 +92,23 @@ void compile(int pos) {
         compile(program[pos].value.atom_pos);
         compile(program[pos+1].value.atom_pos);
         emit_mul();
+    } else if (program[pos].type == TYPE_EXPR_STATEMENT) {
+        for (;;) {
+            compile(program[pos].value.atom_pos);
+            emit_pop();
+            if (program[pos+1].value.atom_pos == 0) {
+                break;
+            }
+            pos = program[pos+1].value.atom_pos;
+        }
+    } else if (program[pos].type == TYPE_BLOCK) {
+        for (;;) {
+            compile(program[pos].value.atom_pos);
+            if (program[pos+1].value.atom_pos == 0) {
+                break;
+            }
+            pos = program[pos+1].value.atom_pos;
+        }
     } else {
         error("Invalid program");
     }
@@ -117,7 +134,6 @@ int main() {
     }
     compile(pos);
 
-    out("popq %rax");
     out("leave");
     out("ret");
 }

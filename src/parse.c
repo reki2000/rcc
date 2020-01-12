@@ -5,18 +5,19 @@
 #include "atom.h"
 
 char src[1024];
-int pos = 0;
-int len = 0;
+int src_pos = 0;
+int src_len = 0;
 
 int ch() {
-    if (pos >= len) {
+    if (src_pos >= src_len) {
         return -1;
     }
-    return src[pos];
+    //{char buf[2]; buf[0]=src[src_pos]; buf[1]=0; debug(buf);}
+    return src[src_pos];
 }
 
 void next() {
-    pos++;
+    src_pos++;
 }
 
 void skip() {
@@ -40,9 +41,12 @@ bool expect(char c) {
     return FALSE;
 }
 
+// block := '{' (block | statement)* '}'
+// statement := expr_statement
+// expr_statement := (expr)? ';'
 // expr := mul (['+' | '-'] mul)*
 // mul := primary ( ['*' | '/' | '%'] primary)*
-// primary := int | '(' expr ')'
+// primary := int | '()' expr ')'
 // int := ['0' - '9']*
 
 bool parse_int() {
@@ -181,13 +185,75 @@ int parse_expr() {
     return lpos;
 }
 
+int parse_expr_statement() {
+    int pos;
+
+    pos = parse_expr();
+
+    if (pos != 0 && expect(';')) {
+        int oppos;
+        oppos = alloc_atom(2);
+        build_pos_atom(oppos, TYPE_EXPR_STATEMENT, pos);
+        build_pos_atom(oppos+1, TYPE_ARG, 0);
+        debug_i("parse_expr_statement: parsed @", oppos);
+        return oppos;
+    }
+    debug("parse_expr_statement: not found");
+    return 0;
+}
+
+int parse_statement() {
+    return parse_expr_statement();
+}
+
+int parse_block() {
+    int prev_pos = 0;
+    int first_pos = 0;
+    int pos;
+
+    if (!expect('{')) {
+        debug("parse_block: not found '{'");
+        return 0;
+    }
+    for (;;) {
+        int pos;
+        pos = parse_statement();
+        if (pos == 0) {
+            pos = parse_block();
+        }
+        if (pos == 0) {
+            break;
+        }
+        if (first_pos == 0) {
+            first_pos = pos;
+        } else {
+            build_pos_atom(prev_pos+1, TYPE_ARG, pos);
+        }
+        prev_pos = pos;
+    }
+    if (!expect('}')) {
+        debug("parse_block: not found '}'");
+        return 0;
+    }
+
+    if (first_pos == 0) {
+        debug("parse_block: empty");
+        return 0;
+    }
+
+    pos = alloc_atom(2);
+    build_pos_atom(pos, TYPE_BLOCK, first_pos);
+    build_pos_atom(pos+1, TYPE_ARG, 0);
+    return pos;
+}
+
 int parse() {
     int pos;
-    pos = parse_expr();
+    pos = parse_block();
     dump_atom_all();
     return pos;
 }
 
 void parse_init() {
-    len = _read(0, src, 1024);
+    src_len = _read(0, src, 1024);
 }
