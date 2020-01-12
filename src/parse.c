@@ -40,18 +40,18 @@ bool expect(char c) {
     return FALSE;
 }
 
-// expr := mul ('+' mul)*
-// mul := primary ('*' primary)*
+// expr := mul (['+' | '-'] mul)*
+// mul := primary ( ['*' | '/' | '%'] primary)*
 // primary := int | '(' expr ')'
 // int := ['0' - '9']*
 
 bool parse_int() {
-    int c;
     int value = 0;
     int count = 0;
-    int pos = 0;
+    int pos;
 
     for (;;) {
+        int c;
         c = ch();
         if (c >= '0' && c <= '9') {
             value *= 10;
@@ -78,6 +78,8 @@ int parse_expr();
 
 int parse_primary() {
     int pos;
+
+    skip();
     pos = parse_int();
     if (pos != 0) {
         debug("parse_primary: parsed int");
@@ -103,8 +105,6 @@ int parse_primary() {
 
 int parse_mul() {
     int lpos;
-    int rpos;
-    int oppos = 0;
 
     skip();
     lpos = parse_primary();
@@ -114,21 +114,31 @@ int parse_mul() {
     }
 
     for (;;) {
-        skip();
+        int rpos;
+        int oppos;
+        int type;
+
         if (expect('*')) {
-            debug("parse_mul: not found primary after '*'");
-            rpos = parse_primary();
-            if (rpos == 0) {
-                return 0;
-            }
-            oppos = alloc_atom(2);
-            build_pos_atom(oppos, TYPE_MUL, lpos);
-            build_pos_atom(oppos + 1, TYPE_ARG, rpos);
-            lpos = oppos;
-            debug("parse_mul: parsed primary once");
+            type = TYPE_MUL;
+        } else if (expect('/')) {
+            type = TYPE_DIV;
+        } else if (expect('%')) {
+            type = TYPE_MOD;
         } else {
             break;
         }
+
+        rpos = parse_primary();
+        if (rpos == 0) {
+            debug("parse_mul: not found primary after '*/%'");
+            return 0;
+        }
+
+        oppos = alloc_atom(2);
+        build_pos_atom(oppos, type, lpos);
+        build_pos_atom(oppos + 1, TYPE_ARG, rpos);
+        lpos = oppos;
+        debug("parse_mul: parsed primary once");
     }
     debug_i("parse_mul: parsed mul @", lpos);
     return lpos;
@@ -136,8 +146,6 @@ int parse_mul() {
 
 int parse_expr() {
     int lpos;
-    int rpos;
-    int oppos = 0;
 
     skip();
     lpos = parse_mul();
@@ -147,21 +155,27 @@ int parse_expr() {
     }
 
     for (;;) {
-        skip();
+        int rpos;
+        int oppos;
+        int type;
+
         if (expect('+')) {
-            rpos = parse_mul();
-            if (rpos == 0) {
-                debug("parse_expr: not found mul after '+'");
-                return 0;
-            }
-            oppos = alloc_atom(2);
-            build_pos_atom(oppos, TYPE_ADD, lpos);
-            build_pos_atom(oppos + 1, TYPE_ARG, rpos);
-            lpos = oppos;
-            debug("parse_expr: parsed mul once");
+            type = TYPE_ADD;
+        } else if (expect('-')) {
+            type = TYPE_SUB;
         } else {
             break;
         }
+        rpos = parse_mul();
+        if (rpos == 0) {
+            debug("parse_expr: not found mul after '+'");
+            return 0;
+        }
+        oppos = alloc_atom(2);
+        build_pos_atom(oppos, type, lpos);
+        build_pos_atom(oppos + 1, TYPE_ARG, rpos);
+        lpos = oppos;
+        debug("parse_expr: parsed mul once");
     }
     debug_i("parse_expr: parsed @", lpos);
     return lpos;

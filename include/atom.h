@@ -2,7 +2,10 @@ enum {
     TYPE_ARG = 0,
     TYPE_INT,
     TYPE_ADD,
+    TYPE_SUB,
     TYPE_MUL,
+    TYPE_DIV,
+    TYPE_MOD,
     TYPE_IDENT
 };
 

@@ -39,11 +39,34 @@ void emit_add() {
     out("pushq %rax");
 }
 
+void emit_sub() {
+    out("popq %rdx");
+    out("popq %rax");
+    out("subq %rdx, %rax");
+    out("pushq %rax");
+}
+
 void emit_mul() {
     out("popq %rdx");
     out("popq %rax");
     out("imulq %rdx, %rax");
     out("pushq %rax");
+}
+
+void emit_div() {
+    out("popq %rcx");
+    out("xorq %rdx, %rdx");
+    out("popq %rax");
+    out("idivq %rcx");
+    out("pushq %rax");
+}
+
+void emit_mod() {
+    out("popq %rcx");
+    out("xorq %rdx, %rdx");
+    out("popq %rax");
+    out("idivq %rcx");
+    out("pushq %rdx");
 }
 
 void compile(int pos) {
@@ -53,6 +76,18 @@ void compile(int pos) {
         compile(program[pos].value.atom_pos);
         compile(program[pos+1].value.atom_pos);
         emit_add();
+    } else if (program[pos].type == TYPE_SUB) {
+        compile(program[pos].value.atom_pos);
+        compile(program[pos+1].value.atom_pos);
+        emit_sub();
+    } else if (program[pos].type == TYPE_DIV) {
+        compile(program[pos].value.atom_pos);
+        compile(program[pos+1].value.atom_pos);
+        emit_div();
+    } else if (program[pos].type == TYPE_MOD) {
+        compile(program[pos].value.atom_pos);
+        compile(program[pos+1].value.atom_pos);
+        emit_mod();
     } else if (program[pos].type == TYPE_MUL) {
         compile(program[pos].value.atom_pos);
         compile(program[pos+1].value.atom_pos);
@@ -82,6 +117,7 @@ int main() {
     }
     compile(pos);
 
+    out("popq %rax");
     out("leave");
     out("ret");
 }
