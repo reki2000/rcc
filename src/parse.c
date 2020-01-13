@@ -3,21 +3,32 @@
 #include "devtool.h"
 #include "types.h"
 #include "atom.h"
+#include "var.h"
 
 char src[1024];
 int src_pos = 0;
 int src_len = 0;
 
+bool is_eof() {
+    return src_pos >= src_len;
+}
+
 int ch() {
-    if (src_pos >= src_len) {
+    if (is_eof()) {
         return -1;
     }
-    //{char buf[2]; buf[0]=src[src_pos]; buf[1]=0; debug(buf);}
     return src[src_pos];
 }
 
 void next() {
     src_pos++;
+}
+
+int ch2(int offset) {
+    if (src_pos + offset >= src_len) {
+        return -1;
+    }
+    return src[src_pos + offset];
 }
 
 void skip() {
@@ -31,6 +42,15 @@ void skip() {
     }
 }
 
+bool is_alpha(int ch) {
+    return (ch >= 'a' && ch <= 'z')
+        || (ch >= 'A' && ch <= 'Z');
+}
+
+bool is_digit(int ch) {
+    return (ch >= '0' && ch <= '9');
+}
+
 bool expect(char c) {
     skip();
     if (ch() == c) {
@@ -41,13 +61,39 @@ bool expect(char c) {
     return FALSE;
 }
 
-// block := '{' (block | statement)* '}'
-// statement := expr_statement
-// expr_statement := (expr)? ';'
-// expr := mul (['+' | '-'] mul)*
-// mul := primary ( ['*' | '/' | '%'] primary)*
-// primary := int | '()' expr ')'
-// int := ['0' - '9']*
+bool expect_str(char *str) {
+    skip();
+    int offset = 0;
+    for (;*str != 0; str++) {
+        if (ch2(offset) != *str) {
+            return FALSE;
+        }
+        offset++;
+    }
+    for(;offset>0;offset--) {
+        next();
+    }
+    skip();
+    return TRUE;
+}
+
+
+
+// block := '{' var_delcare* (statement | block)* '}'
+// var_declare := "int" var_name ';'
+// statement := ';' | expr_statement
+// expr_statement := expr ';'
+// expr := mul ([+-] mul)*
+// mul := primary ( [*/%] primary)*
+// primary := int | var_ref | '()' expr ')'
+// var_ref := IDENT
+// var_name := IDENT
+// int := DIGIT*
+
+// IDENT := IDENT_CHAR (IDENT_CHAR | DIGIT)*;
+// IDENT_CHAR := ALPHA | '_'
+// ALPHA := [A-za-z]
+// DIGIT := [0-9]
 
 bool parse_int() {
     int value = 0;
@@ -72,16 +118,46 @@ bool parse_int() {
         return 0;
     }
 
-    pos = alloc_atom(1);
-    build_int_atom(pos, TYPE_INT, value);
-    debug("parse_int: parsed");
-    return pos;
+    debug_i("parse_int: parsed: ", value);
+    return alloc_int_atom(TYPE_NOP, value);
+}
+
+char *parse_ident_token() {
+    bool is_first = TRUE;
+    char buf[100];
+    int buf_pos = 0;
+    char *str;
+    int i;
+
+    skip();
+    for (;;) {
+        int c;
+        c = ch();
+        if (!is_alpha(c) && c != '_' && (is_first || !is_digit(c))) {
+            break;
+        }
+        buf[buf_pos++] = c;
+        next();
+        is_first = FALSE;
+    }
+
+    if (buf_pos == 0) {
+        return 0;
+    }
+
+    str = _malloc(buf_pos + 1);
+    for (i=0; i<buf_pos; i++) {
+        str[i] = buf[i];
+    }
+    str[i] = 0;
+    return str;
 }
 
 int parse_expr();
 
 int parse_primary() {
     int pos;
+    char *ident;
 
     skip();
     pos = parse_int();
@@ -89,6 +165,18 @@ int parse_primary() {
         debug("parse_primary: parsed int");
         return pos;
     } 
+
+    ident = parse_ident_token();
+    if (ident != 0) {
+        int offset = find_var_offset(ident);
+        if (offset == 0) {
+            error("Unknown variable");
+        }
+        pos = alloc_atom(1);
+        build_int_atom(pos, TYPE_VAR_REF, offset);
+        debug_s("parse_primary: parsed variabe_ref:", ident);
+        return pos;
+    }
 
     if (expect('(')) {
         pos = parse_expr();
@@ -189,12 +277,10 @@ int parse_expr_statement() {
     int pos;
 
     pos = parse_expr();
-
     if (pos != 0 && expect(';')) {
         int oppos;
-        oppos = alloc_atom(2);
+        oppos = alloc_atom(1);
         build_pos_atom(oppos, TYPE_EXPR_STATEMENT, pos);
-        build_pos_atom(oppos+1, TYPE_ARG, 0);
         debug_i("parse_expr_statement: parsed @", oppos);
         return oppos;
     }
@@ -203,47 +289,74 @@ int parse_expr_statement() {
 }
 
 int parse_statement() {
-    return parse_expr_statement();
+    if (expect(';')) {
+        return alloc_int_atom(TYPE_NOP, 0);
+    }
+    int pos = parse_expr_statement();
+    return pos;
+}
+
+int parse_var_declare() {
+    char *ident;
+    if (!expect_str("int")) {
+        debug("parse_var_declare: not found 'int'");
+        return 0;
+    }
+
+    ident = parse_ident_token();
+    if (ident == 0) {
+        error("parse_var_declare: invalid name");
+    }
+    if (!expect(';')) {
+        error("parse_var_declare: no ;");
+    }
+    add_var(ident);
+    debug_s("parse_var_declare: parsed: ", ident);
+    return 1;
 }
 
 int parse_block() {
     int prev_pos = 0;
-    int first_pos = 0;
     int pos;
 
     if (!expect('{')) {
         debug("parse_block: not found '{'");
         return 0;
     }
+
+    enter_var_frame();
     for (;;) {
-        int pos;
-        pos = parse_statement();
-        if (pos == 0) {
-            pos = parse_block();
-        }
-        if (pos == 0) {
+        if (parse_var_declare() == 0) {
             break;
         }
-        if (first_pos == 0) {
-            first_pos = pos;
+    }
+
+    for (;;) {
+        int new_pos = parse_statement();
+        if (new_pos == 0) {
+            new_pos = parse_block();
+        }
+        if (new_pos == 0) {
+            break;
+        }
+        if (prev_pos != 0) {
+            pos = alloc_atom(2);
+            build_pos_atom(pos, TYPE_ANDTHEN, prev_pos);
+            build_pos_atom(pos+1, TYPE_ARG, new_pos);
         } else {
-            build_pos_atom(prev_pos+1, TYPE_ARG, pos);
+            pos = new_pos;
         }
         prev_pos = pos;
     }
+
     if (!expect('}')) {
-        debug("parse_block: not found '}'");
-        return 0;
+        error("parse_block: not found '}'");
     }
 
-    if (first_pos == 0) {
-        debug("parse_block: empty");
-        return 0;
+    exit_var_frame();
+    if (pos == 0) {
+        pos = alloc_int_atom(TYPE_NOP, 0);
     }
-
-    pos = alloc_atom(2);
-    build_pos_atom(pos, TYPE_BLOCK, first_pos);
-    build_pos_atom(pos+1, TYPE_ARG, 0);
     return pos;
 }
 

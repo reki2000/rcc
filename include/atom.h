@@ -6,9 +6,11 @@ enum {
     TYPE_MUL,
     TYPE_DIV,
     TYPE_MOD,
+    TYPE_VAR_REF,
+    TYPE_NOP,
     TYPE_EXPR_STATEMENT,
-    TYPE_BLOCK,
-    TYPE_IDENT
+    TYPE_ANDTHEN,
+    TYPE_GLOBAL_IDENT
 };
 
 typedef union value_t {
@@ -32,3 +34,5 @@ void dump_atom_all();
 void build_int_atom(int pos, int type, int value);
 void build_string_atom(int pos, int type, char * value);
 void build_pos_atom(int pos, int type, int value);
+void build_ptr_atom(int pos, int type, void *value);
+

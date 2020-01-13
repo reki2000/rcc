@@ -4,6 +4,8 @@
 
 #include "types.h"
 #include "atom.h"
+#include "var.h"
+
 #include "parse.h"
 
 void out_label(char *str) {
@@ -18,12 +20,22 @@ void out(char *str) {
     out_label(str);
 }
 
-void emit_push(int i) {
+void emit_int(int i) {
     char buf[1024];
     buf[0] = 0;
     _strcat(buf, "movq $");
     _stritoa(buf, i);
     _strcat(buf, ", %rax");
+    out(buf);
+    out("pushq %rax");
+}
+
+void emit_ref(int i) {
+    char buf[1024];
+    buf[0] = 0;
+    _strcat(buf, "movq ");
+    _stritoa(buf, i);
+    _strcat(buf, "(%rbp), %rax");
     out(buf);
     out("pushq %rax");
 }
@@ -70,49 +82,43 @@ void emit_mod() {
 }
 
 void compile(int pos) {
-    if (program[pos].type == TYPE_INT) {
-        emit_push(program[pos].value.int_value);
-    } else if (program[pos].type == TYPE_ADD) {
-        compile(program[pos].value.atom_pos);
-        compile(program[pos+1].value.atom_pos);
-        emit_add();
-    } else if (program[pos].type == TYPE_SUB) {
-        compile(program[pos].value.atom_pos);
-        compile(program[pos+1].value.atom_pos);
-        emit_sub();
-    } else if (program[pos].type == TYPE_DIV) {
-        compile(program[pos].value.atom_pos);
-        compile(program[pos+1].value.atom_pos);
-        emit_div();
-    } else if (program[pos].type == TYPE_MOD) {
-        compile(program[pos].value.atom_pos);
-        compile(program[pos+1].value.atom_pos);
-        emit_mod();
-    } else if (program[pos].type == TYPE_MUL) {
-        compile(program[pos].value.atom_pos);
-        compile(program[pos+1].value.atom_pos);
-        emit_mul();
-    } else if (program[pos].type == TYPE_EXPR_STATEMENT) {
-        for (;;) {
+    debug_i("compiling atom @", pos);
+    switch (program[pos].type) {
+        case TYPE_INT: 
+            emit_int(program[pos].value.int_value);
+            break;
+        case TYPE_VAR_REF:
+            emit_ref(program[pos].value.int_value);
+            break;
+        case TYPE_ADD:
+        case TYPE_SUB:
+        case TYPE_DIV:
+        case TYPE_MOD:
+        case TYPE_MUL:
+            compile(program[pos].value.atom_pos);
+            compile(program[pos+1].value.atom_pos);
+            switch (program[pos].type) {
+                case TYPE_ADD: emit_add(); break;
+                case TYPE_SUB: emit_sub(); break;
+                case TYPE_DIV: emit_div(); break;
+                case TYPE_MOD: emit_mod(); break;
+                case TYPE_MUL: emit_mul(); break;
+            }
+            break;
+        case TYPE_NOP:
+            break;
+        case TYPE_EXPR_STATEMENT:
             compile(program[pos].value.atom_pos);
             emit_pop();
-            if (program[pos+1].value.atom_pos == 0) {
-                break;
-            }
-            pos = program[pos+1].value.atom_pos;
-        }
-    } else if (program[pos].type == TYPE_BLOCK) {
-        for (;;) {
+            break;
+        case TYPE_ANDTHEN:
             compile(program[pos].value.atom_pos);
-            if (program[pos+1].value.atom_pos == 0) {
-                break;
-            }
-            pos = program[pos+1].value.atom_pos;
-        }
-    } else {
-        error("Invalid program");
+            compile(program[pos+1].value.atom_pos);
+            break;
+        default:
+            error("Invalid program");
     }
-    debug_i("compiled 1 atom @", pos);
+    debug_i("compiled @", pos);
 }
 
 int main() {
@@ -125,6 +131,7 @@ int main() {
     out_label("main:");
     out("pushq  %rbp");
     out("movq   %rsp, %rbp");
+    out("subq   $800, %rsp");
 
     parse_init();
 

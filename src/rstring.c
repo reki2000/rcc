@@ -21,6 +21,21 @@ int _strcat(char *dst, char *str) {
     return count;
 }
 
+int _strcmp(char *s1, char *s2) {
+    for (;;) {
+        if (*s1 > *s2) {
+            return 1;
+        } else if (*s1 < *s2) {
+            return -1;
+        }
+        if (*s1 == 0 && *s2 == 0) {
+            return 0;
+        }
+        s1++;
+        s2++;
+    }
+}
+
 void _stritoa(char *dst, int i) {
     char buf[100];
     int pos = 0;

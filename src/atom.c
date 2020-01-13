@@ -26,7 +26,7 @@ void dump_atom(int pos) {
     _strcat(buf, "] type:");
     _stritoa(buf, program[pos].type);
     _strcat(buf, " value:");
-    if (program[pos].type == TYPE_IDENT) {
+    if (program[pos].type == TYPE_GLOBAL_IDENT) {
         _strcat(buf, program[pos].value.str_value);
     } else {
         _stritoa(buf, program[pos].value.int_value);
@@ -40,6 +40,12 @@ void dump_atom_all() {
     for (i=1; i<atom_pos; i++) {
         dump_atom(i);
     }
+}
+
+int alloc_int_atom(int type, int value) {
+    int pos = alloc_atom(1);
+    build_int_atom(pos, type, value);
+    return pos;
 }
 
 void build_int_atom(int pos, int type, int value) {

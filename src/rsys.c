@@ -13,3 +13,11 @@ int _write(int fd, void *buf, int len) {
 void __exit(int code) {
     exit(code);
 }
+
+void *_calloc(int size, int count) {
+    return calloc(size, count);
+}
+
+void *_malloc(int size) {
+    return malloc(size);
+}
