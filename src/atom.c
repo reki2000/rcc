@@ -8,6 +8,8 @@
 atom program[10000];
 int atom_pos = 1;
 
+char *atom_name[] = {"args", "int", "add", "sub", "mul", "div", "mod", "var_ref", "nop", "expr_stmt", "andthen", "global", "print", "bind"};
+
 int alloc_atom(int size) {
     int current;
     current = atom_pos;
@@ -25,6 +27,8 @@ void dump_atom(int pos) {
     _stritoa(buf, pos);
     _strcat(buf, "] type:");
     _stritoa(buf, program[pos].type);
+    _strcat(buf, "=");
+    _strcat(buf, atom_name[program[pos].type]);
     _strcat(buf, " value:");
     if (program[pos].type == TYPE_GLOBAL_IDENT) {
         _strcat(buf, program[pos].value.str_value);

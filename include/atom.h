@@ -11,8 +11,11 @@ enum {
     TYPE_EXPR_STATEMENT,
     TYPE_ANDTHEN,
     TYPE_GLOBAL_IDENT,
-    TYPE_PRINTI
+    TYPE_PRINTI,
+    TYPE_BIND
 };
+
+extern char* atom_name[];
 
 typedef union value_t {
     char *str_value;

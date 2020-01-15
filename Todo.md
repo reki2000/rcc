@@ -1,28 +1,59 @@
 # Todo
 
-- print integer
+* print integer
+* assignment expression
 
 - equality oeprators == != > < >= <=
-- logical operators && || 
+- logical operators && || !
 
-- assignment statement
 - if statement
 - for statement
 - while statement
+- do-while statement
 
-- array
 - pointer
+- assignment using pointer
+
+- global symbols
+- extern
+
+- 1-dimension array
+- multi-dimension array
 
 - unary operators +,-
 - unary operators ++, --
+- operators += -= *= /= %=
 
+- variable initialization
+
+- return
 - function without args but returns a value
 - function with args
 
 - struct
 - union
+- enum
 
-- bit operators >> >>= << <<= & | 
+- char
+
+- typedef
+- sizeof
+
+- array initialization
+
 - switch case
-- 
 
+- bit operators >> >>= << <<= & | ^  &= |= ^= ~
+- trinary operator ?:
+
+- include
+- define value
+- ifdef
+- define macro
+
+- float, double, double double, short, long, long long
+- unsigned
+
+- function with va_args
+
+- static

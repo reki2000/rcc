@@ -1,10 +1,7 @@
 {
     int a;
-    print 0;
-    a;
-    {
-        int b;
-        a + b + 10;
-    }
-    print a;
+    int b;
+    a = 100;
+    b = a * (0-2);
+    print b;
 }

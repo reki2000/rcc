@@ -20,72 +20,77 @@ void out(char *str) {
     out_label(str);
 }
 
-void emit_int(int i) {
+void out_int(char *str1, int i, char *str2) {
     char buf[1024];
     buf[0] = 0;
-    _strcat(buf, "movq $");
+    _strcat(buf, str1);
     _stritoa(buf, i);
-    _strcat(buf, ", %rax");
+    _strcat(buf, str2);
     out(buf);
-    out("pushq %rax");
+}
+
+void emit_int(int i) {
+    out_int("movq	$", i, ", %rax");
+    out("pushq	%rax");
 }
 
 void emit_ref(int i) {
-    char buf[1024];
-    buf[0] = 0;
-    _strcat(buf, "movq -");
-    _stritoa(buf, i);
-    _strcat(buf, "(%rbp), %rax");
-    out(buf);
-    out("pushq %rax");
+    out_int("movq	-", i, "(%rbp), %rax");
+    out("pushq	%rax");
+}
+
+void emit_bind(int i) {
+    out("popq	%rax");
+    out_int("movq	%rax, -", i, "(%rbp)");
+    out("pushq	%rax");
 }
 
 void emit_pop() {
-    out("popq %rax");
+    out("popq	%rax");
 }
 
 void emit_add() {
-    out("popq %rdx");
-    out("popq %rax");
-    out("addq %rdx, %rax");
-    out("pushq %rax");
+    out("popq	%rdx");
+    out("popq	%rax");
+    out("addq	%rdx, %rax");
+    out("pushq	%rax");
 }
 
 void emit_sub() {
-    out("popq %rdx");
-    out("popq %rax");
-    out("subq %rdx, %rax");
-    out("pushq %rax");
+    out("popq	%rdx");
+    out("popq	%rax");
+    out("subq	%rdx, %rax");
+    out("pushq	%rax");
 }
 
 void emit_mul() {
-    out("popq %rdx");
-    out("popq %rax");
-    out("imulq %rdx, %rax");
-    out("pushq %rax");
+    out("popq	%rdx");
+    out("popq	%rax");
+    out("imulq	%rdx, %rax");
+    out("pushq	%rax");
 }
 
 void emit_div() {
-    out("popq %rcx");
-    out("xorq %rdx, %rdx");
-    out("popq %rax");
-    out("idivq %rcx");
-    out("pushq %rax");
+    out("popq	%rcx");
+    out("xorq	%rdx, %rdx");
+    out("popq	%rax");
+    out("idivq	%rcx");
+    out("pushq	%rax");
 }
 
 void emit_mod() {
-    out("popq %rcx");
-    out("xorq %rdx, %rdx");
-    out("popq %rax");
-    out("idivq %rcx");
-    out("pushq %rdx");
+    out("popq	%rcx");
+    out("xorq	%rdx, %rdx");
+    out("popq	%rax");
+    out("idivq	%rcx");
+    out("pushq	%rdx");
 }
 
 void emit_printi() {
-    out("popq   %rax");
+    out("popq	%rax");
 	out("movl	%eax, %esi");
 	out("movl	$.LC0, %edi");
-	out("movl   $0, %eax");
+	out("movl	$0, %eax");
 	out("call	printf");
 	out("nop");
 }
@@ -128,6 +133,10 @@ void compile(int pos) {
             compile(program[pos].value.atom_pos);
             emit_printi();
             break;
+        case TYPE_BIND:
+            compile(program[pos+1].value.atom_pos);
+            emit_bind(program[pos].value.int_value);
+            break;
         default:
             error("Invalid program");
     }
@@ -137,17 +146,17 @@ void compile(int pos) {
 int main() {
     int pos;
 
-    out(".file \"main.c\"");
-    out(".section   .rodata");
+    out(".file	\"main.c\"");
+    out(".section	.rodata");
     out_label(".LC0:");
-    out(".string \"%d\\n\"");
+    out(".string	\"%d\\n\"");
     out(".text");
-    out(".globl main");
-    out(".type main, @function");
+    out(".globl	main");
+    out(".type	main, @function");
     out_label("main:");
-    out("pushq  %rbp");
-    out("movq   %rsp, %rbp");
-    out("subq   $800, %rsp");
+    out("pushq	%rbp");
+    out("movq	%rsp, %rbp");
+    out("subq	$800, %rsp");
 
     parse_init();
 
