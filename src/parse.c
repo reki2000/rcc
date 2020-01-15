@@ -81,7 +81,8 @@ bool expect_str(char *str) {
 
 // block := '{' var_delcare* (statement | block)* '}'
 // var_declare := "int" var_name ';'
-// statement := ';' | expr_statement
+// statement := ';' | print_statement | expr_statement
+// print_statement := "print" expt ';'
 // expr_statement := expr ';'
 // expr := mul ([+-] mul)*
 // mul := primary ( [*/%] primary)*
@@ -98,11 +99,9 @@ bool expect_str(char *str) {
 bool parse_int() {
     int value = 0;
     int count = 0;
-    int pos;
 
     for (;;) {
-        int c;
-        c = ch();
+        int c = ch();
         if (c >= '0' && c <= '9') {
             value *= 10;
             value += ((char)c - '0');
@@ -288,11 +287,30 @@ int parse_expr_statement() {
     return 0;
 }
 
+
+int parse_print_statement() {
+    int pos;
+
+    if (expect_str("print")) {
+        pos = parse_expr_statement();
+        if (pos != 0) {
+            int oppos = alloc_pos_atom(TYPE_PRINTI, pos);
+            debug_i("parse_print_statement: parsed @", oppos);
+            return oppos;
+        }
+    }
+    debug("parse_print_statement: not found");
+    return 0;
+}
+
 int parse_statement() {
     if (expect(';')) {
         return alloc_int_atom(TYPE_NOP, 0);
+    } 
+    int pos = parse_print_statement();
+    if (pos == 0) {
+        pos = parse_expr_statement();
     }
-    int pos = parse_expr_statement();
     return pos;
 }
 

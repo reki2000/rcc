@@ -33,7 +33,7 @@ void emit_int(int i) {
 void emit_ref(int i) {
     char buf[1024];
     buf[0] = 0;
-    _strcat(buf, "movq ");
+    _strcat(buf, "movq -");
     _stritoa(buf, i);
     _strcat(buf, "(%rbp), %rax");
     out(buf);
@@ -81,6 +81,15 @@ void emit_mod() {
     out("pushq %rdx");
 }
 
+void emit_printi() {
+    out("popq   %rax");
+	out("movl	%eax, %esi");
+	out("movl	$.LC0, %edi");
+	out("movl   $0, %eax");
+	out("call	printf");
+	out("nop");
+}
+
 void compile(int pos) {
     debug_i("compiling atom @", pos);
     switch (program[pos].type) {
@@ -115,6 +124,10 @@ void compile(int pos) {
             compile(program[pos].value.atom_pos);
             compile(program[pos+1].value.atom_pos);
             break;
+        case TYPE_PRINTI:
+            compile(program[pos].value.atom_pos);
+            emit_printi();
+            break;
         default:
             error("Invalid program");
     }
@@ -125,6 +138,9 @@ int main() {
     int pos;
 
     out(".file \"main.c\"");
+    out(".section   .rodata");
+    out_label(".LC0:");
+    out(".string \"%d\\n\"");
     out(".text");
     out(".globl main");
     out(".type main, @function");

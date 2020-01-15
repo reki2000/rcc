@@ -10,7 +10,8 @@ enum {
     TYPE_NOP,
     TYPE_EXPR_STATEMENT,
     TYPE_ANDTHEN,
-    TYPE_GLOBAL_IDENT
+    TYPE_GLOBAL_IDENT,
+    TYPE_PRINTI
 };
 
 typedef union value_t {
@@ -36,3 +37,5 @@ void build_string_atom(int pos, int type, char * value);
 void build_pos_atom(int pos, int type, int value);
 void build_ptr_atom(int pos, int type, void *value);
 
+int alloc_int_atom(int type, int value);
+int alloc_pos_atom(int type, int value);

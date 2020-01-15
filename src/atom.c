@@ -48,6 +48,12 @@ int alloc_int_atom(int type, int value) {
     return pos;
 }
 
+int alloc_pos_atom(int type, int value) {
+    int pos = alloc_atom(1);
+    build_pos_atom(pos, type, value);
+    return pos;
+}
+
 void build_int_atom(int pos, int type, int value) {
     program[pos].type = type;
     program[pos].value.int_value = value;
