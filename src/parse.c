@@ -165,11 +165,28 @@ int parse_primary() {
     return 0;
 }
 
+int parse_not() {
+    if (expect('!')) {
+        int pos = parse_primary();
+        if (pos == 0) {
+            error("Invalid '!'");
+        }
+        debug("parse_not: parsed");
+        return alloc_pos_atom(TYPE_LOG_NOT, pos);
+    }
+    debug("parse_not: not found '!'");
+    return parse_primary();
+}
+
+int parse_unary() {
+    return parse_not();
+}
+
 int parse_mul() {
     int lpos;
 
     skip();
-    lpos = parse_primary();
+    lpos = parse_unary();
     if (lpos == 0) {
         debug("parse_mul: not found primary");
         return 0;
@@ -177,9 +194,7 @@ int parse_mul() {
 
     for (;;) {
         int rpos;
-        int oppos;
         int type;
-
         if (expect('*')) {
             type = TYPE_MUL;
         } else if (expect('/')) {
@@ -190,23 +205,20 @@ int parse_mul() {
             break;
         }
 
-        rpos = parse_primary();
+        rpos = parse_unary();
         if (rpos == 0) {
             debug("parse_mul: not found primary after '*/%'");
             return 0;
         }
 
-        oppos = alloc_atom(2);
-        build_pos_atom(oppos, type, lpos);
-        build_pos_atom(oppos + 1, TYPE_ARG, rpos);
-        lpos = oppos;
+        lpos = alloc_binop_atom(type, lpos, rpos);
         debug("parse_mul: parsed primary once");
     }
     debug_i("parse_mul: parsed mul @", lpos);
     return lpos;
 }
 
-int parse_rvalue() {
+int parse_add() {
     int lpos;
 
     skip();
@@ -218,9 +230,7 @@ int parse_rvalue() {
 
     for (;;) {
         int rpos;
-        int oppos;
         int type;
-
         if (expect('+')) {
             type = TYPE_ADD;
         } else if (expect('-')) {
@@ -233,14 +243,103 @@ int parse_rvalue() {
             debug("parse_expr: not found mul after '+'");
             return 0;
         }
-        oppos = alloc_atom(2);
-        build_pos_atom(oppos, type, lpos);
-        build_pos_atom(oppos + 1, TYPE_ARG, rpos);
-        lpos = oppos;
+        lpos = alloc_binop_atom(type, lpos, rpos);
         debug("parse_expr: parsed mul once");
     }
     debug_i("parse_expr: parsed @", lpos);
     return lpos;
+}
+
+
+int parse_lessgreat() {
+    int lpos = parse_add();
+    if (lpos == 0) {
+        return 0;
+    }
+    for (;;) {
+        int type_eq;
+        if (expect_str("<=")) {
+            type_eq = TYPE_EQ_LE;
+        } else if (expect_str("<")) {
+            type_eq = TYPE_EQ_LT;
+        } else if (expect_str(">=")) {
+            type_eq = TYPE_EQ_GE;
+        } else if (expect_str(">")) {
+            type_eq = TYPE_EQ_GT;
+        } else {
+            break;
+        }
+        int rpos = parse_add();
+        if (rpos == 0) {
+            error("Inalid rval for lessthan");
+        }
+        lpos = alloc_binop_atom(type_eq, lpos, rpos);
+    }
+    return lpos;
+}
+
+int parse_equality() {
+    int lpos = parse_lessgreat();
+    if (lpos == 0) {
+        return 0;
+    }
+    for (;;) {
+        int type_eq;
+        if (expect_str("==")) {
+            type_eq = TYPE_EQ_EQ;
+        } else if (expect_str("!=")) {
+            type_eq = TYPE_EQ_NE;
+        } else {
+            break;
+        }
+        int rpos = parse_lessgreat();
+        if (rpos == 0) {
+            error("Inalid rval for == / !=");
+        }
+        lpos = alloc_binop_atom(type_eq, lpos, rpos);
+    }
+    return lpos;
+}
+
+int parse_logical_and() {
+    int lpos = parse_equality();
+    if (lpos == 0) {
+        return 0;
+    }
+    for (;;) {
+        if (!expect_str("&&")) {
+            break;
+        }
+        int rpos = parse_equality();
+        if (rpos == 0) {
+            error("Inalid rval for &&");
+        }
+        lpos = alloc_binop_atom(TYPE_LOG_AND, lpos, rpos);
+    }
+    return lpos;
+}
+
+int parse_logical_or() {
+    int lpos = parse_logical_and();
+    if (lpos == 0) {
+        return 0;
+    }
+    for (;;) {
+        if (!expect_str("||")) {
+            break;
+        }
+        int rpos = parse_logical_and();
+        if (rpos == 0) {
+            error("Inalid rval for ||");
+        }
+        lpos = alloc_binop_atom(TYPE_LOG_OR, lpos, rpos);
+    }
+    return lpos;
+}
+
+int parse_rvalue() {
+    return parse_logical_or();
+
 }
 
 int parse_var_ref() {
@@ -258,7 +357,7 @@ int parse_var_ref() {
 int parse_expr() {
     int pos = src_pos;
     int offset = parse_var_ref();
-    if (offset != 0 && expect('=')) {
+    if (offset != 0 && expect('=') && ch() != '=') { // temporary hack for avoid '=='
         int pos = parse_rvalue();
         if (pos != 0) {
             int oppos = alloc_atom(2);
@@ -279,9 +378,7 @@ int parse_expr_statement() {
 
     pos = parse_expr();
     if (pos != 0 && expect(';')) {
-        int oppos;
-        oppos = alloc_atom(1);
-        build_pos_atom(oppos, TYPE_EXPR_STATEMENT, pos);
+        int oppos = alloc_pos_atom(TYPE_EXPR_STATEMENT, pos);
         debug_i("parse_expr_statement: parsed @", oppos);
         return oppos;
     }
@@ -360,9 +457,7 @@ int parse_block() {
             break;
         }
         if (prev_pos != 0) {
-            pos = alloc_atom(2);
-            build_pos_atom(pos, TYPE_ANDTHEN, prev_pos);
-            build_pos_atom(pos+1, TYPE_ARG, new_pos);
+            pos = alloc_binop_atom(TYPE_ANDTHEN, prev_pos, new_pos);
         } else {
             pos = new_pos;
         }

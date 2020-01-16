@@ -12,7 +12,16 @@ enum {
     TYPE_ANDTHEN,
     TYPE_GLOBAL_IDENT,
     TYPE_PRINTI,
-    TYPE_BIND
+    TYPE_BIND,
+    TYPE_EQ_EQ,
+    TYPE_EQ_NE,
+    TYPE_EQ_LT,
+    TYPE_EQ_GT,
+    TYPE_EQ_LE,
+    TYPE_EQ_GE,
+    TYPE_LOG_AND,
+    TYPE_LOG_OR,
+    TYPE_LOG_NOT
 };
 
 extern char* atom_name[];
@@ -42,3 +51,4 @@ void build_ptr_atom(int pos, int type, void *value);
 
 int alloc_int_atom(int type, int value);
 int alloc_pos_atom(int type, int value);
+int alloc_binop_atom(int type, int lpos, int rpos);

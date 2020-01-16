@@ -8,7 +8,10 @@
 atom program[10000];
 int atom_pos = 1;
 
-char *atom_name[] = {"args", "int", "add", "sub", "mul", "div", "mod", "var_ref", "nop", "expr_stmt", "andthen", "global", "print", "bind"};
+char *atom_name[] = {
+    "args", "int", "add", "sub", "mul", "div", "mod", 
+    "var_ref", "nop", "expr_stmt", "andthen", "global", "print", "bind",
+    "==","!=","<", ">", ">=", "<=", "&&", "||", "!"};
 
 int alloc_atom(int size) {
     int current;
@@ -55,6 +58,13 @@ int alloc_int_atom(int type, int value) {
 int alloc_pos_atom(int type, int value) {
     int pos = alloc_atom(1);
     build_pos_atom(pos, type, value);
+    return pos;
+}
+
+int alloc_binop_atom(int type, int lpos, int rpos) {
+    int pos = alloc_atom(2);
+    build_pos_atom(pos, type, lpos);
+    build_pos_atom(pos+1, TYPE_ARG, rpos);
     return pos;
 }
 

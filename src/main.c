@@ -86,6 +86,82 @@ void emit_mod() {
     out("pushq	%rdx");
 }
 
+void emit_eq_eq() {
+    out("popq	%rdx");
+    out("popq	%rcx");
+    out("xorq   %rax, %rax");
+    out("subq	%rdx, %rcx");
+    out("sete %al");
+    out("pushq	%rax");
+}
+
+void emit_eq_ne() {
+    out("popq	%rdx");
+    out("popq	%rcx");
+    out("xorq   %rax, %rax");
+    out("subq	%rdx, %rcx");
+    out("setne %al");
+    out("pushq	%rax");
+}
+
+void emit_eq_lt() {
+    out("popq	%rdx");
+    out("popq	%rcx");
+    out("xorq   %rax, %rax");
+    out("subq	%rdx, %rcx");
+    out("setnge %al");
+    out("pushq	%rax");
+}
+
+void emit_eq_le() {
+    out("popq	%rdx");
+    out("popq	%rcx");
+    out("xorq   %rax, %rax");
+    out("subq	%rdx, %rcx");
+    out("setle %al");
+    out("pushq	%rax");
+}
+
+void emit_eq_gt() {
+    out("popq	%rdx");
+    out("popq	%rcx");
+    out("xorq   %rax, %rax");
+    out("subq	%rdx, %rcx");
+    out("setnle %al");
+    out("pushq	%rax");
+}
+
+void emit_eq_ge() {
+    out("popq	%rdx");
+    out("popq	%rcx");
+    out("xorq   %rax, %rax");
+    out("subq	%rdx, %rcx");
+    out("setge %al");
+    out("pushq	%rax");
+}
+
+void emit_log_or() {
+    out("popq	%rdx");
+    out("popq	%rax");
+    out("orq	%rdx, %rax");
+    out("pushq	%rax");
+}
+
+void emit_log_and() {
+    out("popq	%rdx");
+    out("popq	%rax");
+    out("andq	%rdx, %rax");
+    out("pushq	%rax");
+}
+
+void emit_log_not() {
+    out("popq	%rdx");
+    out("xorq   %rax, %rax");
+    out("orq	%rdx, %rdx");
+    out("setz %al");
+    out("pushq	%rax");
+}
+
 void emit_printi() {
     out("popq	%rax");
 	out("movl	%eax, %esi");
@@ -109,6 +185,14 @@ void compile(int pos) {
         case TYPE_DIV:
         case TYPE_MOD:
         case TYPE_MUL:
+        case TYPE_EQ_EQ:
+        case TYPE_EQ_NE:
+        case TYPE_EQ_LT:
+        case TYPE_EQ_LE:
+        case TYPE_EQ_GT:
+        case TYPE_EQ_GE:
+        case TYPE_LOG_OR:
+        case TYPE_LOG_AND:
             compile(program[pos].value.atom_pos);
             compile(program[pos+1].value.atom_pos);
             switch (program[pos].type) {
@@ -117,6 +201,14 @@ void compile(int pos) {
                 case TYPE_DIV: emit_div(); break;
                 case TYPE_MOD: emit_mod(); break;
                 case TYPE_MUL: emit_mul(); break;
+                case TYPE_EQ_EQ: emit_eq_eq(); break;
+                case TYPE_EQ_NE: emit_eq_ne(); break;
+                case TYPE_EQ_LE: emit_eq_le(); break;
+                case TYPE_EQ_LT: emit_eq_lt(); break;
+                case TYPE_EQ_GE: emit_eq_ge(); break;
+                case TYPE_EQ_GT: emit_eq_gt(); break;
+                case TYPE_LOG_OR: emit_log_or(); break;
+                case TYPE_LOG_AND: emit_log_and(); break;
             }
             break;
         case TYPE_NOP:
@@ -136,6 +228,10 @@ void compile(int pos) {
         case TYPE_BIND:
             compile(program[pos+1].value.atom_pos);
             emit_bind(program[pos].value.int_value);
+            break;
+        case TYPE_LOG_NOT:
+            compile(program[pos].value.atom_pos);
+            emit_log_not();
             break;
         default:
             error("Invalid program");
