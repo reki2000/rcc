@@ -3,6 +3,7 @@
 #include "devtool.h"
 
 #include "types.h"
+#include "token.h"
 #include "atom.h"
 #include "var.h"
 
@@ -254,7 +255,8 @@ int main() {
     out("movq	%rsp, %rbp");
     out("subq	$800, %rsp");
 
-    parse_init();
+    init();
+    tokenize();
 
     pos = parse();
     if (pos == 0) {

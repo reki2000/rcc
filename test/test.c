@@ -1,3 +1,3 @@
 {
-    print !0;
+    printi !0;
 }

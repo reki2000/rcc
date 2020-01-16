@@ -2,126 +2,17 @@
 #include "rstring.h"
 #include "devtool.h"
 #include "types.h"
+#include "token.h"
 #include "atom.h"
 #include "var.h"
 
-char src[1024 * 1024];
-int src_pos = 0;
-int src_len = 0;
 
-bool is_eof() {
-    return src_pos >= src_len;
-}
-
-int ch() {
-    if (is_eof()) {
-        return -1;
+int parse_int() {
+    int value;
+    if (expect_int(&value)) {
+        return alloc_int_atom(TYPE_INT, value);
     }
-    return src[src_pos];
-}
-
-void next() {
-    src_pos++;
-}
-
-void skip() {
-    int c;
-    for (;;) {
-        c = ch();
-        if (c != ' ' && c != '\t' && c != '\n') {
-            break;
-        }
-        next();
-    }
-}
-
-bool is_alpha(int ch) {
-    return (ch >= 'a' && ch <= 'z')
-        || (ch >= 'A' && ch <= 'Z');
-}
-
-bool is_digit(int ch) {
-    return (ch >= '0' && ch <= '9');
-}
-
-bool expect(char c) {
-    skip();
-    if (ch() == c) {
-        next();
-        skip();
-        return TRUE;
-    }
-    return FALSE;
-}
-
-bool expect_str(char *str) {
-    skip();
-    int old_pos = src_pos;
-    for (;*str != 0; str++) {
-        if (ch() != *str) {
-            src_pos = old_pos;
-            return FALSE;
-        }
-        next();
-    }
-    skip();
-    return TRUE;
-}
-
-bool parse_int() {
-    int value = 0;
-    int count = 0;
-
-    for (;;) {
-        int c = ch();
-        if (c >= '0' && c <= '9') {
-            value *= 10;
-            value += ((char)c - '0');
-        } else {
-            break;
-        }
-        count++;
-        next();
-    }
-
-    if (count == 0) {
-        debug("parse_int: not int");
-        return 0;
-    }
-
-    debug_i("parse_int: parsed: ", value);
-    return alloc_int_atom(TYPE_INT, value);
-}
-
-char *parse_ident_token() {
-    bool is_first = TRUE;
-    char buf[100];
-    int buf_pos = 0;
-    char *str;
-    int i;
-
-    skip();
-    for (;;) {
-        int c;
-        c = ch();
-        if (!is_alpha(c) && c != '_' && (is_first || !is_digit(c))) {
-            break;
-        }
-        buf[buf_pos++] = c;
-        next();
-        is_first = FALSE;
-    }
-
-    if (buf_pos == 0) {
-        return 0;
-    }
-
-    str = _malloc(buf_pos + 1);
-    for (i=0; i<buf_pos; i++) {
-        str[i] = buf[i];
-    }
-    str[i] = 0;
-    return str;
+    return 0;
 }
 
 int parse_expr();
@@ -130,31 +21,29 @@ int parse_primary() {
     int pos;
     char *ident;
 
-    skip();
     pos = parse_int();
     if (pos != 0) {
         debug("parse_primary: parsed int");
         return pos;
     } 
 
-    ident = parse_ident_token();
-    if (ident != 0) {
+    if (expect_ident(&ident)) {
         int offset = find_var_offset(ident);
         if (offset == 0) {
-            error("Unknown variable");
+            error_s("Unknown variable", ident);
         }
         pos = alloc_int_atom(TYPE_VAR_REF, offset);
         debug_s("parse_primary: parsed variabe_ref:", ident);
         return pos;
     }
 
-    if (expect('(')) {
+    if (expect(T_LPAREN)) {
         pos = parse_expr();
         if (pos == 0) {
             debug("parse_primary: not expr");
             return 0;
         }
-        if (expect(')')) {
+        if (expect(T_RPAREN)) {
             debug("parse_primary: parsed expr");
             return pos;
         }
@@ -166,7 +55,7 @@ int parse_primary() {
 }
 
 int parse_not() {
-    if (expect('!')) {
+    if (expect(T_L_NOT)) {
         int pos = parse_primary();
         if (pos == 0) {
             error("Invalid '!'");
@@ -183,10 +72,7 @@ int parse_unary() {
 }
 
 int parse_mul() {
-    int lpos;
-
-    skip();
-    lpos = parse_unary();
+    int lpos = parse_unary();
     if (lpos == 0) {
         debug("parse_mul: not found primary");
         return 0;
@@ -195,11 +81,11 @@ int parse_mul() {
     for (;;) {
         int rpos;
         int type;
-        if (expect('*')) {
+        if (expect(T_MUL)) {
             type = TYPE_MUL;
-        } else if (expect('/')) {
+        } else if (expect(T_DIV)) {
             type = TYPE_DIV;
-        } else if (expect('%')) {
+        } else if (expect(T_MOD)) {
             type = TYPE_MOD;
         } else {
             break;
@@ -219,10 +105,7 @@ int parse_mul() {
 }
 
 int parse_add() {
-    int lpos;
-
-    skip();
-    lpos = parse_mul();
+    int lpos = parse_mul();
     if (lpos == 0) {
         debug("parse_expr: not found mul");
         return 0;
@@ -231,9 +114,9 @@ int parse_add() {
     for (;;) {
         int rpos;
         int type;
-        if (expect('+')) {
+        if (expect(T_ADD)) {
             type = TYPE_ADD;
-        } else if (expect('-')) {
+        } else if (expect(T_SUB)) {
             type = TYPE_SUB;
         } else {
             break;
@@ -258,13 +141,13 @@ int parse_lessgreat() {
     }
     for (;;) {
         int type_eq;
-        if (expect_str("<=")) {
+        if (expect(T_LE)) {
             type_eq = TYPE_EQ_LE;
-        } else if (expect_str("<")) {
+        } else if (expect(T_LT)) {
             type_eq = TYPE_EQ_LT;
-        } else if (expect_str(">=")) {
+        } else if (expect(T_GE)) {
             type_eq = TYPE_EQ_GE;
-        } else if (expect_str(">")) {
+        } else if (expect(T_GT)) {
             type_eq = TYPE_EQ_GT;
         } else {
             break;
@@ -285,9 +168,9 @@ int parse_equality() {
     }
     for (;;) {
         int type_eq;
-        if (expect_str("==")) {
+        if (expect(T_EQ)) {
             type_eq = TYPE_EQ_EQ;
-        } else if (expect_str("!=")) {
+        } else if (expect(T_NE)) {
             type_eq = TYPE_EQ_NE;
         } else {
             break;
@@ -307,7 +190,7 @@ int parse_logical_and() {
         return 0;
     }
     for (;;) {
-        if (!expect_str("&&")) {
+        if (!expect(T_L_AND)) {
             break;
         }
         int rpos = parse_equality();
@@ -325,7 +208,7 @@ int parse_logical_or() {
         return 0;
     }
     for (;;) {
-        if (!expect_str("||")) {
+        if (!expect(T_L_OR)) {
             break;
         }
         int rpos = parse_logical_and();
@@ -343,11 +226,11 @@ int parse_rvalue() {
 }
 
 int parse_var_ref() {
-    char *var_name = parse_ident_token();
-    if (var_name != 0) {
-        int offset = find_var_offset(var_name);
+    char *ident;
+    if (!expect_ident(&ident)) {
+        int offset = find_var_offset(ident);
         if (offset == 0) {
-            error_s("variable not found", var_name);
+            error_s("variable not found", ident);
         }
         return offset;
     }
@@ -355,9 +238,9 @@ int parse_var_ref() {
 }
 
 int parse_expr() {
-    int pos = src_pos;
+    int pos = get_token_pos();
     int offset = parse_var_ref();
-    if (offset != 0 && expect('=') && ch() != '=') { // temporary hack for avoid '=='
+    if (offset != 0 && expect(T_BIND)) {
         int pos = parse_rvalue();
         if (pos != 0) {
             int oppos = alloc_atom(2);
@@ -369,7 +252,7 @@ int parse_expr() {
             error("cannot find rvalue");
         }
     }
-    src_pos = pos;
+    set_token_pos(pos);
     return parse_rvalue();
 }
 
@@ -377,7 +260,7 @@ int parse_expr_statement() {
     int pos;
 
     pos = parse_expr();
-    if (pos != 0 && expect(';')) {
+    if (pos != 0 && expect(T_SEMICOLON)) {
         int oppos = alloc_pos_atom(TYPE_EXPR_STATEMENT, pos);
         debug_i("parse_expr_statement: parsed @", oppos);
         return oppos;
@@ -390,9 +273,9 @@ int parse_expr_statement() {
 int parse_print_statement() {
     int pos;
 
-    if (expect_str("print")) {
+    if (expect(T_PRINTI)) {
         pos = parse_expr();
-        if (pos != 0 && expect(';')) {
+        if (pos != 0 && expect(T_SEMICOLON)) {
             int oppos = alloc_pos_atom(TYPE_PRINTI, pos);
             debug_i("parse_print_statement: parsed @", oppos);
             return oppos;
@@ -403,7 +286,7 @@ int parse_print_statement() {
 }
 
 int parse_statement() {
-    if (expect(';')) {
+    if (expect(T_SEMICOLON)) {
         return alloc_int_atom(TYPE_NOP, 0);
     } 
     int pos = parse_print_statement();
@@ -415,16 +298,15 @@ int parse_statement() {
 
 int parse_var_declare() {
     char *ident;
-    if (!expect_str("int")) {
+    if (!expect(T_TYPE_INT)) {
         debug("parse_var_declare: not found 'int'");
         return 0;
     }
 
-    ident = parse_ident_token();
-    if (ident == 0) {
+    if (!expect_ident(&ident)) {
         error("parse_var_declare: invalid name");
     }
-    if (!expect(';')) {
+    if (!expect(T_SEMICOLON)) {
         error("parse_var_declare: no ;");
     }
     add_var(ident);
@@ -436,7 +318,7 @@ int parse_block() {
     int prev_pos = 0;
     int pos;
 
-    if (!expect('{')) {
+    if (!expect(T_LBLACE)) {
         debug("parse_block: not found '{'");
         return 0;
     }
@@ -464,7 +346,7 @@ int parse_block() {
         prev_pos = pos;
     }
 
-    if (!expect('}')) {
+    if (!expect(T_RBLACE)) {
         error("parse_block: not found '}'");
     }
 
@@ -482,6 +364,3 @@ int parse() {
     return pos;
 }
 
-void parse_init() {
-    src_len = _read(0, src, 1024);
-}
