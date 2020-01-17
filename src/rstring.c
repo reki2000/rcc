@@ -54,3 +54,10 @@ void _stritoa(char *dst, int i) {
     }
     *dst = 0;
 }
+
+void _strcat_i_s(char buf[], char *s1, int i, char *s2) {
+    buf[0] = 0;
+    _strcat(buf, s1);
+    _stritoa(buf, i);
+    _strcat(buf, s2);
+}
