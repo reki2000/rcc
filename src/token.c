@@ -194,6 +194,10 @@ void tokenize() {
             add_token(T_RPAREN);
         } else if (expect_c(';')) {
             add_token(T_SEMICOLON);
+        } else if (expect_reserved_str("else")) {
+            add_token(T_ELSE);
+        } else if (expect_reserved_str("if")) {
+            add_token(T_IF);
         } else if (expect_reserved_str("int")) {
             add_token(T_TYPE_INT);
         } else if (expect_reserved_str("printi")) {

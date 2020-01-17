@@ -10,17 +10,16 @@ typedef enum {
     T_BIND,
     T_SEMICOLON,
     T_TYPE_INT,
-    T_PRINTI
+    T_PRINTI,
+    T_IF, T_ELSE
 } token_id;
-
-typedef union {
-    int int_value;
-    char *str_value;
-} token_val;
 
 typedef struct {
     token_id id;
-    token_val value;
+    union {
+        int int_value;
+        char *str_value;
+    } value;
 } token;
 
 bool expect(token_id id);

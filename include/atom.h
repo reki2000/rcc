@@ -21,7 +21,8 @@ enum {
     TYPE_EQ_GE,
     TYPE_LOG_AND,
     TYPE_LOG_OR,
-    TYPE_LOG_NOT
+    TYPE_LOG_NOT,
+    TYPE_IF
 };
 
 extern char* atom_name[];

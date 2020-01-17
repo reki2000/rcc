@@ -222,7 +222,6 @@ int parse_logical_or() {
 
 int parse_rvalue() {
     return parse_logical_or();
-
 }
 
 int parse_var_ref() {
@@ -269,6 +268,47 @@ int parse_expr_statement() {
     return 0;
 }
 
+int parse_block_or_statement();
+int parse_block();
+int parse_statement();
+
+int parse_if_statement() {
+    int pos;
+    int eq_pos;
+    int body_pos;
+    int else_body_pos = 0;
+    if (expect(T_IF)) {
+        if (!expect(T_LPAREN)) {
+            error("no '(' after if");
+        }
+        eq_pos = parse_expr();
+        if (eq_pos == 0) {
+            error("no expr after if");
+        }
+        if (!expect(T_RPAREN)) {
+            error("no ')' after if");
+        }
+        body_pos = parse_block();
+        if (body_pos != 0) {
+            if (expect(T_ELSE)) {
+                else_body_pos = parse_block_or_statement();
+            }
+        } else {
+            body_pos = parse_statement();
+            if (body_pos == 0) {
+                error("no body after if");
+            }
+        }
+        pos = alloc_atom(3);
+        build_pos_atom(pos, TYPE_IF, eq_pos);
+        build_pos_atom(pos+1, TYPE_ARG, body_pos);
+        build_pos_atom(pos+2, TYPE_ARG, else_body_pos);
+        return pos;
+    }
+    debug("parse_if_statement: not found");
+    return 0;
+}
+
 
 int parse_print_statement() {
     int pos;
@@ -290,6 +330,9 @@ int parse_statement() {
         return alloc_int_atom(TYPE_NOP, 0);
     } 
     int pos = parse_print_statement();
+    if (pos == 0) {
+        pos = parse_if_statement();
+    } 
     if (pos == 0) {
         pos = parse_expr_statement();
     }
@@ -314,6 +357,16 @@ int parse_var_declare() {
     return 1;
 }
 
+int parse_block();
+
+int parse_block_or_statement() {
+    int pos = parse_statement();
+    if (pos == 0) {
+        pos = parse_block();
+    }
+    return pos;
+}
+
 int parse_block() {
     int prev_pos = 0;
     int pos;
@@ -331,10 +384,7 @@ int parse_block() {
     }
 
     for (;;) {
-        int new_pos = parse_statement();
-        if (new_pos == 0) {
-            new_pos = parse_block();
-        }
+        int new_pos = parse_block_or_statement();
         if (new_pos == 0) {
             break;
         }

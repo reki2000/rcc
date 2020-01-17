@@ -23,11 +23,13 @@ void out(char *str) {
 
 void out_int(char *str1, int i, char *str2) {
     char buf[1024];
-    buf[0] = 0;
-    _strcat(buf, str1);
-    _stritoa(buf, i);
-    _strcat(buf, str2);
+    _strcat_i_s(buf, str1, i, str2);
     out(buf);
+}
+
+int label_index = 0;
+int new_label() {
+    return label_index++;
 }
 
 void emit_int(int i) {
@@ -172,6 +174,22 @@ void emit_printi() {
 	out("nop");
 }
 
+void emit_label(int i) {
+    char buf[100];
+    _strcat_i_s(buf, ".L", i, ":");
+    out_label(buf);
+}
+
+void emit_jmp(int i) {
+    out_int("jmp .L", i, "");
+}
+
+void emit_jmp_false(int i) {
+    out("popq	%rax");
+    out("orq	%rax, %rax");
+    out_int("jz	.L", i, "");
+}
+
 void compile(int pos) {
     debug_i("compiling atom @", pos);
     switch (program[pos].type) {
@@ -234,6 +252,27 @@ void compile(int pos) {
             compile(program[pos].value.atom_pos);
             emit_log_not();
             break;
+        case TYPE_IF: {
+                bool has_else = (program[pos+2].value.atom_pos != 0);
+                int l_end = new_label();
+                int l_else = new_label();
+
+                compile(program[pos].value.atom_pos);
+                if (has_else) {
+                    emit_jmp_false(l_else);
+                } else {
+                    emit_jmp_false(l_end);
+                }
+                compile(program[pos+1].value.atom_pos);
+
+                if (has_else) {
+                    emit_jmp(l_end);
+                    emit_label(l_else);
+                    compile(program[pos+2].value.atom_pos);
+                }
+                emit_label(l_end);
+            }
+            break;
         default:
             error("Invalid program");
     }
@@ -242,6 +281,14 @@ void compile(int pos) {
 
 int main() {
     int pos;
+
+    init();
+    tokenize();
+
+    pos = parse();
+    if (pos == 0) {
+        error("Invalid source code");
+    }
 
     out(".file	\"main.c\"");
     out(".section	.rodata");

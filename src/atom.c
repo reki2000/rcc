@@ -11,7 +11,9 @@ int atom_pos = 1;
 char *atom_name[] = {
     "args", "int", "add", "sub", "mul", "div", "mod", 
     "var_ref", "nop", "expr_stmt", "andthen", "global", "print", "bind",
-    "==","!=","<", ">", ">=", "<=", "&&", "||", "!"};
+    "==","!=","<", ">", ">=", "<=", "&&", "||", "!",
+    "if"
+};
 
 int alloc_atom(int size) {
     int current;

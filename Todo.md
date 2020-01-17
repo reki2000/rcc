@@ -3,10 +3,11 @@
 * print integer
 * assignment expression
 
-- equality oeprators == != > < >= <=
-- logical operators && || !
+* equality oeprators == != > < >= <=
+* logical operators && || !
+* tokernize
 
-- if statement
+* if statement
 - for statement
 - while statement
 - do-while statement
