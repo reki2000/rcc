@@ -40,17 +40,14 @@ int parse_primary() {
     if (expect(T_LPAREN)) {
         pos = parse_expr();
         if (pos == 0) {
-            debug("parse_primary: not expr");
             return 0;
         }
         if (expect(T_RPAREN)) {
             debug("parse_primary: parsed expr");
             return pos;
         }
-        debug("parse_primary: no closing parenthesis");
         return 0;
     }
-    debug("parse_primary: not int neither (expr)");
     return 0;
 }
 
@@ -63,7 +60,6 @@ int parse_not() {
         debug("parse_not: parsed");
         return alloc_pos_atom(TYPE_LOG_NOT, pos);
     }
-    debug("parse_not: not found '!'");
     return parse_primary();
 }
 
@@ -74,7 +70,6 @@ int parse_unary() {
 int parse_mul() {
     int lpos = parse_unary();
     if (lpos == 0) {
-        debug("parse_mul: not found primary");
         return 0;
     }
 
@@ -93,12 +88,10 @@ int parse_mul() {
 
         rpos = parse_unary();
         if (rpos == 0) {
-            debug("parse_mul: not found primary after '*/%'");
             return 0;
         }
 
         lpos = alloc_binop_atom(type, lpos, rpos);
-        debug("parse_mul: parsed primary once");
     }
     debug_i("parse_mul: parsed mul @", lpos);
     return lpos;
@@ -107,7 +100,6 @@ int parse_mul() {
 int parse_add() {
     int lpos = parse_mul();
     if (lpos == 0) {
-        debug("parse_expr: not found mul");
         return 0;
     }
 
@@ -123,11 +115,9 @@ int parse_add() {
         }
         rpos = parse_mul();
         if (rpos == 0) {
-            debug("parse_expr: not found mul after '+'");
             return 0;
         }
         lpos = alloc_binop_atom(type, lpos, rpos);
-        debug("parse_expr: parsed mul once");
     }
     debug_i("parse_expr: parsed @", lpos);
     return lpos;
@@ -264,7 +254,6 @@ int parse_expr_statement() {
         debug_i("parse_expr_statement: parsed @", oppos);
         return oppos;
     }
-    debug("parse_expr_statement: not found");
     return 0;
 }
 
@@ -305,7 +294,6 @@ int parse_if_statement() {
         build_pos_atom(pos+2, TYPE_ARG, else_body_pos);
         return pos;
     }
-    debug("parse_if_statement: not found");
     return 0;
 }
 
@@ -406,7 +394,6 @@ int parse_print_statement() {
             return oppos;
         }
     }
-    debug("parse_print_statement: not found");
     return 0;
 }
 
@@ -436,7 +423,6 @@ int parse_statement() {
 int parse_var_declare() {
     char *ident;
     if (!expect(T_TYPE_INT)) {
-        debug("parse_var_declare: not found 'int'");
         return 0;
     }
 
@@ -466,7 +452,6 @@ int parse_block() {
     int pos;
 
     if (!expect(T_LBLACE)) {
-        debug("parse_block: not found '{'");
         return 0;
     }
 
