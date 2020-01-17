@@ -13,8 +13,11 @@ block: '{' var_delcare* ( block_or_statement )* '}' <eof>
 block_or_statement: = ( statement | block )
 var_declare: 'int' var_name ';'
 
-statement: ';' | print_statement | if_statement | expr_statement 
+statement: ';' | print_statement | if_statement | while_statement | for_statement | do_while_statement | expr_statement 
 if_statement: 'if' '(' expr ')' ( statement | block ( 'else' block_or_statement )? )
+for_statement: 'for' '(' expr ';' expr ';' expr ')' block_or_statement
+while_statement: 'while' '(' expr ')' block_or_statement
+do_while_statement: 'do' block 'while' '(' expr ')' ';'
 print_statement: 'print' expr ';'
 expr_statement: expr ';'
 

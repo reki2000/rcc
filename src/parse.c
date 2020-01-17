@@ -309,6 +309,91 @@ int parse_if_statement() {
     return 0;
 }
 
+int parse_for_statement() {
+    int pre_pos;
+    int cond_pos;
+    int post_pos;
+    int body_pos;
+    int pos;
+    if (expect(T_FOR)) {
+        if (!expect(T_LPAREN)) {
+            error("no '(' after for");
+        }
+        pre_pos = parse_expr();
+        if (!expect(T_SEMICOLON)) {
+            error("no first ';' after for");
+        }
+        cond_pos = parse_expr();
+        if (!expect(T_SEMICOLON)) {
+            error("no second ';' after for");
+        }
+        post_pos = parse_expr();
+        if (!expect(T_RPAREN)) {
+            error("no ')' after for");
+        }
+        body_pos = parse_block_or_statement();
+        if (body_pos != 0) {
+            pos = alloc_atom(4);
+            build_pos_atom(pos, TYPE_FOR, body_pos);
+            build_pos_atom(pos+1, TYPE_ARG, cond_pos);
+            build_pos_atom(pos+2, TYPE_ARG, pre_pos);
+            build_pos_atom(pos+3, TYPE_ARG, post_pos);
+            return pos;
+        }
+    }
+    return 0;
+}
+
+int parse_while_statement() {
+    int cond_pos;
+    int body_pos;
+    int pos;
+    if (expect(T_WHILE)) {
+        if (!expect(T_LPAREN)) {
+            error("no '(' after while");
+        }
+        cond_pos = parse_expr();
+        if (!expect(T_RPAREN)) {
+            error("no ')' after while");
+        }
+        body_pos = parse_block_or_statement();
+        if (body_pos != 0) {
+            pos = alloc_atom(2);
+            build_pos_atom(pos, TYPE_WHILE, body_pos);
+            build_pos_atom(pos+1, TYPE_ARG, cond_pos);
+            return pos;
+        }
+    }
+    return 0;
+}
+
+int parse_do_while_statement() {
+    int cond_pos;
+    int body_pos;
+    int pos;
+    if (expect(T_DO)) {
+        body_pos = parse_block();
+        if (body_pos == 0) {
+            error("no block after do");
+        }
+        if (!expect(T_WHILE)) {
+            error("no 'while' after do block");
+        }
+        if (!expect(T_LPAREN)) {
+            error("no '(' after while");
+        }
+        cond_pos = parse_expr();
+        if (!expect(T_RPAREN)) {
+            error("no ')' after while");
+        }
+        pos = alloc_atom(2);
+        build_pos_atom(pos, TYPE_DO_WHILE, body_pos);
+        build_pos_atom(pos+1, TYPE_ARG, cond_pos);
+        return pos;
+    }
+    return 0;
+}
+
 
 int parse_print_statement() {
     int pos;
@@ -332,6 +417,15 @@ int parse_statement() {
     int pos = parse_print_statement();
     if (pos == 0) {
         pos = parse_if_statement();
+    } 
+    if (pos == 0) {
+        pos = parse_for_statement();
+    } 
+    if (pos == 0) {
+        pos = parse_while_statement();
+    } 
+    if (pos == 0) {
+        pos = parse_do_while_statement();
     } 
     if (pos == 0) {
         pos = parse_expr_statement();

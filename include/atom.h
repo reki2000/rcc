@@ -22,20 +22,23 @@ enum {
     TYPE_LOG_AND,
     TYPE_LOG_OR,
     TYPE_LOG_NOT,
-    TYPE_IF
+    TYPE_IF,
+    TYPE_FOR,
+    TYPE_WHILE,
+    TYPE_DO_WHILE,
+    TYPE_BREAK,
+    TYPE_CONTINUE
 };
 
 extern char* atom_name[];
 
-typedef union value_t {
-    char *str_value;
-    int int_value;
-    int atom_pos;
-} value;
-
 typedef struct atom_t {
     int type;
-    value value;
+    union {
+        char *str_value;
+        int int_value;
+        int atom_pos;
+    } value;
 } atom;
 
 extern atom program[];

@@ -12,7 +12,7 @@ char *atom_name[] = {
     "args", "int", "add", "sub", "mul", "div", "mod", 
     "var_ref", "nop", "expr_stmt", "andthen", "global", "print", "bind",
     "==","!=","<", ">", ">=", "<=", "&&", "||", "!",
-    "if"
+    "if", "for", "while", "dowhile", "break", "continue"
 };
 
 int alloc_atom(int size) {

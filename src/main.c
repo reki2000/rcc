@@ -190,6 +190,12 @@ void emit_jmp_false(int i) {
     out_int("jz	.L", i, "");
 }
 
+void emit_jmp_true(int i) {
+    out("popq	%rax");
+    out("orq	%rax, %rax");
+    out_int("jnz	.L", i, "");
+}
+
 void compile(int pos) {
     debug_i("compiling atom @", pos);
     switch (program[pos].type) {
@@ -252,26 +258,59 @@ void compile(int pos) {
             compile(program[pos].value.atom_pos);
             emit_log_not();
             break;
-        case TYPE_IF: {
-                bool has_else = (program[pos+2].value.atom_pos != 0);
-                int l_end = new_label();
-                int l_else = new_label();
+        case TYPE_IF: 
+        {
+            bool has_else = (program[pos+2].value.atom_pos != 0);
+            int l_end = new_label();
+            int l_else = new_label();
 
-                compile(program[pos].value.atom_pos);
-                if (has_else) {
-                    emit_jmp_false(l_else);
-                } else {
-                    emit_jmp_false(l_end);
-                }
-                compile(program[pos+1].value.atom_pos);
+            compile(program[pos].value.atom_pos);
+            emit_jmp_false(has_else ? l_else : l_end);
+            compile(program[pos+1].value.atom_pos);
 
-                if (has_else) {
-                    emit_jmp(l_end);
-                    emit_label(l_else);
-                    compile(program[pos+2].value.atom_pos);
-                }
-                emit_label(l_end);
+            if (has_else) {
+                emit_jmp(l_end);
+                emit_label(l_else);
+                compile(program[pos+2].value.atom_pos);
             }
+            emit_label(l_end);
+        }
+            break;
+        case TYPE_FOR:
+        {
+            int l_body = new_label();
+            int l_end = new_label();
+            compile(program[pos+2].value.atom_pos);
+            emit_pop();
+            emit_label(l_body);
+            compile(program[pos+1].value.atom_pos);
+            emit_jmp_false(l_end);
+            compile(program[pos].value.atom_pos);
+            compile(program[pos+3].value.atom_pos);
+            emit_jmp(l_body);
+            emit_label(l_end);
+        }
+            break;
+        case TYPE_WHILE:
+        {
+            int l_body = new_label();
+            int l_end = new_label();
+            emit_label(l_body);
+            compile(program[pos+1].value.atom_pos);
+            emit_jmp_false(l_end);
+            compile(program[pos].value.atom_pos);
+            emit_jmp(l_body);
+            emit_label(l_end);
+        }
+            break;
+        case TYPE_DO_WHILE:
+        {
+            int l_body = new_label();
+            emit_label(l_body);
+            compile(program[pos].value.atom_pos);
+            compile(program[pos+1].value.atom_pos);
+            emit_jmp_true(l_body);
+        }
             break;
         default:
             error("Invalid program");

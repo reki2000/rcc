@@ -174,6 +174,14 @@ void tokenize() {
             add_token(T_EQ);
         } else if (expect_c('=')) {
             add_token(T_BIND);
+        } else if (expect_str("<=")) {
+            add_token(T_LE);
+        } else if (expect_c('<')) {
+            add_token(T_LT);
+        } else if (expect_str(">=")) {
+            add_token(T_GE);
+        } else if (expect_c('>')) {
+            add_token(T_GT);
         } else if (expect_c('*')) {
             add_token(T_MUL);
         } else if (expect_c('/')) {
@@ -194,14 +202,24 @@ void tokenize() {
             add_token(T_RPAREN);
         } else if (expect_c(';')) {
             add_token(T_SEMICOLON);
+        } else if (expect_reserved_str("break")) {
+            add_token(T_BREAK);
+        } else if (expect_reserved_str("continue")) {
+            add_token(T_CONTINUE);
+        } else if (expect_reserved_str("do")) {
+            add_token(T_DO);
         } else if (expect_reserved_str("else")) {
             add_token(T_ELSE);
+        } else if (expect_reserved_str("for")) {
+            add_token(T_FOR);
         } else if (expect_reserved_str("if")) {
             add_token(T_IF);
         } else if (expect_reserved_str("int")) {
             add_token(T_TYPE_INT);
         } else if (expect_reserved_str("printi")) {
             add_token(T_PRINTI);
+        } else if (expect_reserved_str("while")) {
+            add_token(T_WHILE);
         } else {
             int i;
             char *str;
@@ -210,7 +228,8 @@ void tokenize() {
             } else if (parse_ident_token(&str)) {
                 add_ident_token(str);
             } else {
-                error("invalid token @");
+                dump_tokens();
+                error_i("invalid token @", src_pos);
             }
         }
     }

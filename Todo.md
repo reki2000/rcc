@@ -8,9 +8,9 @@
 * tokernize
 
 * if statement
-- for statement
-- while statement
-- do-while statement
+* for statement
+* while statement
+* do-while statement
 
 - pointer
 - assignment using pointer
@@ -23,7 +23,12 @@
 
 - unary operators +,-
 - unary operators ++, --
-- operators += -= *= /= %=
+- operators += -= *= /= %= |= &= ^=
+
+- pointer + -
+
+- multiple for expr 
+- break continue
 
 - variable initialization
 
