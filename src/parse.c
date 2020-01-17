@@ -30,7 +30,7 @@ int parse_primary() {
     if (expect_ident(&ident)) {
         int offset = find_var_offset(ident);
         if (offset == 0) {
-            error_s("Unknown variable", ident);
+            error_s("Unknown variable:", ident);
         }
         pos = alloc_int_atom(TYPE_VAR_REF, offset);
         debug_s("parse_primary: parsed variabe_ref:", ident);
@@ -216,10 +216,10 @@ int parse_rvalue() {
 
 int parse_var_ref() {
     char *ident;
-    if (!expect_ident(&ident)) {
+    if (expect_ident(&ident)) {
         int offset = find_var_offset(ident);
         if (offset == 0) {
-            error_s("variable not found", ident);
+            error_s("variable not found: ", ident);
         }
         return offset;
     }

@@ -71,12 +71,21 @@ bool expect_str(char *str) {
 }
 
 bool expect_reserved_str(char *str) {
-    if (expect_str(str)) {
-        int c = ch();
-        if (!is_alpha(c) && !is_digit(c)) {
-            return TRUE;
+    skip();
+    int old_pos = src_pos;
+    for (;*str != 0; str++) {
+        if (ch() != *str) {
+            src_pos = old_pos;
+            return FALSE;
         }
+        next();
     }
+    int c = ch();
+    if (!is_alpha(c) && !is_digit(c)) {
+        skip();
+        return TRUE;
+    }
+    src_pos = old_pos;
     return FALSE;
 }
 

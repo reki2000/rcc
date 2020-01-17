@@ -341,13 +341,6 @@ int main() {
     out("movq	%rsp, %rbp");
     out("subq	$800, %rsp");
 
-    init();
-    tokenize();
-
-    pos = parse();
-    if (pos == 0) {
-        error("Invalid source code");
-    }
     compile(pos);
 
     out("leave");
