@@ -192,30 +192,31 @@ void emit_jmp_true(int i) {
 }
 
 void compile(int pos) {
+    atom *p = &(program[pos]);
     debug_i("compiling atom @", pos);
-    switch (program[pos].type) {
+    switch (p->type) {
         case TYPE_VAR_REF:
-            emit_var_ref(program[pos].value.int_value);
+            emit_var_ref(p->value.int_value);
             break;
         case TYPE_VAR_VAL:
-            emit_var_val(program[pos].value.int_value);
+            emit_var_val(p->value.int_value);
             break;
 
         case TYPE_BIND:
-            compile(program[pos].value.atom_pos); // rvalue
-            compile(program[pos+1].value.atom_pos); // lvalue - should be an address
+            compile(p->value.atom_pos); // rvalue
+            compile((p+1)->value.atom_pos); // lvalue - should be an address
             emit_copy();
             break;
         case TYPE_PTR:
-            compile(program[pos].value.atom_pos);
+            compile(p->value.atom_pos);
             break;
         case TYPE_PTR_DEREF:
-            compile(program[pos].value.atom_pos);
+            compile(p->value.atom_pos);
             emit_deref();
             break;
 
         case TYPE_INT: 
-            emit_int(program[pos].value.int_value);
+            emit_int(p->value.int_value);
             break;
 
         case TYPE_ADD:
@@ -231,9 +232,9 @@ void compile(int pos) {
         case TYPE_EQ_GE:
         case TYPE_LOG_OR:
         case TYPE_LOG_AND:
-            compile(program[pos].value.atom_pos);
-            compile(program[pos+1].value.atom_pos);
-            switch (program[pos].type) {
+            compile(p->value.atom_pos);
+            compile((p+1)->value.atom_pos);
+            switch (p->type) {
                 case TYPE_ADD: emit_add(); break;
                 case TYPE_SUB: emit_sub(); break;
                 case TYPE_DIV: emit_div(); break;
@@ -253,36 +254,36 @@ void compile(int pos) {
             break;
 
         case TYPE_EXPR_STATEMENT:
-            compile(program[pos].value.atom_pos);
+            compile(p->value.atom_pos);
             emit_pop();
             break;
         case TYPE_ANDTHEN:
-            compile(program[pos].value.atom_pos);
-            compile(program[pos+1].value.atom_pos);
+            compile(p->value.atom_pos);
+            compile((p+1)->value.atom_pos);
             break;
         case TYPE_PRINTI:
-            compile(program[pos].value.atom_pos);
+            compile(p->value.atom_pos);
             emit_printi();
             break;
             
         case TYPE_LOG_NOT:
-            compile(program[pos].value.atom_pos);
+            compile(p->value.atom_pos);
             emit_log_not();
             break;
         case TYPE_IF: 
         {
-            bool has_else = (program[pos+2].value.atom_pos != 0);
+            bool has_else = ((p+2)->value.atom_pos != 0);
             int l_end = new_label();
             int l_else = new_label();
 
-            compile(program[pos].value.atom_pos);
+            compile(p->value.atom_pos);
             emit_jmp_false(has_else ? l_else : l_end);
-            compile(program[pos+1].value.atom_pos);
+            compile((p+1)->value.atom_pos);
 
             if (has_else) {
                 emit_jmp(l_end);
                 emit_label(l_else);
-                compile(program[pos+2].value.atom_pos);
+                compile((p+2)->value.atom_pos);
             }
             emit_label(l_end);
         }
@@ -291,13 +292,13 @@ void compile(int pos) {
         {
             int l_body = new_label();
             int l_end = new_label();
-            compile(program[pos+2].value.atom_pos);
+            compile((p+2)->value.atom_pos);
             emit_pop();
             emit_label(l_body);
-            compile(program[pos+1].value.atom_pos);
+            compile((p+1)->value.atom_pos);
             emit_jmp_false(l_end);
-            compile(program[pos].value.atom_pos);
-            compile(program[pos+3].value.atom_pos);
+            compile(p->value.atom_pos);
+            compile((p+3)->value.atom_pos);
             emit_jmp(l_body);
             emit_label(l_end);
         }
@@ -307,9 +308,9 @@ void compile(int pos) {
             int l_body = new_label();
             int l_end = new_label();
             emit_label(l_body);
-            compile(program[pos+1].value.atom_pos);
+            compile((p+1)->value.atom_pos);
             emit_jmp_false(l_end);
-            compile(program[pos].value.atom_pos);
+            compile(p->value.atom_pos);
             emit_jmp(l_body);
             emit_label(l_end);
         }
@@ -318,8 +319,8 @@ void compile(int pos) {
         {
             int l_body = new_label();
             emit_label(l_body);
-            compile(program[pos].value.atom_pos);
-            compile(program[pos+1].value.atom_pos);
+            compile(p->value.atom_pos);
+            compile((p+1)->value.atom_pos);
             emit_jmp_true(l_body);
         }
             break;
