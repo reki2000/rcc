@@ -11,24 +11,24 @@
 void debug(char *str) {
     char buf[1024];
     buf[0] = 0;
-    _strcat(buf, str);
-    _strcat(buf, "\n");
-    _write(2, buf, _strlen(buf));
+    strcat(buf, str);
+    strcat(buf, "\n");
+    _write(2, buf, strlen(buf));
 }
 
 void debug_i(char *str, int val) {
     char buf[1024];
     _strcat_i_s(buf, str, val, "\n");
-    _write(2, buf, _strlen(buf));
+    _write(2, buf, strlen(buf));
 }
 
 void debug_s(char *str, char *val) {
     char buf[1024];
     buf[0] = 0;
-    _strcat(buf, str);
-    _strcat(buf, val);
-    _strcat(buf, "\n");
-    _write(2, buf, _strlen(buf));
+    strcat(buf, str);
+    strcat(buf, val);
+    strcat(buf, "\n");
+    _write(2, buf, strlen(buf));
 }
 
 void error(char *str) {

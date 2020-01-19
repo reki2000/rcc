@@ -12,7 +12,7 @@
 
 void out_label(char *str) {
     int len;
-    len = _strlen(str);
+    len = strlen(str);
     _write(1, str, len);
     _write(1, "\n", 1);
 }

@@ -62,7 +62,7 @@ var *find_var(char *name) {
     for (env_pos = env_top; env_pos > 0; env_pos--) {
         var *var_ptr;
         for (var_ptr = env[env_pos].vars; var_ptr->name != 0; var_ptr++) {
-            if (_strcmp(name, var_ptr->name) == 0) {
+            if (strcmp(name, var_ptr->name) == 0) {
                 return var_ptr;
             }
         }
@@ -76,22 +76,22 @@ void dump_env() {
     for (pos = env_top; pos > 0; pos--) {
         char buf[100];
         buf[0] = 0;
-        _strcat(buf, "env[");
+        strcat(buf, "env[");
         _stritoa(buf, pos);
-        _strcat(buf, "] vars:");
+        strcat(buf, "] vars:");
         _stritoa(buf, env[pos].num_vars);
-        _strcat(buf, " offset:");
+        strcat(buf, " offset:");
         _stritoa(buf, env[pos].offset);
-        _strcat(buf, "\n");
-        _write(2, buf, _strlen(buf));
+        strcat(buf, "\n");
+        _write(2, buf, strlen(buf));
         for (var_ptr = env[pos].vars; var_ptr->name != 0; var_ptr++) {
             char buf[100];
             buf[0] = 0;
-            _strcat(buf, var_ptr->name);
-            _strcat(buf, "=");
+            strcat(buf, var_ptr->name);
+            strcat(buf, "=");
             _stritoa(buf, var_ptr->offset);
-            _strcat(buf, "\n");
-            _write(2, buf, _strlen(buf));
+            strcat(buf, "\n");
+            _write(2, buf, strlen(buf));
         }
     }
 }

@@ -187,11 +187,11 @@ void dump_tokens() {
     for (i=0; i<token_len; i++) {
         char buf[100];
         buf[0] = 0;
-        _strcat(buf, (i == token_pos - 1) ? "*" : " ");
+        strcat(buf, (i == token_pos - 1) ? "*" : " ");
         _strcat_s_i_s(buf, "id:", tokens[i].id, "");
         _strcat_s_i_s(buf, "(col:", tokens[i].src_column, ",");
         _strcat_s_i_s(buf, "lin:", tokens[i].src_line, ") ");
-        _strcat(buf, _slice(&src[tokens[i].src_pos], 10));
+        strcat(buf, _slice(&src[tokens[i].src_pos], 10));
         for (char *s = buf; *s != 0; s++) {
             if (*s == '\n') *s = ' ';
         }
@@ -272,10 +272,10 @@ void tokenize() {
             } else {
                 char buf[100];
                 buf[0] = 0;
-                _strcat(buf, "Invalid token: \n");
-                _strcat(buf, _slice(&src[(src_pos > 20) ? src_pos - 20 : 0], 20));
-                _strcat(buf, " --> ");
-                _strcat(buf, _slice(&src[src_pos], 20));
+                strcat(buf, "Invalid token: \n");
+                strcat(buf, _slice(&src[(src_pos > 20) ? src_pos - 20 : 0], 20));
+                strcat(buf, " --> ");
+                strcat(buf, _slice(&src[src_pos], 20));
                 // dump_tokens();
 
                 error(buf);

@@ -14,8 +14,8 @@ void init_types() {
 void dump_type(type_s *t) {
     char buf[100];
     buf[0] = 0;
-    _strcat(buf, "type ");
-    _strcat(buf, t->name);
+    strcat(buf, "type ");
+    strcat(buf, t->name);
     _strcat_s_i_s(buf, " size:", t->size, "");
     _strcat_s_i_s(buf, " ptr_to:", (int)(t->ptr_to), "");
     debug(buf);
@@ -49,7 +49,7 @@ type_s *add_pointer_type(type_s *t) {
 
 type_s *find_type(char *name) {
     for (int i=0; i<types_pos; i++) {
-        if (_strcmp(name, types[i].name) == 0) {
+        if (strcmp(name, types[i].name) == 0) {
             return &types[i];
         }
     }
