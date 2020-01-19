@@ -9,10 +9,10 @@ typedef enum {
     T_ADD, T_SUB, T_MUL, T_DIV, T_MOD,
     T_BIND,
     T_SEMICOLON,
-    T_TYPE_INT,
     T_PRINTI,
     T_IF, T_ELSE,
-    T_FOR, T_WHILE, T_DO, T_BREAK, T_CONTINUE
+    T_FOR, T_WHILE, T_DO, T_BREAK, T_CONTINUE,
+    T_AMP
 } token_id;
 
 typedef struct {
@@ -21,6 +21,9 @@ typedef struct {
         int int_value;
         char *str_value;
     } value;
+    int src_line;
+    int src_column;
+    int src_pos;
 } token;
 
 bool expect(token_id id);
@@ -32,3 +35,5 @@ int get_token_pos();
 void set_token_pos(int pos);
 bool is_eot();
 void init();
+
+void dump_tokens();

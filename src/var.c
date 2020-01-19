@@ -2,8 +2,10 @@
 #include "rstring.h"
 #include "devtool.h"
 
-#include "atom.h"
+#include "types.h"
+#include "type.h"
 #include "var.h"
+#include "atom.h"
 
 frame env[100];
 int env_top = 0;
@@ -27,31 +29,41 @@ void exit_var_frame() {
     env_top--;
 }
 
-void add_var(char *name) {
-    var *var_ptr;
+void add_var(char *name, type_s *t) {
+    var *v;
     frame *f = &env[env_top];
 
     if (f->num_vars >= 100) {
         error("Too many variables");
     }
-    var_ptr = &(f->vars[f->num_vars]);
+    v = &(f->vars[f->num_vars]);
     f->num_vars++;
-    f->offset += 8;
+    f->offset += t->size;
 
-    var_ptr->name = name;
-    var_ptr->size = 8;
-    var_ptr->offset = f->offset;
+    v->name = name;
+    v->size = t->size;
+    v->offset = f->offset;
+    v->t = t;
 
     debug_i("add_var: added @", f->offset);
 }
 
 int find_var_offset(char *name) {
+    var *v;
+    v = find_var(name);
+    if (v != 0) {
+        return v->offset;
+    }
+    return 0;
+}
+
+var *find_var(char *name) {
     int env_pos;
     for (env_pos = env_top; env_pos > 0; env_pos--) {
         var *var_ptr;
         for (var_ptr = env[env_pos].vars; var_ptr->name != 0; var_ptr++) {
             if (_strcmp(name, var_ptr->name) == 0) {
-                return var_ptr->offset;
+                return var_ptr;
             }
         }
     }
@@ -83,3 +95,4 @@ void dump_env() {
         }
     }
 }
+

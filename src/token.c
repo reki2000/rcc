@@ -1,4 +1,5 @@
 #include <rsys.h>
+#include <rstring.h>
 #include <devtool.h>
 #include <types.h>
 #include <token.h>
@@ -10,6 +11,12 @@ int token_len = 0;
 char src[1024 * 1024];
 int src_pos = 0;
 int src_len = 0;
+int src_line = 1;
+int src_column = 1;
+
+int prev_src_line = 1;
+int prev_src_column = 1;
+int prev_src_pos = 0;
 
 bool is_eof() {
     return src_pos >= src_len;
@@ -23,7 +30,12 @@ int ch() {
 }
 
 void next() {
+    if (ch() == '\n') {
+        src_column = 1;
+        src_line++;
+    }
     src_pos++;
+    src_column++;
 }
 
 void skip() {
@@ -150,6 +162,13 @@ void add_token(token_id id) {
         error("Too much tokens");
     }
     tokens[token_len].id = id;
+    tokens[token_len].src_line = prev_src_line;
+    tokens[token_len].src_column = prev_src_column;
+    tokens[token_len].src_pos = prev_src_pos;
+    prev_src_column = src_column;
+    prev_src_pos = src_pos;
+    prev_src_line = src_line;
+
     token_len++;
 }
 
@@ -166,7 +185,17 @@ void add_ident_token(char *s) {
 void dump_tokens() {
     int i;
     for (i=0; i<token_len; i++) {
-        debug_i("token:", tokens[i].id);
+        char buf[100];
+        buf[0] = 0;
+        _strcat(buf, (i == token_pos - 1) ? "*" : " ");
+        _strcat_s_i_s(buf, "id:", tokens[i].id, "");
+        _strcat_s_i_s(buf, "(col:", tokens[i].src_column, ",");
+        _strcat_s_i_s(buf, "lin:", tokens[i].src_line, ") ");
+        _strcat(buf, _slice(&src[tokens[i].src_pos], 10));
+        for (char *s = buf; *s != 0; s++) {
+            if (*s == '\n') *s = ' ';
+        }
+        debug_s("token:", buf);
     }
 }
 
@@ -181,6 +210,12 @@ void tokenize() {
             add_token(T_L_NOT);
         } else if (expect_str("==")) {
             add_token(T_EQ);
+        } else if (expect_str("&&")) {
+            add_token(T_L_AND);
+        } else if (expect_str("||")) {
+            add_token(T_L_OR);
+        } else if (expect_c('&')) {
+            add_token(T_AMP);
         } else if (expect_c('=')) {
             add_token(T_BIND);
         } else if (expect_str("<=")) {
@@ -223,8 +258,6 @@ void tokenize() {
             add_token(T_FOR);
         } else if (expect_reserved_str("if")) {
             add_token(T_IF);
-        } else if (expect_reserved_str("int")) {
-            add_token(T_TYPE_INT);
         } else if (expect_reserved_str("printi")) {
             add_token(T_PRINTI);
         } else if (expect_reserved_str("while")) {
@@ -237,12 +270,18 @@ void tokenize() {
             } else if (parse_ident_token(&str)) {
                 add_ident_token(str);
             } else {
-                dump_tokens();
-                error_i("invalid token @", src_pos);
+                char buf[100];
+                buf[0] = 0;
+                _strcat(buf, "Invalid token: \n");
+                _strcat(buf, _slice(&src[(src_pos > 20) ? src_pos - 20 : 0], 20));
+                _strcat(buf, " --> ");
+                _strcat(buf, _slice(&src[src_pos], 20));
+                // dump_tokens();
+
+                error(buf);
             }
         }
     }
-    dump_tokens();
 }
 
 bool expect(token_id id) {

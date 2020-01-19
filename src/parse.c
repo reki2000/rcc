@@ -1,11 +1,15 @@
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
-#include "types.h"
-#include "token.h"
-#include "atom.h"
-#include "var.h"
 
+#include "types.h"
+#include "type.h"
+
+#include "token.h"
+#include "var.h"
+#include "atom.h"
+
+int parse_expr();
 
 int parse_int() {
     int value;
@@ -15,39 +19,99 @@ int parse_int() {
     return 0;
 }
 
-int parse_expr();
+int parse_literal() {
+    return parse_int();
+}
 
-int parse_primary() {
-    int pos;
+var *parse_var_name() {
     char *ident;
-
-    pos = parse_int();
-    if (pos != 0) {
-        debug("parse_primary: parsed int");
-        return pos;
-    } 
-
     if (expect_ident(&ident)) {
-        int offset = find_var_offset(ident);
-        if (offset == 0) {
-            error_s("Unknown variable:", ident);
+        var *v = find_var(ident);
+        if (v == 0) {
+            error_s("variable not found: ", ident);
         }
-        pos = alloc_int_atom(TYPE_VAR_REF, offset);
-        debug_s("parse_primary: parsed variabe_ref:", ident);
+        return v;
+    }
+    return 0;
+}
+
+int parse_var() {
+    var *v = parse_var_name();
+    if (v != 0) {
+        return alloc_var_atom(v);
+    }
+    return 0;
+}
+
+int parse_ptr_deref() {
+    int pos;
+    if (!expect(T_MUL)) {
+        return 0;
+    }
+    pos = parse_var();
+    if (pos == 0) {
+        error("invalid expr after *");
+    }
+    return alloc_deref_atom(pos);
+}
+
+int parse_ptr() {
+
+    int pos;
+    if (!expect(T_AMP)) {
+        return 0;
+    }
+    pos = parse_var();
+    if (pos == 0) {
+        error("invalid expr after &");
+    }
+    return alloc_ptr_atom(pos);
+}
+
+int parse_ref() {
+    int pos;
+    pos = parse_ptr();
+    if (pos != 0) {
+        return pos;
+    }
+    pos = parse_ptr_deref();
+    if (pos != 0) {
+        return pos;
+    }
+    pos = parse_var();
+    if (pos != 0) {
         return pos;
     }
 
     if (expect(T_LPAREN)) {
         pos = parse_expr();
         if (pos == 0) {
-            return 0;
+            error("Invalid expr within '()'");
         }
-        if (expect(T_RPAREN)) {
-            debug("parse_primary: parsed expr");
-            return pos;
+        if (!expect(T_RPAREN)) {
+            error("no ')' after '('");
         }
-        return 0;
+        debug("parse_primary: parsed expr");
+        return pos;
     }
+    return 0;
+}
+
+int parse_primary() {
+    int pos;
+
+    pos = parse_literal();
+    if (pos != 0) {
+        debug("parse_primary: parsed literal");
+        return pos;
+    } 
+
+    pos = parse_ref();
+    if (pos != 0) {
+        debug("parse_primary: parsed ref");
+        return pos;
+    }
+
     return 0;
 }
 
@@ -210,39 +274,38 @@ int parse_logical_or() {
     return lpos;
 }
 
-int parse_rvalue() {
+int parse_value() {
     return parse_logical_or();
 }
 
-int parse_var_ref() {
-    char *ident;
-    if (expect_ident(&ident)) {
-        int offset = find_var_offset(ident);
-        if (offset == 0) {
-            error_s("variable not found: ", ident);
-        }
-        return offset;
-    }
-    return 0;
-}
 
 int parse_expr() {
-    int pos = get_token_pos();
-    int offset = parse_var_ref();
-    if (offset != 0 && expect(T_BIND)) {
-        int pos = parse_rvalue();
-        if (pos != 0) {
-            int oppos = alloc_atom(2);
-            build_int_atom(oppos, TYPE_BIND, offset);
-            build_pos_atom(oppos+1, TYPE_ARG, pos);
-            debug("parse_expr: parsed");
-            return oppos;
-        } else {
-            error("cannot find rvalue");
-        }
+    int lval = parse_value();
+    int rval;
+    int pos;
+
+    if (lval == 0) {
+        return 0;
     }
-    set_token_pos(pos);
-    return parse_rvalue();
+    if (!expect(T_BIND)) {
+        return lval;
+    }
+    rval = parse_value();
+    if (!rval) {
+        error("cannot find rvalue");
+    }
+    if (!atom_same_type(lval, rval)) {
+        error("not same type");
+    }
+    lval = atom_to_lvalue(lval);
+    if (!lval) {
+        error("cannot bind - not lvalue");
+    }
+    pos = alloc_atom(2);
+    build_pos_atom(pos, TYPE_BIND, rval);
+    build_pos_atom(pos+1, TYPE_ARG, lval);
+    debug("parse_expr: bind parsed");
+    return pos;
 }
 
 int parse_expr_statement() {
@@ -422,8 +485,23 @@ int parse_statement() {
 
 int parse_var_declare() {
     char *ident;
-    if (!expect(T_TYPE_INT)) {
+    char *type_name;
+    type_s *t;
+
+    int pos = get_token_pos();
+
+    if (!expect_ident(&type_name)) {
+        debug("parse_var_declare: not ident");
         return 0;
+    }
+    if (0 == (t = find_type(type_name))) {
+        debug_s("parse_var_declare: not type name: ", type_name);
+        set_token_pos(pos);
+        return 0;
+    };
+
+    if (expect(T_MUL)) {
+        t = add_pointer_type(t);
     }
 
     if (!expect_ident(&ident)) {
@@ -432,7 +510,7 @@ int parse_var_declare() {
     if (!expect(T_SEMICOLON)) {
         error("parse_var_declare: no ;");
     }
-    add_var(ident);
+    add_var(ident, t);
     debug_s("parse_var_declare: parsed: ", ident);
     return 1;
 }

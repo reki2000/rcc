@@ -61,3 +61,9 @@ void _strcat_i_s(char buf[], char *s1, int i, char *s2) {
     _stritoa(buf, i);
     _strcat(buf, s2);
 }
+
+void _strcat_s_i_s(char buf[], char *s1, int i, char *s2) {
+    _strcat(buf, s1);
+    _stritoa(buf, i);
+    _strcat(buf, s2);
+}

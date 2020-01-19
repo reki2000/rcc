@@ -6,7 +6,7 @@ enum {
     TYPE_MUL,
     TYPE_DIV,
     TYPE_MOD,
-    TYPE_VAR_REF,
+    TYPE_VAR_VAL, TYPE_VAR_REF,
     TYPE_NOP,
     TYPE_EXPR_STATEMENT,
     TYPE_ANDTHEN,
@@ -27,13 +27,16 @@ enum {
     TYPE_WHILE,
     TYPE_DO_WHILE,
     TYPE_BREAK,
-    TYPE_CONTINUE
+    TYPE_CONTINUE,
+    TYPE_PTR,
+    TYPE_PTR_DEREF
 };
 
 extern char* atom_name[];
 
-typedef struct atom_t {
+typedef struct {
     int type;
+    type_s *t;
     union {
         char *str_value;
         int int_value;
@@ -56,3 +59,10 @@ void build_ptr_atom(int pos, int type, void *value);
 int alloc_int_atom(int type, int value);
 int alloc_pos_atom(int type, int value);
 int alloc_binop_atom(int type, int lpos, int rpos);
+
+int atom_to_lvalue(int);
+bool atom_same_type(int, int);
+
+int alloc_var_atom(var *);
+int alloc_deref_atom(int);
+int alloc_ptr_atom(int);

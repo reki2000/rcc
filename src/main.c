@@ -3,9 +3,10 @@
 #include "devtool.h"
 
 #include "types.h"
+#include "type.h"
 #include "token.h"
-#include "atom.h"
 #include "var.h"
+#include "atom.h"
 
 #include "parse.h"
 
@@ -37,19 +38,32 @@ void emit_int(int i) {
     out("pushq	%rax");
 }
 
-void emit_ref(int i) {
+void emit_var_val(int i) {
     out_int("movq	-", i, "(%rbp), %rax");
     out("pushq	%rax");
 }
 
-void emit_bind(int i) {
+void emit_deref() {
     out("popq	%rax");
-    out_int("movq	%rax, -", i, "(%rbp)");
+    out("movq	(%rax), %rax");
     out("pushq	%rax");
+}
+
+void emit_var_ref(int i) {
+    out_int("lea	-", i, "(%rbp), %rax");
+    out("pushq	%rax");
+}
+
+void emit_copy() {
+    out("popq	%rax");
+    out("popq	%rdx");
+    out("movq	%rdx, (%rax)");
+    out("pushq	%rdx");
 }
 
 void emit_pop() {
     out("popq	%rax");
+    out("");
 }
 
 void emit_add() {
@@ -199,12 +213,30 @@ void emit_jmp_true(int i) {
 void compile(int pos) {
     debug_i("compiling atom @", pos);
     switch (program[pos].type) {
+        case TYPE_VAR_REF:
+            emit_var_ref(program[pos].value.int_value);
+            break;
+        case TYPE_VAR_VAL:
+            emit_var_val(program[pos].value.int_value);
+            break;
+
+        case TYPE_BIND:
+            compile(program[pos].value.atom_pos); // rvalue
+            compile(program[pos+1].value.atom_pos); // lvalue - should be an address
+            emit_copy();
+            break;
+        case TYPE_PTR:
+            compile(program[pos].value.atom_pos);
+            break;
+        case TYPE_PTR_DEREF:
+            compile(program[pos].value.atom_pos);
+            emit_deref();
+            break;
+
         case TYPE_INT: 
             emit_int(program[pos].value.int_value);
             break;
-        case TYPE_VAR_REF:
-            emit_ref(program[pos].value.int_value);
-            break;
+
         case TYPE_ADD:
         case TYPE_SUB:
         case TYPE_DIV:
@@ -238,6 +270,7 @@ void compile(int pos) {
             break;
         case TYPE_NOP:
             break;
+
         case TYPE_EXPR_STATEMENT:
             compile(program[pos].value.atom_pos);
             emit_pop();
@@ -250,10 +283,7 @@ void compile(int pos) {
             compile(program[pos].value.atom_pos);
             emit_printi();
             break;
-        case TYPE_BIND:
-            compile(program[pos+1].value.atom_pos);
-            emit_bind(program[pos].value.int_value);
-            break;
+            
         case TYPE_LOG_NOT:
             compile(program[pos].value.atom_pos);
             emit_log_not();
@@ -324,6 +354,7 @@ int main() {
     init();
     tokenize();
 
+    init_types();
     pos = parse();
     if (pos == 0) {
         error("Invalid source code");
