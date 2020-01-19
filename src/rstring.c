@@ -19,14 +19,7 @@ void _stritoa(char *dst, int i) {
     *dst = 0;
 }
 
-void _strcat_i_s(char buf[], char *s1, int i, char *s2) {
-    buf[0] = 0;
-    strcat(buf, s1);
-    _stritoa(buf, i);
-    strcat(buf, s2);
-}
-
-void _strcat_s_i_s(char buf[], char *s1, int i, char *s2) {
+void _strcat3(char buf[], char *s1, int i, char *s2) {
     strcat(buf, s1);
     _stritoa(buf, i);
     strcat(buf, s2);

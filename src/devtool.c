@@ -18,7 +18,8 @@ void debug(char *str) {
 
 void debug_i(char *str, int val) {
     char buf[1024];
-    _strcat_i_s(buf, str, val, "\n");
+    buf[0] = 0;
+    _strcat3(buf, str, val, "\n");
     _write(2, buf, strlen(buf));
 }
 

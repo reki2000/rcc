@@ -12,14 +12,15 @@
 * while statement
 * do-while statement
 
-- pointer
-- assignment using pointer
+* pointer
+* assignment using pointer
 
-- global symbols
-- extern
+- return
+- function without args but returns a value
+- function with args
 
-- 1-dimension array
-- multi-dimension array
+- regression test
+- AST design revisited
 
 - unary operators +,-
 - unary operators ++, --
@@ -27,14 +28,15 @@
 
 - pointer + -
 
-- multiple for expr 
-- break continue
+- global symbols
+
+- 1-dimension array
+- multi-dimension array
+
+- multiple expressions with comma
+- break, continue
 
 - variable initialization
-
-- return
-- function without args but returns a value
-- function with args
 
 - struct
 - union
@@ -46,6 +48,7 @@
 - sizeof
 
 - array initialization
+- extern
 
 - switch case
 

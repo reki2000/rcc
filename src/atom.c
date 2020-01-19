@@ -32,13 +32,13 @@ void dump_atom(int pos) {
     char buf[1024];
     buf[0] = 0;
     atom *p = &(program[pos]);
-    _strcat_s_i_s(buf, "atom#", pos, ",[");
+    _strcat3(buf, "atom#", pos, ",[");
     strcat(buf, atom_name[p->type]);
     strcat(buf, "] value:");
     if (p->type == TYPE_GLOBAL_IDENT) {
         strcat(buf, p->value.str_value);
     } else {
-        _stritoa(buf, p->value.int_value);
+        _strcat3(buf, "", p->value.int_value, "");
     }
     strcat(buf, " t:");
     strcat(buf, (p->t == 0) ? "?" : p->t->name);

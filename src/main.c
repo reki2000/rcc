@@ -24,7 +24,8 @@ void out(char *str) {
 
 void out_int(char *str1, int i, char *str2) {
     char buf[1024];
-    _strcat_i_s(buf, str1, i, str2);
+    buf[0] = 0;
+    _strcat3(buf, str1, i, str2);
     out(buf);
 }
 
@@ -169,7 +170,8 @@ void emit_printi() {
 
 void emit_label(int i) {
     char buf[100];
-    _strcat_i_s(buf, ".L", i, ":");
+    buf[0] = 0;
+    _strcat3(buf, ".L", i, ":");
     out_label(buf);
 }
 

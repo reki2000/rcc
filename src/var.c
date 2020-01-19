@@ -76,21 +76,15 @@ void dump_env() {
     for (pos = env_top; pos > 0; pos--) {
         char buf[100];
         buf[0] = 0;
-        strcat(buf, "env[");
-        _stritoa(buf, pos);
-        strcat(buf, "] vars:");
-        _stritoa(buf, env[pos].num_vars);
-        strcat(buf, " offset:");
-        _stritoa(buf, env[pos].offset);
-        strcat(buf, "\n");
+        _strcat3(buf, "env[", pos, "] ");
+        _strcat3(buf, "vars:", env[pos].num_vars, "");
+        _strcat3(buf, " offset:", env[pos].offset, "\n");
         _write(2, buf, strlen(buf));
         for (var_ptr = env[pos].vars; var_ptr->name != 0; var_ptr++) {
             char buf[100];
             buf[0] = 0;
             strcat(buf, var_ptr->name);
-            strcat(buf, "=");
-            _stritoa(buf, var_ptr->offset);
-            strcat(buf, "\n");
+            _strcat3(buf, "=", var_ptr->offset, "\n");
             _write(2, buf, strlen(buf));
         }
     }

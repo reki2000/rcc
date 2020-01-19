@@ -16,8 +16,8 @@ void dump_type(type_s *t) {
     buf[0] = 0;
     strcat(buf, "type ");
     strcat(buf, t->name);
-    _strcat_s_i_s(buf, " size:", t->size, "");
-    _strcat_s_i_s(buf, " ptr_to:", (int)(t->ptr_to), "");
+    _strcat3(buf, " size:", t->size, "");
+    _strcat3(buf, " ptr_to:", (int)(t->ptr_to), "");
     debug(buf);
 }
 

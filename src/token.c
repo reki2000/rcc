@@ -188,9 +188,9 @@ void dump_tokens() {
         char buf[100];
         buf[0] = 0;
         strcat(buf, (i == token_pos - 1) ? "*" : " ");
-        _strcat_s_i_s(buf, "id:", tokens[i].id, "");
-        _strcat_s_i_s(buf, "(col:", tokens[i].src_column, ",");
-        _strcat_s_i_s(buf, "lin:", tokens[i].src_line, ") ");
+        _strcat3(buf, "id:", tokens[i].id, "");
+        _strcat3(buf, "(col:", tokens[i].src_column, ",");
+        _strcat3(buf, "lin:", tokens[i].src_line, ") ");
         strcat(buf, _slice(&src[tokens[i].src_pos], 10));
         for (char *s = buf; *s != 0; s++) {
             if (*s == '\n') *s = ' ';
