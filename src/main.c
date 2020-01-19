@@ -103,58 +103,37 @@ void emit_mod() {
     out("pushq	%rdx");
 }
 
-void emit_eq_eq() {
+void emit_eq_x(char *set) {
     out("popq	%rdx");
     out("popq	%rcx");
     out("xorq   %rax, %rax");
     out("subq	%rdx, %rcx");
-    out("sete %al");
+    out(set);
     out("pushq	%rax");
+}
+
+void emit_eq_eq() {
+    emit_eq_x("sete %al");
 }
 
 void emit_eq_ne() {
-    out("popq	%rdx");
-    out("popq	%rcx");
-    out("xorq   %rax, %rax");
-    out("subq	%rdx, %rcx");
-    out("setne %al");
-    out("pushq	%rax");
+    emit_eq_x("setne %al");
 }
 
 void emit_eq_lt() {
-    out("popq	%rdx");
-    out("popq	%rcx");
-    out("xorq   %rax, %rax");
-    out("subq	%rdx, %rcx");
-    out("setnge %al");
-    out("pushq	%rax");
+    emit_eq_x("setnge %al");
 }
 
 void emit_eq_le() {
-    out("popq	%rdx");
-    out("popq	%rcx");
-    out("xorq   %rax, %rax");
-    out("subq	%rdx, %rcx");
-    out("setle %al");
-    out("pushq	%rax");
+    emit_eq_x("setle %al");
 }
 
 void emit_eq_gt() {
-    out("popq	%rdx");
-    out("popq	%rcx");
-    out("xorq   %rax, %rax");
-    out("subq	%rdx, %rcx");
-    out("setnle %al");
-    out("pushq	%rax");
+    emit_eq_x("setnle %al");
 }
 
 void emit_eq_ge() {
-    out("popq	%rdx");
-    out("popq	%rcx");
-    out("xorq   %rax, %rax");
-    out("subq	%rdx, %rcx");
-    out("setge %al");
-    out("pushq	%rax");
+    emit_eq_x("setge %al");
 }
 
 void emit_log_or() {
