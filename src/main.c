@@ -193,6 +193,7 @@ void emit_jmp_true(int i) {
 
 void compile(int pos) {
     debug_i("compiling atom @", pos);
+    atom *p = &(program[pos]);
     switch (program[pos].type) {
         case TYPE_VAR_REF:
             emit_var_ref(program[pos].value.int_value);
