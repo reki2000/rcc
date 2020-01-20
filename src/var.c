@@ -9,6 +9,7 @@
 
 frame env[100];
 int env_top = 0;
+int max_offset = 0;
 
 void enter_var_frame() {
     env_top++;
@@ -29,6 +30,14 @@ void exit_var_frame() {
     env_top--;
 }
 
+int var_max_offset() {
+    return max_offset;
+}
+
+void reset_var_max_offset() {
+    max_offset = 0;
+}
+
 void add_var(char *name, type_s *t) {
     var *v;
     frame *f = &env[env_top];
@@ -39,6 +48,9 @@ void add_var(char *name, type_s *t) {
     v = &(f->vars[f->num_vars]);
     f->num_vars++;
     f->offset += t->size;
+    if (f->offset > max_offset) {
+        max_offset = f->offset;
+    }
 
     v->name = name;
     v->size = t->size;

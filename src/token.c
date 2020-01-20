@@ -200,10 +200,7 @@ void dump_tokens() {
 }
 
 void tokenize() {
-    for (;;) {
-        if (ch() == -1) {
-            break;
-        }
+    while (ch() != -1) {
         if (expect_str("!=")) {
             add_token(T_NE);
         } else if (expect_c('!')) {
@@ -282,6 +279,7 @@ void tokenize() {
             }
         }
     }
+    add_token(T_EOF);
 }
 
 bool expect(token_id id) {

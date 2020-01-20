@@ -29,7 +29,8 @@ enum {
     TYPE_BREAK,
     TYPE_CONTINUE,
     TYPE_PTR,
-    TYPE_PTR_DEREF
+    TYPE_PTR_DEREF,
+    TYPE_FUNC
 };
 
 extern char* atom_name[];

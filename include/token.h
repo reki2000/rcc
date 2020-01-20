@@ -1,5 +1,6 @@
 typedef enum {
     T_RESERVE,
+    T_EOF,
     T_INT,
     T_IDENT,
     T_LPAREN, T_RPAREN,

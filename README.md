@@ -9,6 +9,10 @@ run `make` and you get executed result of `test/test.c`
 
 ## Current BNF
 ```
+program: function*
+
+function: 'int' '*'? func_name '(' var_declare? ( ',' var_declare )* ')' block
+
 block: '{' var_delcare* ( block_or_statement )* '}' <eof>
 block_or_statement: = ( statement | block )
 var_declare: 'int' '*'? var_name ';'

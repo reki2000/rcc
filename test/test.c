@@ -1,7 +1,5 @@
-{
-    int j;
-    int *i;
-    i = &j;
-    *i = 5;
-    printi *i;
+int main() {
+    int i;
+    i = 5;
+    printi i;
 }

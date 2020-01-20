@@ -8,6 +8,7 @@
 #include "token.h"
 #include "var.h"
 #include "atom.h"
+#include "func.h"
 
 int parse_expr();
 
@@ -564,10 +565,54 @@ int parse_block() {
     return pos;
 }
 
-int parse() {
-    int pos;
-    pos = parse_block();
+int parse_function() {
+    char *ident;
+    char *type_name;
+    type_s *t;
+    int body_pos;
+    func *f;
+
+    int pos = get_token_pos();
+
+    if (!expect_ident(&type_name)) {
+        debug("parse_function: not ident");
+        return 0;
+    }
+    if (0 == (t = find_type(type_name))) {
+        debug_s("parse_function: not type name: ", type_name);
+        set_token_pos(pos);
+        return 0;
+    };
+
+    if (expect(T_MUL)) {
+        t = add_pointer_type(t);
+    }
+
+    if (!expect_ident(&ident)) {
+        error("parse_function: invalid name");
+    }
+    if (!expect(T_LPAREN)) {
+        error("parse_function: no '('");
+    }
+    if (!expect(T_RPAREN)) {
+        error("parse_function: no ')'");
+    }
+
+    reset_var_max_offset();
+    body_pos = parse_block();
+    if (!body_pos) {
+        error_s("No body for function: ", ident);
+    }
+
+    f = add_function(ident, t, 0, 0);
+    func_set_body(f, body_pos, var_max_offset());
+    return 1;
+}
+
+void parse() {
+    while (!expect(T_EOF)) {
+        parse_function();
+    }
     dump_atom_all();
-    return pos;
 }
 

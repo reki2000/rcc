@@ -21,3 +21,6 @@ extern void add_var(char *, type_s *);
 extern int find_var_offset(char *);
 extern var *find_var(char *);
 
+extern void reset_var_max_offset();
+extern int var_max_offset();
+

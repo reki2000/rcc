@@ -7,25 +7,36 @@
 #include "token.h"
 #include "var.h"
 #include "atom.h"
+#include "func.h"
 
 #include "parse.h"
 
 void out_label(char *str) {
-    int len;
-    len = strlen(str);
+    int len = strlen(str);
     _write(1, str, len);
-    _write(1, "\n", 1);
+    _write(1, ":\n", 2);
 }
 
 void out(char *str) {
+    int len = strlen(str);
     _write(1, "\t", 1);
-    out_label(str);
+    _write(1, str, len);
+    _write(1, "\n", 1);
 }
 
 void out_int(char *str1, int i, char *str2) {
     char buf[1024];
     buf[0] = 0;
     _strcat3(buf, str1, i, str2);
+    out(buf);
+}
+
+void out_str(char *str1, char *str2, char *str3) {
+    char buf[1024];
+    buf[0] = 0;
+    strcat(buf, str1);
+    strcat(buf, str2);
+    strcat(buf, str3);
     out(buf);
 }
 
@@ -171,7 +182,7 @@ void emit_printi() {
 void emit_label(int i) {
     char buf[100];
     buf[0] = 0;
-    _strcat3(buf, ".L", i, ":");
+    _strcat3(buf, ".L", i, "");
     out_label(buf);
 }
 
@@ -194,12 +205,7 @@ void emit_jmp_true(int i) {
 void compile(int pos) {
     atom *p = &(program[pos]);
     debug_i("compiling atom @", pos);
-<<<<<<< HEAD
-    atom *p = &(program[pos]);
-    switch (program[pos].type) {
-=======
     switch (p->type) {
->>>>>>> master
         case TYPE_VAR_REF:
             emit_var_ref(p->value.int_value);
             break;
@@ -335,32 +341,49 @@ void compile(int pos) {
     debug_i("compiled @", pos);
 }
 
+void compile_func(func *f) {
+    int l_ret = new_label();
+
+    out_str(".globl	", f->name, "");
+    out_str(".type	", f->name, ", @function");
+    out_label(f->name);
+    out("pushq	%rbp");
+    out("movq	%rsp, %rbp");
+    out_int("subq	$", f->max_offset, ", %rsp");
+
+    compile(f->body_pos);
+
+    emit_label(l_ret);
+    out("leave");
+    out("ret");
+    out("");
+}
+
 int main() {
     int pos;
+    func *f;
 
     init();
     tokenize();
 
     init_types();
+
     pos = parse();
     if (pos == 0) {
         error("Invalid source code");
     }
 
     out(".file	\"main.c\"");
+
     out(".section	.rodata");
-    out_label(".LC0:");
+    out_label(".LC0");
     out(".string	\"%d\\n\"");
+
     out(".text");
-    out(".globl	main");
-    out(".type	main, @function");
-    out_label("main:");
-    out("pushq	%rbp");
-    out("movq	%rsp, %rbp");
-    out("subq	$800, %rsp");
 
-    compile(pos);
-
-    out("leave");
-    out("ret");
+    f = &functions[0];
+    while (f->name != 0) {
+        compile_func(f);
+        f++;
+    }
 }
