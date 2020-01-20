@@ -15,8 +15,8 @@
 * pointer
 * assignment using pointer
 
-- return
-- function without args but returns a value
+* return
+* function without args but returns a value
 - function with args
 
 - regression test

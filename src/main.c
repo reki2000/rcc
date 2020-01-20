@@ -46,18 +46,18 @@ int new_label() {
 }
 
 void emit_int(int i) {
-    out_int("movq	$", i, ", %rax");
+    out_int("movl	$", i, ", %eax");
     out("pushq	%rax");
 }
 
 void emit_var_val(int i) {
-    out_int("movq	-", i, "(%rbp), %rax");
+    out_int("movl	-", i, "(%rbp), %eax");
     out("pushq	%rax");
 }
 
 void emit_deref() {
     out("popq	%rax");
-    out("movq	(%rax), %rax");
+    out("movl	(%rax), %eax");
     out("pushq	%rax");
 }
 
@@ -69,7 +69,7 @@ void emit_var_ref(int i) {
 void emit_copy() {
     out("popq	%rax");
     out("popq	%rdx");
-    out("movq	%rdx, (%rax)");
+    out("movl	%edx, (%rax)");
     out("pushq	%rdx");
 }
 
@@ -81,45 +81,45 @@ void emit_pop() {
 void emit_add() {
     out("popq	%rdx");
     out("popq	%rax");
-    out("addq	%rdx, %rax");
+    out("addl	%edx, %eax");
     out("pushq	%rax");
 }
 
 void emit_sub() {
     out("popq	%rdx");
     out("popq	%rax");
-    out("subq	%rdx, %rax");
+    out("subl	%edx, %eax");
     out("pushq	%rax");
 }
 
 void emit_mul() {
     out("popq	%rdx");
     out("popq	%rax");
-    out("imulq	%rdx, %rax");
+    out("imull	%edx, %eax");
     out("pushq	%rax");
 }
 
 void emit_div() {
     out("popq	%rcx");
-    out("xorq	%rdx, %rdx");
     out("popq	%rax");
-    out("idivq	%rcx");
+    out("cdq");
+    out("idivl	%ecx");
     out("pushq	%rax");
 }
 
 void emit_mod() {
     out("popq	%rcx");
-    out("xorq	%rdx, %rdx");
     out("popq	%rax");
-    out("idivq	%rcx");
+    out("cdq");
+    out("idivl	%ecx");
     out("pushq	%rdx");
 }
 
 void emit_eq_x(char *set) {
     out("popq	%rdx");
     out("popq	%rcx");
-    out("xorq   %rax, %rax");
-    out("subq	%rdx, %rcx");
+    out("xorl   %eax, %eax");
+    out("subl	%edx, %ecx");
     out(set);
     out("pushq	%rax");
 }
@@ -151,21 +151,21 @@ void emit_eq_ge() {
 void emit_log_or() {
     out("popq	%rdx");
     out("popq	%rax");
-    out("orq	%rdx, %rax");
+    out("orl	%edx, %eax");
     out("pushq	%rax");
 }
 
 void emit_log_and() {
     out("popq	%rdx");
     out("popq	%rax");
-    out("andq	%rdx, %rax");
+    out("andl	%edx, %eax");
     out("pushq	%rax");
 }
 
 void emit_log_not() {
     out("popq	%rdx");
     out("xorq   %rax, %rax");
-    out("orq	%rdx, %rdx");
+    out("orl	%edx, %edx");
     out("setz %al");
     out("pushq	%rax");
 }
@@ -192,13 +192,13 @@ void emit_jmp(int i) {
 
 void emit_jmp_false(int i) {
     out("popq	%rax");
-    out("orq	%rax, %rax");
+    out("orl	%eax, %eax");
     out_int("jz	.L", i, "");
 }
 
 void emit_jmp_true(int i) {
     out("popq	%rax");
-    out("orq	%rax, %rax");
+    out("orl	%eax, %eax");
     out_int("jnz	.L", i, "");
 }
 
@@ -385,12 +385,14 @@ int main() {
     }
 
     out(".file	\"main.c\"");
+    out("");
 
     out(".section	.rodata");
     out_label(".LC0");
     out(".string	\"%d\\n\"");
 
     out(".text");
+    out("");
 
     f = &functions[0];
     while (f->name != 0) {
