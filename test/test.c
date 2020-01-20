@@ -1,5 +1,6 @@
 int main() {
     int i;
     i = 5;
-    printi i;
+    print(i);
+    return 0;
 }

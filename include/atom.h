@@ -11,7 +11,7 @@ enum {
     TYPE_EXPR_STATEMENT,
     TYPE_ANDTHEN,
     TYPE_GLOBAL_IDENT,
-    TYPE_PRINTI,
+    TYPE_PRINT,
     TYPE_BIND,
     TYPE_EQ_EQ,
     TYPE_EQ_NE,
@@ -30,7 +30,8 @@ enum {
     TYPE_CONTINUE,
     TYPE_PTR,
     TYPE_PTR_DEREF,
-    TYPE_FUNC
+    TYPE_FUNC,
+    TYPE_RETURN
 };
 
 extern char* atom_name[];

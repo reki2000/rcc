@@ -255,8 +255,10 @@ void tokenize() {
             add_token(T_FOR);
         } else if (expect_reserved_str("if")) {
             add_token(T_IF);
-        } else if (expect_reserved_str("printi")) {
-            add_token(T_PRINTI);
+        } else if (expect_reserved_str("print")) {
+            add_token(T_PRINT);
+        } else if (expect_reserved_str("return")) {
+            add_token(T_RETURN);
         } else if (expect_reserved_str("while")) {
             add_token(T_WHILE);
         } else {

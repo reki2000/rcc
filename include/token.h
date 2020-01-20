@@ -10,10 +10,11 @@ typedef enum {
     T_ADD, T_SUB, T_MUL, T_DIV, T_MOD,
     T_BIND,
     T_SEMICOLON,
-    T_PRINTI,
+    T_PRINT,
     T_IF, T_ELSE,
     T_FOR, T_WHILE, T_DO, T_BREAK, T_CONTINUE,
-    T_AMP
+    T_AMP,
+    T_RETURN
 } token_id;
 
 typedef struct {

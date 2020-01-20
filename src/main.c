@@ -170,7 +170,7 @@ void emit_log_not() {
     out("pushq	%rax");
 }
 
-void emit_printi() {
+void emit_print() {
     out("popq	%rax");
 	out("movl	%eax, %esi");
 	out("movl	$.LC0, %edi");
@@ -201,6 +201,9 @@ void emit_jmp_true(int i) {
     out("orq	%rax, %rax");
     out_int("jnz	.L", i, "");
 }
+
+
+int func_return_label;
 
 void compile(int pos) {
     atom *p = &(program[pos]);
@@ -272,9 +275,10 @@ void compile(int pos) {
             compile(p->value.atom_pos);
             compile((p+1)->value.atom_pos);
             break;
-        case TYPE_PRINTI:
+
+        case TYPE_PRINT:
             compile(p->value.atom_pos);
-            emit_printi();
+            emit_print();
             break;
             
         case TYPE_LOG_NOT:
@@ -335,6 +339,13 @@ void compile(int pos) {
             emit_jmp_true(l_body);
         }
             break;
+
+        case TYPE_RETURN:
+            compile(p->value.atom_pos);
+            emit_pop();
+            emit_jmp(func_return_label);
+            break;
+
         default:
             error("Invalid program");
     }
@@ -342,7 +353,7 @@ void compile(int pos) {
 }
 
 void compile_func(func *f) {
-    int l_ret = new_label();
+    func_return_label = new_label();
 
     out_str(".globl	", f->name, "");
     out_str(".type	", f->name, ", @function");
@@ -353,7 +364,7 @@ void compile_func(func *f) {
 
     compile(f->body_pos);
 
-    emit_label(l_ret);
+    emit_label(func_return_label);
     out("leave");
     out("ret");
     out("");

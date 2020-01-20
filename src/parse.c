@@ -450,11 +450,25 @@ int parse_do_while_statement() {
 int parse_print_statement() {
     int pos;
 
-    if (expect(T_PRINTI)) {
+    if (expect(T_PRINT)) {
+        if (!expect(T_LPAREN)) return 0;
+        pos = parse_expr();
+        if (pos != 0 && expect(T_RPAREN) && expect(T_SEMICOLON)) {
+            int oppos = alloc_pos_atom(TYPE_PRINT, pos);
+            debug_i("parse_print_statement: parsed @", oppos);
+            return oppos;
+        }
+    }
+    return 0;
+}
+
+int parse_return_statement() {
+    int pos;
+
+    if (expect(T_RETURN)) {
         pos = parse_expr();
         if (pos != 0 && expect(T_SEMICOLON)) {
-            int oppos = alloc_pos_atom(TYPE_PRINTI, pos);
-            debug_i("parse_print_statement: parsed @", oppos);
+            int oppos = alloc_pos_atom(TYPE_RETURN, pos);
             return oppos;
         }
     }
@@ -477,6 +491,9 @@ int parse_statement() {
     } 
     if (pos == 0) {
         pos = parse_do_while_statement();
+    } 
+    if (pos == 0) {
+        pos = parse_return_statement();
     } 
     if (pos == 0) {
         pos = parse_expr_statement();
