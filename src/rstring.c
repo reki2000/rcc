@@ -1,6 +1,6 @@
 #include "rstring.h"
 
-void _stritoa(char *dst, int i) {
+void _strcati(char *dst, int i) {
     char buf[100];
     int pos = 0;
     for (;;) {
@@ -21,6 +21,6 @@ void _stritoa(char *dst, int i) {
 
 void _strcat3(char buf[], char *s1, int i, char *s2) {
     strcat(buf, s1);
-    _stritoa(buf, i);
+    _strcati(buf, i);
     strcat(buf, s2);
 }

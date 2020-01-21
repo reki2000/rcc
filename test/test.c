@@ -1,10 +1,10 @@
-int main() {
-    int i;
-    i = 5;
-    print(i*(0-10));
-    return 10/3;
+int add(int *i1, int i2) {
+    return *i1 + i2;
 }
 
-int dummy() {
-    return 5%3;
+int main() {
+    int i;
+    i = 1;
+    return add(&i, 2);
 }
+

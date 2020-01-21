@@ -38,6 +38,10 @@ void reset_var_max_offset() {
     max_offset = 0;
 }
 
+frame *get_top_frame() {
+    return &env[env_top];
+}
+
 void add_var(char *name, type_s *t) {
     var *v;
     frame *f = &env[env_top];

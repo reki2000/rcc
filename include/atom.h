@@ -31,7 +31,8 @@ enum {
     TYPE_PTR,
     TYPE_PTR_DEREF,
     TYPE_FUNC,
-    TYPE_RETURN
+    TYPE_RETURN,
+    TYPE_APPLY
 };
 
 extern char* atom_name[];
@@ -40,7 +41,7 @@ typedef struct {
     int type;
     type_s *t;
     union {
-        char *str_value;
+        char *ptr_value;
         int int_value;
         int atom_pos;
     } value;
@@ -68,3 +69,4 @@ bool atom_same_type(int, int);
 int alloc_var_atom(var *);
 int alloc_deref_atom(int);
 int alloc_ptr_atom(int);
+int alloc_func_atom(func *);

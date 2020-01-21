@@ -16,8 +16,10 @@
 * assignment using pointer
 
 * return
-* function without args but returns a value
-- function with args
+* delcare function without args but returns a value
+* call no args function
+* declare function with args
+* call function with args
 
 - regression test
 - AST design revisited
@@ -47,7 +49,9 @@
 - typedef
 - sizeof
 
+
 - array initialization
+- prototype declaration
 - extern
 
 - switch case
@@ -62,6 +66,11 @@
 
 - float, double, double double, short, long, long long
 - unsigned
+
+
+- function declaration for > 6 args
+- function call with > 6 args
+- function call ABI alignment
 
 - function with va_args
 

@@ -12,31 +12,39 @@ func functions[1000];
 int function_pos = 0;
 int function_len = 0;
 
-func *find_function(char *name, type_s *ret_type, int argc, var **argv) {
+func *find_func_name(char *name) {
     for (int i=0; i<function_len; i++) {
         func *f = &functions[i];
-        if (strcmp(f->name, name) != 0) {
-            continue;
+        if (strcmp(f->name, name) == 0) {
+            return f;
         }
-        if (f->ret_type == ret_type && f->argc == argc) {
-            int j;
-            for (j=0; j<argc; j++) {
-                if (f->argv[j]->t != argv[j]->t) {
-                    break;
-                }
-            }
-            if (argc == j) {
-                return f;
-            }
-        }
-        error_s("function is already declared but types are not matched: ", name);
     }
     return 0;
 }
 
-func *add_function(char *name, type_s *ret_type, int argc, var **argv) {
+func *find_function(char *name, type_s *ret_type, int argc, var *argv) {
+    func *f = find_func_name(name);
+    if (!f) {
+        return 0;
+    }
+    if (f->ret_type == ret_type && f->argc == argc) {
+        int j;
+        for (j=0; j<argc; j++) {
+            if (f->argv[j].t != argv[j].t) {
+                break;
+            }
+        }
+        if (argc == j) {
+            return f;
+        }
+    }
+    error_s("function is already declared but types are not matched: ", name);
+    return 0;
+}
+
+func *add_function(char *name, type_s *ret_type, int argc, var *argv) {
     if (function_len >= 1000) {
-        error("Too manu functions");
+        error("Too many functions");
     }
     func *f = find_function(name, ret_type, argc, argv);
     if (!f) {

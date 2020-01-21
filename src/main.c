@@ -1,13 +1,14 @@
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
-
 #include "types.h"
-#include "type.h"
+
 #include "token.h"
+
+#include "type.h"
 #include "var.h"
-#include "atom.h"
 #include "func.h"
+#include "atom.h"
 
 #include "parse.h"
 
@@ -50,8 +51,38 @@ void emit_int(int i) {
     out("pushq	%rax");
 }
 
-void emit_var_val(int i) {
-    out_int("movl	-", i, "(%rbp), %eax");
+void emit_var_val(int i, int size) {
+    if (size == 8) {
+        out_int("movq	-", i, "(%rbp), %rax");
+    } else {
+        out_int("movl	-", i, "(%rbp), %eax");
+    }
+    out("pushq	%rax");
+}
+
+char *reg(int no, int size) {
+    char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9" };
+    char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d" };
+    return size == 8 ? regs8[no] : regs4[no];
+}
+
+void emit_var_arg_init(int no, int offset, int size) {
+    char buf[1000];
+    buf[0] = 0;
+    strcat(buf, size == 8 ? "movq" : "movl");
+    strcat(buf, "\t");
+    strcat(buf, reg(no, size));
+    strcat(buf, ", -");
+    out_int(buf, offset, "(%rbp)");
+}
+
+void emit_pop_argv(int no) {
+    out_str("popq	", reg(no, 8), "");
+}
+
+void emit_call(char *name) {
+    out("movb $0, %al");
+    out_str("call	", name, "");
     out("pushq	%rax");
 }
 
@@ -213,7 +244,7 @@ void compile(int pos) {
             emit_var_ref(p->value.int_value);
             break;
         case TYPE_VAR_VAL:
-            emit_var_val(p->value.int_value);
+            emit_var_val(p->value.int_value, p->t->size);
             break;
 
         case TYPE_BIND:
@@ -346,6 +377,16 @@ void compile(int pos) {
             emit_jmp(func_return_label);
             break;
 
+        case TYPE_APPLY: {
+            func *f = (func *)(p->value.ptr_value);
+            for (int i=0; i<f->argc; i++) {
+                compile((p+i+1)->value.atom_pos);
+                emit_pop_argv(i);
+            }
+            emit_call(f->name);
+        }
+            break;
+
         default:
             error("Invalid program");
     }
@@ -361,6 +402,11 @@ void compile_func(func *f) {
     out("pushq	%rbp");
     out("movq	%rsp, %rbp");
     out_int("subq	$", f->max_offset, ", %rsp");
+
+    for (int i=0; i<f->argc; i++) {
+        var *v = &(f->argv[i]);
+        emit_var_arg_init(i, v->offset, v->size);
+    }
 
     compile(f->body_pos);
 

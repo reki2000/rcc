@@ -14,7 +14,8 @@ typedef enum {
     T_IF, T_ELSE,
     T_FOR, T_WHILE, T_DO, T_BREAK, T_CONTINUE,
     T_AMP,
-    T_RETURN
+    T_RETURN,
+    T_COMMA
 } token_id;
 
 typedef struct {

@@ -243,6 +243,8 @@ void tokenize() {
             add_token(T_RPAREN);
         } else if (expect_c(';')) {
             add_token(T_SEMICOLON);
+        } else if (expect_c(',')) {
+            add_token(T_COMMA);
         } else if (expect_reserved_str("break")) {
             add_token(T_BREAK);
         } else if (expect_reserved_str("continue")) {

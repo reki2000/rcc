@@ -34,19 +34,22 @@ logical_and: equality ( '&&' equality )*
 equality: lessgreat ( ( '==' | '!=' ) lessgreat )*
 lessgreat: add ( ( '<' | '<=' | '>' | '>=' ) add )*
 add: mul ( ( '+' | '-' ) mul )*
-mul: not ( ( '*' | '/' | '%' ) not )*
+mul: primary ( ( '*' | '/' | '%' ) primary )*
 
-not: primary | '!' primary
+primary: literal | unary
+unary: literal | not | ref | '(' expr ')'
+not: '!' unary
 
-primary: literal | ref
+ref: ptr | ptr_deref | var | apply_func
+apply_func: func_name '(' expr? ( ',' expr )* ')'
 
-literal: int
-
-ref: ptr | ptr_deref | var | '(' expr ')'
 var: var_name
 ptr: '&' var_name
 ptr_deref: '*' var_name
 
+literal: int
+
+func_name: IDENT
 var_name: IDENT
 int: DIGIT*
 

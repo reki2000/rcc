@@ -25,15 +25,18 @@ int parse_literal() {
 }
 
 var *parse_var_name() {
+    int pos = get_token_pos();
     char *ident;
-    if (expect_ident(&ident)) {
-        var *v = find_var(ident);
-        if (v == 0) {
-            error_s("variable not found: ", ident);
-        }
-        return v;
+    if (!expect_ident(&ident)) {
+        return 0;
     }
-    return 0;
+    var *v = find_var(ident);
+    if (!v) {
+        debug_s("variable not declared: ", ident);
+        set_token_pos(pos);
+        return 0;
+    }
+    return v;
 }
 
 int parse_var() {
@@ -57,7 +60,6 @@ int parse_ptr_deref() {
 }
 
 int parse_ptr() {
-
     int pos;
     if (!expect(T_AMP)) {
         return 0;
@@ -69,33 +71,78 @@ int parse_ptr() {
     return alloc_ptr_atom(pos);
 }
 
+func *parse_func_name() {
+    int pos = get_token_pos();
+    char *ident;
+    if (!expect_ident(&ident)) {
+        return 0;
+    }
+    func *f = find_func_name(ident);
+    if (!f) {
+        debug_s("function not declared: ", ident);
+        set_token_pos(pos);
+        return 0;
+    }
+    return f;
+}
+
+int parse_apply_func() {
+    int pos;
+    func *f = parse_func_name();
+    if (!f) {
+        return 0;
+    }
+    if (!expect(T_LPAREN)) {
+        error("no '(' after func name");
+    }
+
+    pos = alloc_func_atom(f);
+    for (int i=1; i<f->argc + 1; i++) {
+        int arg_pos;
+        if (i != 1 && !expect(T_COMMA)) {
+            error("no comma between args");
+        }
+        arg_pos = parse_expr();
+        build_pos_atom(pos+i, TYPE_ARG, arg_pos);
+    }
+
+    if (!expect(T_RPAREN)) {
+        error("too much args or no ')' after func name");
+    }
+    return pos;
+}
+
 int parse_ref() {
     int pos;
     pos = parse_ptr();
-    if (pos != 0) {
+    if (pos) {
         return pos;
     }
     pos = parse_ptr_deref();
-    if (pos != 0) {
+    if (pos) {
         return pos;
     }
     pos = parse_var();
-    if (pos != 0) {
+    if (pos) {
         return pos;
     }
+    pos = parse_apply_func();
+    if (pos) {
+        return pos;
+    }
+    debug("parsing (expr)...");
 
-    if (expect(T_LPAREN)) {
-        pos = parse_expr();
-        if (pos == 0) {
-            error("Invalid expr within '()'");
-        }
-        if (!expect(T_RPAREN)) {
-            error("no ')' after '('");
-        }
-        debug("parse_primary: parsed expr");
-        return pos;
+    if (!expect(T_LPAREN)) {
+        return 0;
     }
-    return 0;
+    pos = parse_expr();
+    if (!pos) {
+        error("Invalid expr within '()'");
+    }
+    if (!expect(T_RPAREN)) {
+        error("no ')' after '('");
+    }
+    return pos;
 }
 
 int parse_primary() {
@@ -103,13 +150,11 @@ int parse_primary() {
 
     pos = parse_literal();
     if (pos != 0) {
-        debug("parse_primary: parsed literal");
         return pos;
     } 
 
     pos = parse_ref();
     if (pos != 0) {
-        debug("parse_primary: parsed ref");
         return pos;
     }
 
@@ -158,7 +203,6 @@ int parse_mul() {
 
         lpos = alloc_binop_atom(type, lpos, rpos);
     }
-    debug_i("parse_mul: parsed mul @", lpos);
     return lpos;
 }
 
@@ -184,7 +228,6 @@ int parse_add() {
         }
         lpos = alloc_binop_atom(type, lpos, rpos);
     }
-    debug_i("parse_expr: parsed @", lpos);
     return lpos;
 }
 
@@ -501,8 +544,7 @@ int parse_statement() {
     return pos;
 }
 
-int parse_var_declare() {
-    char *ident;
+type_s *parse_type_declare() {
     char *type_name;
     type_s *t;
 
@@ -520,6 +562,50 @@ int parse_var_declare() {
 
     if (expect(T_MUL)) {
         t = add_pointer_type(t);
+    }
+    return t;
+}
+
+int parse_func_var_declare() {
+    char *ident;
+
+    type_s *t = parse_type_declare();
+    if (!t) {
+        return 0;
+    }
+
+    if (!expect_ident(&ident)) {
+        error("parse_var_declare: invalid name");
+    }
+    add_var(ident, t);
+    debug_s("parse_var_declare: parsed: ", ident);
+    return 1;
+}
+
+int parse_func_args() {
+    int argc = 0;
+
+    if (!parse_func_var_declare()) {
+        return 0;
+    }
+    argc++;
+
+    while (expect(T_COMMA)) {
+        if (!parse_func_var_declare()) {
+            error("Invalid argv");
+        }
+        argc++;
+    }
+    return argc;
+}
+
+
+int parse_var_declare() {
+    char *ident;
+
+    type_s *t = parse_type_declare();
+    if (!t) {
+        return 0;
     }
 
     if (!expect_ident(&ident)) {
@@ -588,6 +674,7 @@ int parse_function() {
     type_s *t;
     int body_pos;
     func *f;
+    frame *frame;
 
     int pos = get_token_pos();
 
@@ -611,18 +698,26 @@ int parse_function() {
     if (!expect(T_LPAREN)) {
         error("parse_function: no '('");
     }
+
+    reset_var_max_offset();
+    enter_var_frame();
+
+    parse_func_args();
+
     if (!expect(T_RPAREN)) {
         error("parse_function: no ')'");
     }
 
-    reset_var_max_offset();
     body_pos = parse_block();
     if (!body_pos) {
         error_s("No body for function: ", ident);
     }
 
-    f = add_function(ident, t, 0, 0);
+    frame = get_top_frame();
+    f = add_function(ident, t, frame->num_vars, frame->vars);
     func_set_body(f, body_pos, var_max_offset());
+
+    exit_var_frame();
     return 1;
 }
 

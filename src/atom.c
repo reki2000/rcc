@@ -5,6 +5,7 @@
 #include "types.h"
 #include "type.h"
 #include "var.h"
+#include "func.h"
 #include "atom.h"
 
 atom program[10000];
@@ -15,7 +16,7 @@ char *atom_name[] = {
     "var_val", "var_ref", "nop", "expr_stmt", "andthen", "global", "print", "bind",
     "==","!=","<", ">", ">=", "<=", "&&", "||", "!",
     "if", "for", "while", "dowhile", "break", "continue",
-    "&(ptr_of)", "*(val_of)", "func", "return"
+    "&(ptr_of)", "*(val_of)", "func", "return", "apply"
 };
 
 int alloc_atom(int size) {
@@ -35,10 +36,12 @@ void dump_atom(int pos) {
     _strcat3(buf, "atom#", pos, ",[");
     strcat(buf, atom_name[p->type]);
     strcat(buf, "] value:");
-    if (p->type == TYPE_GLOBAL_IDENT) {
-        strcat(buf, p->value.str_value);
-    } else {
-        _strcat3(buf, "", p->value.int_value, "");
+    switch (p->type) {
+        case TYPE_APPLY:
+            strcat(buf, ((func *)(p->value.ptr_value))->name);
+            break;
+        default:
+            _strcat3(buf, "", p->value.int_value, "");
     }
     strcat(buf, " t:");
     strcat(buf, (p->t == 0) ? "?" : p->t->name);
@@ -93,6 +96,13 @@ int alloc_deref_atom(int target) {
     return pos;
 }
 
+int alloc_func_atom(func *f) {
+    int pos = alloc_atom(f->argc + 1);
+    build_ptr_atom(pos, TYPE_APPLY, (void *)f);
+    atom_set_type(pos, f->ret_type);
+    return pos;
+}
+
 int alloc_ptr_atom(int target) {
     int pos = alloc_atom(1);
     build_int_atom(pos, TYPE_PTR, target);
@@ -118,9 +128,9 @@ void build_int_atom(int pos, int type, int value) {
     a->t = find_type("int");
 }
 
-void build_string_atom(int pos, int type, char * value) {
+void build_ptr_atom(int pos, int type, void * value) {
     program[pos].type = type;
-    program[pos].value.str_value = value;
+    program[pos].value.ptr_value = value;
 }
 
 void build_pos_atom(int pos, int type, int value) {

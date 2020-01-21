@@ -17,6 +17,7 @@ extern int env_top;
 
 extern void enter_var_frame();
 extern void exit_var_frame();
+extern frame *get_top_frame();
 extern void add_var(char *, type_s *);
 extern int find_var_offset(char *);
 extern var *find_var(char *);

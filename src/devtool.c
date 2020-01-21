@@ -54,7 +54,7 @@ void error_s(char *str, char *val) {
 }
 
 char *_slice(char *src, int count) {
-    char *ret = _malloc(count);
+    char *ret = _malloc(count + 1);
     char *d = ret;
     for (;count>0;count--) {
         if (*src == 0) {
