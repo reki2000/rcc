@@ -4,7 +4,10 @@ int add(int *i1, int i2) {
 
 int main() {
     int i;
+    int *j;
     i = 1;
-    return add(&i, 2);
+    j = &i;
+    *j = 5;
+    return add(&i, *j);
 }
 
