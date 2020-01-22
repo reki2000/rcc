@@ -32,7 +32,11 @@ enum {
     TYPE_PTR_DEREF,
     TYPE_FUNC,
     TYPE_RETURN,
-    TYPE_APPLY
+    TYPE_APPLY,
+    TYPE_PREFIX_INC,
+    TYPE_PREFIX_DEC,
+    TYPE_POSTFIX_INC,
+    TYPE_POSTFIX_DEC
 };
 
 extern char* atom_name[];

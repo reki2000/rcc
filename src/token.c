@@ -229,8 +229,12 @@ void tokenize() {
             add_token(T_SLASH);
         } else if (expect_c('%')) {
             add_token(T_PERCENT);
+        } else if (expect_str("++")) {
+            add_token(T_INC);
         } else if (expect_c('+')) {
             add_token(T_PLUS);
+        } else if (expect_str("--")) {
+            add_token(T_DEC);
         } else if (expect_c('-')) {
             add_token(T_MINUS);
         } else if (expect_c('{')) {

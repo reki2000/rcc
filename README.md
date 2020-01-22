@@ -37,10 +37,9 @@ add: mul ( ( '+' | '-' ) mul )*
 mul: primary ( ( '*' | '/' | '%' ) primary )*
 
 primary: literal | unary | '(' expr ')'
-unary: not | ref
+unary: not | int | dec | ref
 not: '!' primary
-inc: primary '++'
-dec: primary '--'
+prefix_incdec: ( '++' | '--' ) primary
 
 ref: ptr | ptr_deref | var | apply_func
 apply_func: func_name '(' expr? ( ',' expr )* ')'

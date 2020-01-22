@@ -97,6 +97,64 @@ void emit_var_ref(int i) {
     out("pushq	%rax");
 }
 
+void emit_prefix_inc(int size) {
+    out("popq	%rax");
+    if (size == 8) {
+        out("movq	(%rax), %rdx");
+        out("incq	%rdx");
+        out("movq	%rdx, (%rax)");
+    } else {
+        out("movl	(%rax), %edx");
+        out("incl	%edx");
+        out("movl	%edx, (%rax)");
+    }
+    out("pushq	%rdx");
+}
+
+void emit_prefix_dec(int size) {
+    out("popq	%rax");
+    if (size == 8) {
+        out("movq	(%rax), %rdx");
+        out("decq	%rdx");
+        out("movq	%rdx, (%rax)");
+    } else {
+        out("movl	(%rax), %edx");
+        out("decl	%edx");
+        out("movl	%edx, (%rax)");
+    }
+    out("pushq	%rdx");
+}
+
+void emit_postfix_inc(int size) {
+    out("popq	%rax");
+    if (size == 8) {
+        out("movq	(%rax), %rdx");
+        out("pushq	%rdx");
+        out("incq	%rdx");
+        out("movq	%rdx, (%rax)");
+    } else {
+        out("movl	(%rax), %edx");
+        out("pushq	%rdx");
+        out("incl	%edx");
+        out("movl	%edx, (%rax)");
+    }
+}
+
+void emit_postfix_dec(int size) {
+    out("popq	%rax");
+    if (size == 8) {
+        out("movq	(%rax), %rdx");
+        out("pushq	%rdx");
+        out("decq	%rdx");
+        out("movq	%rdx, (%rax)");
+    } else {
+        out("movl	(%rax), %edx");
+        out("pushq	%rdx");
+        out("decl	%edx");
+        out("movl	%edx, (%rax)");
+    }
+}
+
 void emit_copy(int size) {
     out("popq	%rax");
     out("popq	%rdx");
@@ -300,6 +358,26 @@ void compile(int pos) {
                 case TYPE_LOG_AND: emit_log_and(); break;
             }
             break;
+        case TYPE_PREFIX_DEC:
+            compile(p->value.atom_pos);
+            emit_prefix_dec(p->t->size);
+            break;
+
+        case TYPE_PREFIX_INC:
+            compile(p->value.atom_pos);
+            emit_prefix_inc(p->t->size);
+            break;
+
+        case TYPE_POSTFIX_DEC:
+            compile(p->value.atom_pos);
+            emit_postfix_dec(p->t->size);
+            break;
+
+        case TYPE_POSTFIX_INC:
+            compile(p->value.atom_pos);
+            emit_postfix_inc(p->t->size);
+            break;
+
         case TYPE_NOP:
             break;
 

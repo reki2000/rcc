@@ -171,9 +171,29 @@ int parse_not() {
     return 0;
 }
 
+int parse_prefix_incdec() {
+    int pos;
+    int op_type = 0;
+    if (expect(T_INC)) {
+        op_type = TYPE_PREFIX_INC;
+    } else if (expect(T_DEC)) {
+        op_type = TYPE_PREFIX_DEC;
+    } else {
+        return 0;
+    }
+    pos = parse_primary();
+    if (!pos) {
+        error("Invalid expr after '++'|'--'");
+    }
+    return alloc_pos_atom(op_type, alloc_ptr_atom(pos));
+}
+
 int parse_unary() {
     int pos;
     pos = parse_not();
+    if (pos) return pos;
+
+    pos = parse_prefix_incdec();
     if (pos) return pos;
 
     pos = parse_ref();
