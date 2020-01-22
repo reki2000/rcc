@@ -97,9 +97,14 @@ void emit_var_ref(int i) {
     out("pushq	%rax");
 }
 
-void emit_copy() {
+void emit_copy(int size) {
     out("popq	%rax");
     out("popq	%rdx");
+    if (size == 8) {
+        out("movq	%rdx, (%rax)");
+    } else {
+        out("movl	%edx, (%rax)");
+    }
     out("movl	%edx, (%rax)");
     out("pushq	%rdx");
 }
@@ -250,7 +255,7 @@ void compile(int pos) {
         case TYPE_BIND:
             compile(p->value.atom_pos); // rvalue
             compile((p+1)->value.atom_pos); // lvalue - should be an address
-            emit_copy();
+            emit_copy(p->t->size);
             break;
         case TYPE_PTR:
             compile(p->value.atom_pos);
@@ -410,6 +415,7 @@ void compile_func(func *f) {
 
     compile(f->body_pos);
 
+    out("xor	%eax, %eax");
     emit_label(func_return_label);
     out("leave");
     out("ret");

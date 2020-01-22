@@ -6,6 +6,7 @@
 #include "type.h"
 #include "token.h"
 #include "var.h"
+#include "func.h"
 #include "atom.h"
 
 void debug(char *str) {

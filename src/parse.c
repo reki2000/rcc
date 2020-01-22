@@ -7,8 +7,8 @@
 
 #include "token.h"
 #include "var.h"
-#include "atom.h"
 #include "func.h"
+#include "atom.h"
 
 int parse_expr();
 
@@ -708,13 +708,14 @@ int parse_function() {
         error("parse_function: no ')'");
     }
 
+    frame = get_top_frame();
+    f = add_function(ident, t, frame->num_vars, frame->vars);
+
     body_pos = parse_block();
     if (!body_pos) {
         error_s("No body for function: ", ident);
     }
 
-    frame = get_top_frame();
-    f = add_function(ident, t, frame->num_vars, frame->vars);
     func_set_body(f, body_pos, var_max_offset());
 
     exit_var_frame();

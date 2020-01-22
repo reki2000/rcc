@@ -5,6 +5,7 @@
 #include "types.h"
 #include "type.h"
 #include "var.h"
+#include "func.h"
 #include "atom.h"
 
 frame env[100];
