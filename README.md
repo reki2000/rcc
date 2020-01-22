@@ -36,9 +36,9 @@ lessgreat: add ( ( '<' | '<=' | '>' | '>=' ) add )*
 add: mul ( ( '+' | '-' ) mul )*
 mul: primary ( ( '*' | '/' | '%' ) primary )*
 
-primary: literal | unary
-unary: literal | not | ref | '(' expr ')'
-not: '!' unary
+primary: literal | unary | '(' expr ')'
+unary: not | ref
+not: '!' primary
 
 ref: ptr | ptr_deref | var | apply_func
 apply_func: func_name '(' expr? ( ',' expr )* ')'

@@ -11,6 +11,7 @@
 #include "atom.h"
 
 int parse_expr();
+int parse_primary();
 
 int parse_int() {
     int value;
@@ -115,70 +116,67 @@ int parse_apply_func() {
 int parse_ref() {
     int pos;
     pos = parse_ptr();
-    if (pos) {
-        return pos;
-    }
+    if (pos) return pos;
+
     pos = parse_ptr_deref();
-    if (pos) {
-        return pos;
-    }
+    if (pos) return pos;
+
     pos = parse_var();
-    if (pos) {
-        return pos;
-    }
+    if (pos) return pos;
+
     pos = parse_apply_func();
-    if (pos) {
-        return pos;
-    }
-    debug("parsing (expr)...");
-
-    if (!expect(T_LPAREN)) {
-        return 0;
-    }
-    pos = parse_expr();
-    if (!pos) {
-        error("Invalid expr within '()'");
-    }
-    if (!expect(T_RPAREN)) {
-        error("no ')' after '('");
-    }
-    return pos;
-}
-
-int parse_primary() {
-    int pos;
-
-    pos = parse_literal();
-    if (pos != 0) {
-        return pos;
-    } 
-
-    pos = parse_ref();
-    if (pos != 0) {
-        return pos;
-    }
+    if (pos) return pos;
 
     return 0;
 }
 
 int parse_not() {
+    int pos;
     if (expect(T_L_NOT)) {
-        int pos = parse_primary();
-        if (pos == 0) {
+        pos = parse_primary();
+        if (!pos) {
             error("Invalid '!'");
         }
         debug("parse_not: parsed");
         return alloc_pos_atom(TYPE_LOG_NOT, pos);
     }
-    return parse_primary();
+    return 0;
 }
 
 int parse_unary() {
-    return parse_not();
+    int pos;
+    pos = parse_not();
+    if (pos) return pos;
+
+    pos = parse_ref();
+    if (pos) return pos;
+
+    return 0;
+}
+
+int parse_primary() {
+    int pos;
+    pos = parse_literal();
+    if (pos) return pos;
+
+    pos = parse_unary();
+    if (pos) return pos;
+
+    if (expect(T_LPAREN)) {
+        pos = parse_expr();
+        if (!pos) {
+            error("Invalid expr within '()'");
+        }
+        if (!expect(T_RPAREN)) {
+            error("no ')' after '('");
+        }
+        return pos;
+    }
+    return 0;
 }
 
 int parse_mul() {
-    int lpos = parse_unary();
+    int lpos = parse_primary();
     if (lpos == 0) {
         return 0;
     }
@@ -196,7 +194,7 @@ int parse_mul() {
             break;
         }
 
-        rpos = parse_unary();
+        rpos = parse_primary();
         if (rpos == 0) {
             return 0;
         }

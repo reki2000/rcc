@@ -29,14 +29,14 @@ typedef struct {
     int src_pos;
 } token;
 
-bool expect(token_id id);
-bool expect_int(int *value);
-bool expect_ident(char **value);
+extern bool expect(token_id id);
+extern bool expect_int(int *value);
+extern bool expect_ident(char **value);
 
-void tokenize();
-int get_token_pos();
-void set_token_pos(int pos);
-bool is_eot();
-void init();
+extern void tokenize();
+extern int get_token_pos();
+extern void set_token_pos(int pos);
+extern bool is_eot();
+extern void init();
 
-void dump_tokens();
+extern void dump_tokens();
