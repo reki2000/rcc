@@ -214,7 +214,7 @@ void tokenize() {
         } else if (expect_c('&')) {
             add_token(T_AMP);
         } else if (expect_c('=')) {
-            add_token(T_BIND);
+            add_token(T_EQUAL);
         } else if (expect_str("<=")) {
             add_token(T_LE);
         } else if (expect_c('<')) {
@@ -224,15 +224,15 @@ void tokenize() {
         } else if (expect_c('>')) {
             add_token(T_GT);
         } else if (expect_c('*')) {
-            add_token(T_MUL);
+            add_token(T_ASTERISK);
         } else if (expect_c('/')) {
-            add_token(T_DIV);
+            add_token(T_SLASH);
         } else if (expect_c('%')) {
-            add_token(T_MOD);
+            add_token(T_PERCENT);
         } else if (expect_c('+')) {
-            add_token(T_ADD);
+            add_token(T_PLUS);
         } else if (expect_c('-')) {
-            add_token(T_SUB);
+            add_token(T_MINUS);
         } else if (expect_c('{')) {
             add_token(T_LBLACE);
         } else if (expect_c('}')) {

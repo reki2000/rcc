@@ -49,7 +49,7 @@ int parse_var() {
 
 int parse_ptr_deref() {
     int pos;
-    if (!expect(T_MUL)) {
+    if (!expect(T_ASTERISK)) {
         return 0;
     }
     pos = parse_var();
@@ -186,11 +186,11 @@ int parse_mul() {
     for (;;) {
         int rpos;
         int type;
-        if (expect(T_MUL)) {
+        if (expect(T_ASTERISK)) {
             type = TYPE_MUL;
-        } else if (expect(T_DIV)) {
+        } else if (expect(T_SLASH)) {
             type = TYPE_DIV;
-        } else if (expect(T_MOD)) {
+        } else if (expect(T_PERCENT)) {
             type = TYPE_MOD;
         } else {
             break;
@@ -215,9 +215,9 @@ int parse_add() {
     for (;;) {
         int rpos;
         int type;
-        if (expect(T_ADD)) {
+        if (expect(T_PLUS)) {
             type = TYPE_ADD;
-        } else if (expect(T_SUB)) {
+        } else if (expect(T_MINUS)) {
             type = TYPE_SUB;
         } else {
             break;
@@ -331,7 +331,7 @@ int parse_expr() {
     if (lval == 0) {
         return 0;
     }
-    if (!expect(T_BIND)) {
+    if (!expect(T_EQUAL)) {
         return lval;
     }
     rval = parse_value();
@@ -560,7 +560,7 @@ type_s *parse_type_declare() {
         return 0;
     };
 
-    if (expect(T_MUL)) {
+    if (expect(T_ASTERISK)) {
         t = add_pointer_type(t);
     }
     return t;
@@ -688,7 +688,7 @@ int parse_function() {
         return 0;
     };
 
-    if (expect(T_MUL)) {
+    if (expect(T_ASTERISK)) {
         t = add_pointer_type(t);
     }
 

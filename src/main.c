@@ -114,28 +114,28 @@ void emit_pop() {
     out("");
 }
 
-void emit_add() {
+void emiT_PLUS() {
     out("popq	%rdx");
     out("popq	%rax");
     out("addl	%edx, %eax");
     out("pushq	%rax");
 }
 
-void emit_sub() {
+void emiT_MINUS() {
     out("popq	%rdx");
     out("popq	%rax");
     out("subl	%edx, %eax");
     out("pushq	%rax");
 }
 
-void emit_mul() {
+void emiT_ASTERISK() {
     out("popq	%rdx");
     out("popq	%rax");
     out("imull	%edx, %eax");
     out("pushq	%rax");
 }
 
-void emit_div() {
+void emiT_SLASH() {
     out("popq	%rcx");
     out("popq	%rax");
     out("cdq");
@@ -143,7 +143,7 @@ void emit_div() {
     out("pushq	%rax");
 }
 
-void emit_mod() {
+void emiT_PERCENT() {
     out("popq	%rcx");
     out("popq	%rax");
     out("cdq");
@@ -285,11 +285,11 @@ void compile(int pos) {
             compile(p->value.atom_pos);
             compile((p+1)->value.atom_pos);
             switch (p->type) {
-                case TYPE_ADD: emit_add(); break;
-                case TYPE_SUB: emit_sub(); break;
-                case TYPE_DIV: emit_div(); break;
-                case TYPE_MOD: emit_mod(); break;
-                case TYPE_MUL: emit_mul(); break;
+                case TYPE_ADD: emiT_PLUS(); break;
+                case TYPE_SUB: emiT_MINUS(); break;
+                case TYPE_DIV: emiT_SLASH(); break;
+                case TYPE_MOD: emiT_PERCENT(); break;
+                case TYPE_MUL: emiT_ASTERISK(); break;
                 case TYPE_EQ_EQ: emit_eq_eq(); break;
                 case TYPE_EQ_NE: emit_eq_ne(); break;
                 case TYPE_EQ_LE: emit_eq_le(); break;
