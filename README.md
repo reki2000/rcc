@@ -39,6 +39,8 @@ mul: primary ( ( '*' | '/' | '%' ) primary )*
 primary: literal | unary | '(' expr ')'
 unary: not | ref
 not: '!' primary
+inc: primary '++'
+dec: primary '--'
 
 ref: ptr | ptr_deref | var | apply_func
 apply_func: func_name '(' expr? ( ',' expr )* ')'
@@ -47,7 +49,8 @@ var: var_name
 ptr: '&' var_name
 ptr_deref: '*' var_name
 
-literal: int
+literal: signed_int | int
+signed_int: ( '+' | '-' ) int
 
 func_name: IDENT
 var_name: IDENT

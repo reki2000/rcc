@@ -21,8 +21,36 @@ int parse_int() {
     return 0;
 }
 
+int parse_signed_int() {
+    int pos;
+    if (expect(T_PLUS)) {
+        pos = parse_int();
+        if (!pos) {
+            error("not number after +");
+        }
+        return pos;
+    }
+
+    if (expect(T_MINUS)) {
+        pos = parse_int();
+        if (!pos) {
+            error("not number after -");
+        }
+        return alloc_binop_atom(TYPE_SUB, alloc_int_atom(TYPE_INT, 0), pos);
+    }
+
+    return 0;
+}
+
 int parse_literal() {
-    return parse_int();
+    int pos;
+    pos = parse_int();
+    if (pos) return pos;
+
+    pos = parse_signed_int();
+    if (pos) return pos;
+
+    return 0;
 }
 
 var *parse_var_name() {
