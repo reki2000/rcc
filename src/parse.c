@@ -23,18 +23,16 @@ int parse_int() {
 
 int parse_signed_int() {
     int pos;
+    int start_pos = get_token_pos();
     if (expect(T_PLUS)) {
-        pos = parse_int();
-        if (!pos) {
-            error("not number after +");
-        }
-        return pos;
+        return parse_int();
     }
 
     if (expect(T_MINUS)) {
         pos = parse_int();
         if (!pos) {
-            error("not number after -");
+            set_token_pos(start_pos);
+            return 0;
         }
         return alloc_binop_atom(TYPE_SUB, alloc_int_atom(TYPE_INT, 0), pos);
     }
@@ -76,28 +74,25 @@ int parse_var() {
     return 0;
 }
 
-int parse_ptr_deref() {
+int parse_primary() {
     int pos;
-    if (!expect(T_ASTERISK)) {
-        return 0;
-    }
-    pos = parse_var();
-    if (pos == 0) {
-        error("invalid expr after *");
-    }
-    return alloc_deref_atom(pos);
-}
+    pos = parse_literal();
+    if (pos) return pos;
 
-int parse_ptr() {
-    int pos;
-    if (!expect(T_AMP)) {
-        return 0;
-    }
     pos = parse_var();
-    if (pos == 0) {
-        error("invalid expr after &");
+    if (pos) return pos;
+
+    if (expect(T_LPAREN)) {
+        pos = parse_expr();
+        if (!pos) {
+            error("Invalid expr within '()'");
+        }
+        if (!expect(T_RPAREN)) {
+            error("no ')' after '('");
+        }
+        return pos;
     }
-    return alloc_ptr_atom(pos);
+    return 0;
 }
 
 func *parse_func_name() {
@@ -143,11 +138,6 @@ int parse_apply_func() {
 
 int parse_ref() {
     int pos;
-    pos = parse_ptr();
-    if (pos) return pos;
-
-    pos = parse_ptr_deref();
-    if (pos) return pos;
 
     pos = parse_var();
     if (pos) return pos;
@@ -158,17 +148,28 @@ int parse_ref() {
     return 0;
 }
 
-int parse_not() {
+int parse_postfix() {
     int pos;
-    if (expect(T_L_NOT)) {
-        pos = parse_primary();
+    int op_type = 0;
+
+    pos = parse_primary();
+    if (!pos) {
+        pos = parse_apply_func();
         if (!pos) {
-            error("Invalid '!'");
+            return 0;
         }
-        debug("parse_not: parsed");
-        return alloc_pos_atom(TYPE_LOG_NOT, pos);
     }
-    return 0;
+
+    if(expect(T_INC)) {
+        op_type = TYPE_POSTFIX_INC;
+    } else if(expect(T_DEC)) {
+        op_type = TYPE_POSTFIX_DEC;
+    }
+    if (op_type) {
+        return alloc_pos_atom(op_type, alloc_ptr_atom(pos));
+    }
+
+    return pos;
 }
 
 int parse_prefix_incdec() {
@@ -188,43 +189,93 @@ int parse_prefix_incdec() {
     return alloc_pos_atom(op_type, alloc_ptr_atom(pos));
 }
 
-int parse_unary() {
+int parse_ptr_deref() {
     int pos;
-    pos = parse_not();
+    if (!expect(T_ASTERISK)) {
+        return 0;
+    }
+    pos = parse_var();
+    if (pos == 0) {
+        error("invalid expr after *");
+    }
+    return alloc_deref_atom(pos);
+}
+
+int parse_ptr() {
+    int pos;
+    if (!expect(T_AMP)) {
+        return 0;
+    }
+    pos = parse_var();
+    if (pos == 0) {
+        error("invalid expr after &");
+    }
+    return alloc_ptr_atom(pos);
+}
+
+int parse_prefix();
+
+int parse_signed() {
+    int pos;
+    if (expect(T_PLUS)) {
+        pos = parse_prefix();
+        if (!pos) {
+            error("Invalid '+'");
+        }
+        return pos;
+    }
+    if (expect(T_MINUS)) {
+        pos = parse_prefix();
+        if (!pos) {
+            error("Invalid '-'");
+        }
+        return alloc_binop_atom(TYPE_SUB, alloc_int_atom(TYPE_INT, 0), pos);
+    }
+    return 0;
+}
+
+int parse_logical_not() {
+    int pos;
+    if (expect(T_L_NOT)) {
+        pos = parse_primary();
+        if (!pos) {
+            error("Invalid '!'");
+        }
+        return alloc_pos_atom(TYPE_LOG_NOT, pos);
+    }
+    return 0;
+}
+
+int parse_prefix() {
+    int pos;
+
+    pos = parse_postfix();
+    if (pos) return pos;
+
+    pos = parse_logical_not();
+    if (pos) return pos;
+
+    pos = parse_signed();
+    if (pos) return pos;
+
+    pos = parse_ptr();
+    if (pos) return pos;
+
+    pos = parse_ptr_deref();
     if (pos) return pos;
 
     pos = parse_prefix_incdec();
     if (pos) return pos;
 
-    pos = parse_ref();
-    if (pos) return pos;
-
     return 0;
 }
 
-int parse_primary() {
-    int pos;
-    pos = parse_literal();
-    if (pos) return pos;
-
-    pos = parse_unary();
-    if (pos) return pos;
-
-    if (expect(T_LPAREN)) {
-        pos = parse_expr();
-        if (!pos) {
-            error("Invalid expr within '()'");
-        }
-        if (!expect(T_RPAREN)) {
-            error("no ')' after '('");
-        }
-        return pos;
-    }
-    return 0;
+int parse_unary() {
+    return parse_prefix();
 }
 
 int parse_mul() {
-    int lpos = parse_primary();
+    int lpos = parse_unary();
     if (lpos == 0) {
         return 0;
     }
@@ -242,7 +293,7 @@ int parse_mul() {
             break;
         }
 
-        rpos = parse_primary();
+        rpos = parse_unary();
         if (rpos == 0) {
             return 0;
         }

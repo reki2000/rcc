@@ -9,12 +9,12 @@ run `make` and you get executed result of `test/test.c`
 
 ## Current BNF
 ```
-program: function*
+program: function* eof
 
 function: 'int' '*'? func_name '(' var_declare? ( ',' var_declare )* ')' block
 
 block: '{' var_delcare* ( block_or_statement )* '}' <eof>
-block_or_statement: = ( statement | block )
+block_or_statement: ( statement | block )
 var_declare: 'int' '*'? var_name ';'
 
 statement: ';' | print_statement | if_statement | while_statement | for_statement | do_while_statement | expr_statement | return_statement
@@ -34,19 +34,22 @@ logical_and: equality ( '&&' equality )*
 equality: lessgreat ( ( '==' | '!=' ) lessgreat )*
 lessgreat: add ( ( '<' | '<=' | '>' | '>=' ) add )*
 add: mul ( ( '+' | '-' ) mul )*
-mul: primary ( ( '*' | '/' | '%' ) primary )*
+mul: unary ( ( '*' | '/' | '%' ) unary )*
 
-primary: literal | unary | '(' expr ')'
-unary: not | int | dec | ref
-not: '!' primary
-prefix_incdec: ( '++' | '--' ) primary
+unary: prefix
 
-ref: ptr | ptr_deref | var | apply_func
-apply_func: func_name '(' expr? ( ',' expr )* ')'
-
-var: var_name
+prefix: postfix | logical_not | signed | ptr | ptr_deref | prefix_incdec
+logical_not: '!' prefix
+signed ( '+' | '-' ) prefix
 ptr: '&' var_name
 ptr_deref: '*' var_name
+prefix_incdec: ( '++' | '--' ) var_name
+
+postfix: primary | apply_func | postfix_incdec
+apply_func: func_name '(' expr? ( ',' expr )* ')'
+postfix_incdec: postfix ( '++' | '--' )
+
+primary: var_name | literal | '(' expr ')'
 
 literal: signed_int | int
 signed_int: ( '+' | '-' ) int
