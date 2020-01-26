@@ -36,7 +36,8 @@ enum {
     TYPE_PREFIX_INC,
     TYPE_PREFIX_DEC,
     TYPE_POSTFIX_INC,
-    TYPE_POSTFIX_DEC
+    TYPE_POSTFIX_DEC,
+    TYPE_STRING
 };
 
 extern char* atom_name[];
@@ -73,4 +74,5 @@ bool atom_same_type(int, int);
 int alloc_var_atom(var *);
 int alloc_deref_atom(int);
 int alloc_ptr_atom(int);
+int alloc_str_atom(int);
 int alloc_func_atom(func *);

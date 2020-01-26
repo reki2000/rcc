@@ -9,6 +9,7 @@
 #include "var.h"
 #include "func.h"
 #include "atom.h"
+#include "gstr.h"
 
 #include "parse.h"
 
@@ -51,9 +52,45 @@ void emit_int(int i) {
     out("pushq	%rax");
 }
 
+void emit_string(char* str) {
+    char buf[1024];
+    char *d;
+    buf[0] = 0;
+    strcat(buf, ".string\t");
+    d = buf + strlen(buf);
+    *d++ = '"';
+    while (*str) {
+        switch(*str) {
+            case '\n': *d++='\\'; *d = 'n'; break;
+            case '\r': *d++='\\'; *d = 'r'; break;
+            case '\t': *d++='\\'; *d = 't'; break;
+            case '\f': *d++='\\'; *d = 'f'; break;
+            case '\a': *d++='\\'; *d = 'a'; break;
+            case '\b': *d++='\\'; *d = 'b'; break;
+            case '\"': *d++='\\'; *d = '"'; break;
+            case '\'': *d++='\\'; *d = '\''; break;
+            case '\\': *d++='\\'; *d = '\\'; break;
+            default: *d = *str;
+        }
+        str++;
+        d++;
+    }
+    *d++ = '"';
+    *d = 0;
+    out(buf);
+}
+
+void emit_global_ref(int i) {
+    out_int("lea	.G", i, ", %rax");
+    out("pushq	%rax");
+}
+
+
 void emit_var_val(int i, int size) {
     if (size == 8) {
         out_int("movq	-", i, "(%rbp), %rax");
+    } else if (size == 1) {
+        out_int("movzbl	-", i, "(%rbp), %eax");
     } else {
         out_int("movl	-", i, "(%rbp), %eax");
     }
@@ -63,13 +100,14 @@ void emit_var_val(int i, int size) {
 char *reg(int no, int size) {
     char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9" };
     char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d" };
-    return size == 8 ? regs8[no] : regs4[no];
+    char *regs1[] = { "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b" };
+    return size == 8 ? regs8[no] : size == 4 ? regs4[no] : regs1[no];
 }
 
 void emit_var_arg_init(int no, int offset, int size) {
     char buf[1000];
     buf[0] = 0;
-    strcat(buf, size == 8 ? "movq" : "movl");
+    strcat(buf, size == 8 ? "movq" : size == 4 ? "movl" : "movb");
     strcat(buf, "\t");
     strcat(buf, reg(no, size));
     strcat(buf, ", -");
@@ -86,9 +124,15 @@ void emit_call(char *name) {
     out("pushq	%rax");
 }
 
-void emit_deref() {
+void emit_deref(int size) {
     out("popq	%rax");
-    out("movl	(%rax), %eax");
+    if (size == 8) {
+        out("movq	(%rax), %rax");
+    } else if (size == 4) {
+        out("movl	(%rax), %eax");
+    } else {
+        out("movzbl	(%rax), %eax");
+    }
     out("pushq	%rax");
 }
 
@@ -158,12 +202,13 @@ void emit_postfix_dec(int size) {
 void emit_copy(int size) {
     out("popq	%rax");
     out("popq	%rdx");
-    if (size == 8) {
-        out("movq	%rdx, (%rax)");
-    } else {
+    if (size == 4) {
         out("movl	%edx, (%rax)");
+    } else if (size == 1) {
+        out("movb	%dl, (%rax)");
+    } else {
+        out("movq	%rdx, (%rax)");
     }
-    out("movl	%edx, (%rax)");
     out("pushq	%rdx");
 }
 
@@ -172,28 +217,28 @@ void emit_pop() {
     out("");
 }
 
-void emiT_PLUS() {
+void emit_add() {
     out("popq	%rdx");
     out("popq	%rax");
     out("addl	%edx, %eax");
     out("pushq	%rax");
 }
 
-void emiT_MINUS() {
+void emit_sub() {
     out("popq	%rdx");
     out("popq	%rax");
     out("subl	%edx, %eax");
     out("pushq	%rax");
 }
 
-void emiT_ASTERISK() {
+void emit_mul() {
     out("popq	%rdx");
     out("popq	%rax");
     out("imull	%edx, %eax");
     out("pushq	%rax");
 }
 
-void emiT_SLASH() {
+void emit_div() {
     out("popq	%rcx");
     out("popq	%rax");
     out("cdq");
@@ -201,7 +246,7 @@ void emiT_SLASH() {
     out("pushq	%rax");
 }
 
-void emiT_PERCENT() {
+void emit_mod() {
     out("popq	%rcx");
     out("popq	%rax");
     out("cdq");
@@ -280,6 +325,13 @@ void emit_label(int i) {
     out_label(buf);
 }
 
+void emit_global_label(int i) {
+    char buf[100];
+    buf[0] = 0;
+    _strcat3(buf, ".G", i, "");
+    out_label(buf);
+}
+
 void emit_jmp(int i) {
     out_int("jmp .L", i, "");
 }
@@ -320,7 +372,7 @@ void compile(int pos) {
             break;
         case TYPE_PTR_DEREF:
             compile(p->value.atom_pos);
-            emit_deref();
+            emit_deref(p->t->size);
             break;
 
         case TYPE_INT: 
@@ -343,11 +395,11 @@ void compile(int pos) {
             compile(p->value.atom_pos);
             compile((p+1)->value.atom_pos);
             switch (p->type) {
-                case TYPE_ADD: emiT_PLUS(); break;
-                case TYPE_SUB: emiT_MINUS(); break;
-                case TYPE_DIV: emiT_SLASH(); break;
-                case TYPE_MOD: emiT_PERCENT(); break;
-                case TYPE_MUL: emiT_ASTERISK(); break;
+                case TYPE_ADD: emit_add(); break;
+                case TYPE_SUB: emit_sub(); break;
+                case TYPE_DIV: emit_div(); break;
+                case TYPE_MOD: emit_mod(); break;
+                case TYPE_MUL: emit_mul(); break;
                 case TYPE_EQ_EQ: emit_eq_eq(); break;
                 case TYPE_EQ_NE: emit_eq_ne(); break;
                 case TYPE_EQ_LE: emit_eq_le(); break;
@@ -469,6 +521,10 @@ void compile(int pos) {
             emit_call(f->name);
         }
             break;
+        
+        case TYPE_STRING:
+            emit_global_ref(p->value.int_value);
+            break;
 
         default:
             error("Invalid program");
@@ -520,6 +576,15 @@ int main() {
     out(".section	.rodata");
     out_label(".LC0");
     out(".string	\"%d\\n\"");
+
+    int gstr_i=0;
+    char *gstr;
+    while (gstr = find_global_string(gstr_i)) {
+        emit_global_label(gstr_i);
+        emit_string(gstr);
+        gstr_i++;
+    }
+    out("");
 
     out(".text");
     out("");

@@ -11,22 +11,24 @@ run `make` and you get executed result of `test/test.c`
 ```
 program: function* eof
 
-function: 'int' '*'? func_name '(' var_declare? ( ',' var_declare )* ')' block
+function: type func_name '(' var_declare? ( ',' var_declare )* ')' block
+
+type: ( 'int' | 'char' ) '*'*
 
 block: '{' var_delcare* ( block_or_statement )* '}' <eof>
 block_or_statement: ( statement | block )
-var_declare: 'int' '*'? var_name ';'
+var_declare: type var_name ';'
 
 statement: ';' | print_statement | if_statement | while_statement | for_statement | do_while_statement | expr_statement | return_statement
 if_statement: 'if' '(' expr ')' ( statement | block ( 'else' block_or_statement )? )
 for_statement: 'for' '(' expr ';' expr ';' expr ')' block_or_statement
 while_statement: 'while' '(' expr ')' block_or_statement
 do_while_statement: 'do' block 'while' '(' expr ')' ';'
-print_statement: 'print' expr ';'
+print_statement: 'print' '(' expr ');'
 return_statement: 'return' expr ';'
 expr_statement: expr ';'
 
-expr: value ( '=' value )?
+expr: value ( '=' expr )*
 
 value: logical_or
 logical_or: logical_and ( '||' logical_and )*
@@ -42,7 +44,7 @@ prefix: postfix | logical_not | signed | ptr | ptr_deref | prefix_incdec
 logical_not: '!' prefix
 signed ( '+' | '-' ) prefix
 ptr: '&' var_name
-ptr_deref: '*' var_name
+ptr_deref: '*' prefix
 prefix_incdec: ( '++' | '--' ) var_name
 
 postfix: primary | apply_func | postfix_incdec

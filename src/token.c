@@ -3,6 +3,7 @@
 #include <devtool.h>
 #include <types.h>
 #include <token.h>
+#include <gstr.h>
 
 token tokens[1024 * 128];
 int token_pos = 0;
@@ -125,6 +126,55 @@ bool parse_int_token(int *retval) {
     return TRUE;
 }
 
+bool parse_string_token(char **retval) {
+    char buf[1024];
+    int buf_pos = 0;
+    char *str;
+    int i;
+
+    skip();
+    if (ch() != '"') {
+        return FALSE;
+    }
+    next();
+    for (;;) {
+        if (buf_pos >= 1024) {
+            error("String too long");
+        }
+        int c = ch();
+        if (c == '"') {
+            next();
+            break;
+        }
+        if (c == '\\') {
+            next();
+            switch (ch()) {
+                case 'n': c = '\n'; break;
+                case '0': c = '\0'; break;
+                case 't': c = '\t'; break;
+                case 'r': c = '\r'; break;
+                case 'a': c = '\a'; break;
+                case 'b': c = '\b'; break;
+                case 'f': c = '\f'; break;
+                case '"': c = '"'; break;
+                case '\'': c = '\''; break;
+                case '\\': c = '\\'; break;
+                default: error("Invalid letter after escape");
+            }
+        }
+        buf[buf_pos++] = c;
+        next();
+    }
+
+    str = _malloc(buf_pos + 1);
+    for (i=0; i<buf_pos; i++) {
+        str[i] = buf[i];
+    }
+    str[i] = 0;
+    *retval = str;
+    return TRUE;
+}
+
 bool parse_ident_token(char **retval) {
     bool is_first = TRUE;
     char buf[100];
@@ -175,6 +225,11 @@ void add_token(token_id id) {
 void add_int_token(int val) {
     add_token(T_INT);
     tokens[token_len - 1].value.int_value = val;
+}
+
+void add_string_token(char *val) {
+    add_token(T_STRING);
+    tokens[token_len - 1].value.str_value = val;
 }
 
 void add_ident_token(char *s) {
@@ -272,6 +327,8 @@ void tokenize() {
             char *str;
             if (parse_int_token(&i)) {
                 add_int_token(i);
+            } else if (parse_string_token(&str)) {
+                add_string_token(str);
             } else if (parse_ident_token(&str)) {
                 add_ident_token(str);
             } else {
@@ -309,6 +366,15 @@ bool expect_int(int *value) {
 
 bool expect_ident(char **value) {
     if (tokens[token_pos].id == T_IDENT) {
+        *value = tokens[token_pos].value.str_value;
+        token_pos++;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+bool expect_string(char **value) {
+    if (tokens[token_pos].id == T_STRING) {
         *value = tokens[token_pos].value.str_value;
         token_pos++;
         return TRUE;

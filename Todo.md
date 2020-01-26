@@ -21,11 +21,14 @@
 * declare function with args
 * call function with args
 
-- regression test
+* regression test
 - AST design revisited
 
-- unary operators +,-
-- unary operators ++, --
+* unary operators +,-
+* string literal
+* prefix ++, --
+* postfix ++, --
+
 - operators += -= *= /= %= |= &= ^=
 
 - pointer + -

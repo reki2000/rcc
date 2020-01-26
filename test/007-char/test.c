@@ -5,6 +5,11 @@ int main() {
     int b;
     int c;
     char a;
+    char f;
+    char e;
+    int x;
+
+    x = 0;
     b = 0;
     c = 0;
     s = "ABCDEF";

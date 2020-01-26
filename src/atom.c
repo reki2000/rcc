@@ -17,7 +17,8 @@ char *atom_name[] = {
     "==","!=","<", ">", ">=", "<=", "&&", "||", "!",
     "if", "for", "while", "dowhile", "break", "continue",
     "&(ptr_of)", "*(val_of)", "func", "return", "apply",
-    "++n", "--n", "n++", "n--"
+    "++n", "--n", "n++", "n--",
+    "str"
 };
 
 int alloc_atom(int size) {
@@ -44,8 +45,19 @@ void dump_atom(int pos) {
         default:
             _strcat3(buf, "", p->value.int_value, "");
     }
+
     strcat(buf, " t:");
-    strcat(buf, (p->t == 0) ? "?" : p->t->name);
+    type_s *t = p->t;
+    while(t) {
+        if (t->ptr_to) {
+            strcat(buf, "*");
+            t = t->ptr_to;
+        } else {
+            strcat(buf, t->name);
+            break;
+        }
+    }
+
     strcat(buf, "\n");
     _write(2, buf, strlen(buf));
 }
@@ -91,8 +103,21 @@ int alloc_var_atom(var *v) {
 }
 
 int alloc_deref_atom(int target) {
+    if (!atom_type(target)->ptr_to) {
+        error("target is not pointer type");
+    }
     int pos = alloc_atom(1);
     build_int_atom(pos, TYPE_PTR_DEREF, target);
+    atom_set_type(pos, atom_type(target)->ptr_to);
+    return pos;
+}
+
+int alloc_deref_op_atom(int type, int target) {
+    if (!atom_type(target)->ptr_to) {
+        error("target is not pointer type");
+    }
+    int pos = alloc_atom(1);
+    build_int_atom(pos, type, target);
     atom_set_type(pos, atom_type(target)->ptr_to);
     return pos;
 }
@@ -119,6 +144,13 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
     int pos = alloc_atom(2);
     build_pos_atom(pos, type, lpos);
     build_pos_atom(pos+1, TYPE_ARG, rpos);
+    return pos;
+}
+
+int alloc_str_atom(int index) {
+    int pos = alloc_atom(1);
+    build_int_atom(pos, TYPE_STRING, index);
+    atom_set_type(pos, add_pointer_type(find_type("char")));
     return pos;
 }
 

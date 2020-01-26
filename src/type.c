@@ -9,6 +9,7 @@ int types_pos = 0;
 void init_types() {
     add_type("", 8, 0);    // for pointer
     add_type("int", 4, 0);
+    add_type("char", 1, 0);
 }
 
 void dump_type(type_s *t) {

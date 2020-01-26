@@ -52,7 +52,12 @@ void add_var(char *name, type_s *t) {
     }
     v = &(f->vars[f->num_vars]);
     f->num_vars++;
-    f->offset += t->size;
+
+    int size = t->size;
+    if (size != 1 && f->offset % 4 != 0) {
+        f->offset += (4-(f->offset % 4));
+    }
+    f->offset += size;
     if (f->offset > max_offset) {
         max_offset = f->offset;
     }

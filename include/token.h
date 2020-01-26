@@ -16,7 +16,8 @@ typedef enum {
     T_AMP,
     T_RETURN,
     T_COMMA,
-    T_INC, T_DEC
+    T_INC, T_DEC,
+    T_STRING
 } token_id;
 
 typedef struct {
@@ -33,6 +34,7 @@ typedef struct {
 extern bool expect(token_id id);
 extern bool expect_int(int *value);
 extern bool expect_ident(char **value);
+extern bool expect_string(char **value);
 
 extern void tokenize();
 extern int get_token_pos();

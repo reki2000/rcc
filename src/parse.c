@@ -9,6 +9,7 @@
 #include "var.h"
 #include "func.h"
 #include "atom.h"
+#include "gstr.h"
 
 int parse_expr();
 int parse_primary();
@@ -40,8 +41,20 @@ int parse_signed_int() {
     return 0;
 }
 
+int parse_string() {
+    char *s;
+    if (expect_string(&s)) {
+        return alloc_str_atom(add_global_string(s));
+    }
+    return 0;
+}
+
 int parse_literal() {
     int pos;
+
+    pos = parse_string();
+    if (pos) return pos;
+
     pos = parse_int();
     if (pos) return pos;
 
@@ -166,7 +179,7 @@ int parse_postfix() {
         op_type = TYPE_POSTFIX_DEC;
     }
     if (op_type) {
-        return alloc_pos_atom(op_type, alloc_ptr_atom(pos));
+        return alloc_deref_op_atom(op_type, alloc_ptr_atom(pos));
     }
 
     return pos;
@@ -186,15 +199,17 @@ int parse_prefix_incdec() {
     if (!pos) {
         error("Invalid expr after '++'|'--'");
     }
-    return alloc_pos_atom(op_type, alloc_ptr_atom(pos));
+    return alloc_deref_op_atom(op_type, alloc_ptr_atom(pos));
 }
+
+int parse_prefix();
 
 int parse_ptr_deref() {
     int pos;
     if (!expect(T_ASTERISK)) {
         return 0;
     }
-    pos = parse_var();
+    pos = parse_prefix();
     if (pos == 0) {
         error("invalid expr after *");
     }
@@ -212,8 +227,6 @@ int parse_ptr() {
     }
     return alloc_ptr_atom(pos);
 }
-
-int parse_prefix();
 
 int parse_signed() {
     int pos;
@@ -422,31 +435,25 @@ int parse_value() {
 
 int parse_expr() {
     int lval = parse_value();
-    int rval;
-    int pos;
-
     if (lval == 0) {
         return 0;
     }
-    if (!expect(T_EQUAL)) {
-        return lval;
+
+    while (expect(T_EQUAL)) {
+        int rval = parse_expr();
+        if (!rval) {
+            error("cannot find rvalue");
+        }
+        if (!atom_same_type(lval, rval)) {
+            error("not same type");
+        }
+        lval = atom_to_lvalue(lval);
+        if (!lval) {
+            error("cannot bind - not lvalue");
+        }
+        lval = alloc_binop_atom(TYPE_BIND, rval, lval);
     }
-    rval = parse_value();
-    if (!rval) {
-        error("cannot find rvalue");
-    }
-    if (!atom_same_type(lval, rval)) {
-        error("not same type");
-    }
-    lval = atom_to_lvalue(lval);
-    if (!lval) {
-        error("cannot bind - not lvalue");
-    }
-    pos = alloc_atom(2);
-    build_pos_atom(pos, TYPE_BIND, rval);
-    build_pos_atom(pos+1, TYPE_ARG, lval);
-    debug("parse_expr: bind parsed");
-    return pos;
+    return lval;
 }
 
 int parse_expr_statement() {
