@@ -26,11 +26,41 @@ void out(char *str) {
     _write(1, "\n", 1);
 }
 
+void out_x(char *fmt, int size) {
+    char buf[1024];
+    buf[0] = 0;
+    char *d = &buf[0];
+    while (*fmt) {
+        switch (*fmt) {
+            case 'X':
+                *d = (size == 8) ? 'q' : (size == 4)? 'l' : 'X';
+                break;
+            case 'Z':
+                *d = (size == 8) ? 'r' : (size == 4)? 'e' : 'Z';
+                break;
+            default:
+                *d = *fmt;
+        }
+        fmt++;
+        d++;
+    }
+    *d = 0;
+    out(buf);
+}
+
 void out_int(char *str1, int i, char *str2) {
     char buf[1024];
     buf[0] = 0;
     _strcat3(buf, str1, i, str2);
     out(buf);
+}
+
+void out_intx(char *str1, char *str2, int i, char *str3, int size) {
+    char buf[1024];
+    buf[0] = 0;
+    strcat(buf, str1);
+    _strcat3(buf, str2, i, str3);
+    out_x(buf, size);
 }
 
 void out_str(char *str1, char *str2, char *str3) {
@@ -40,6 +70,16 @@ void out_str(char *str1, char *str2, char *str3) {
     strcat(buf, str2);
     strcat(buf, str3);
     out(buf);
+}
+
+void out_strx(char *str1, char *str2, char *str3, char *str4, int size) {
+    char buf[1024];
+    buf[0] = 0;
+    strcat(buf, str1);
+    strcat(buf, str2);
+    strcat(buf, str3);
+    strcat(buf, str4);
+    out_x(buf, size);
 }
 
 int label_index = 0;
@@ -107,9 +147,9 @@ char *reg(int no, int size) {
 void emit_var_arg_init(int no, int offset, int size) {
     char buf[1000];
     buf[0] = 0;
-    strcat(buf, size == 8 ? "movq" : size == 4 ? "movl" : "movb");
+    strcat(buf, size == 8 ? "movq" : size == 4 ? "movl" : "movzbl");
     strcat(buf, "\t");
-    strcat(buf, reg(no, size));
+    strcat(buf, reg(no, (size == 1) ? 4 : size));
     strcat(buf, ", -");
     out_int(buf, offset, "(%rbp)");
 }
@@ -126,12 +166,10 @@ void emit_call(char *name) {
 
 void emit_deref(int size) {
     out("popq	%rax");
-    if (size == 8) {
-        out("movq	(%rax), %rax");
-    } else if (size == 4) {
-        out("movl	(%rax), %eax");
-    } else {
+    if (size == 1) {
         out("movzbl	(%rax), %eax");
+    } else {
+        out_x("movX	(%rax), %Zax", size);
     }
     out("pushq	%rax");
 }
@@ -141,73 +179,45 @@ void emit_var_ref(int i) {
     out("pushq	%rax");
 }
 
-void emit_prefix_inc(int size) {
+void emit_prefix_incdec(char *op, int size) {
     out("popq	%rax");
-    if (size == 8) {
-        out("movq	(%rax), %rdx");
-        out("incq	%rdx");
-        out("movq	%rdx, (%rax)");
-    } else {
-        out("movl	(%rax), %edx");
-        out("incl	%edx");
-        out("movl	%edx, (%rax)");
-    }
+    out_x("movX	(%rax), %Zdx", size);
+    out_strx(op, "X", "	%Zdx", "", size);
+    out_x("movX	%Zdx, (%rax)", size);
     out("pushq	%rdx");
+}
+
+void emit_prefix_inc(int size) {
+    emit_prefix_incdec("inc", size);
 }
 
 void emit_prefix_dec(int size) {
+    emit_prefix_incdec("dec", size);
+}
+
+void emit_postfix_incdec(char *op, int size, int ptr_size) {
     out("popq	%rax");
-    if (size == 8) {
-        out("movq	(%rax), %rdx");
-        out("decq	%rdx");
-        out("movq	%rdx, (%rax)");
-    } else {
-        out("movl	(%rax), %edx");
-        out("decl	%edx");
-        out("movl	%edx, (%rax)");
-    }
+    out_x("movX	(%rax), %Zdx", size);
     out("pushq	%rdx");
+    out_intx(op,  "X	$", ptr_size, ", %Zdx", size);
+    out_x("movX	%Zdx, (%rax)", size);
 }
 
-void emit_postfix_inc(int size) {
-    out("popq	%rax");
-    if (size == 8) {
-        out("movq	(%rax), %rdx");
-        out("pushq	%rdx");
-        out("incq	%rdx");
-        out("movq	%rdx, (%rax)");
-    } else {
-        out("movl	(%rax), %edx");
-        out("pushq	%rdx");
-        out("incl	%edx");
-        out("movl	%edx, (%rax)");
-    }
+void emit_postfix_inc(int size, int ptr_size) {
+    emit_postfix_incdec("add", size, ptr_size);
 }
 
-void emit_postfix_dec(int size) {
-    out("popq	%rax");
-    if (size == 8) {
-        out("movq	(%rax), %rdx");
-        out("pushq	%rdx");
-        out("decq	%rdx");
-        out("movq	%rdx, (%rax)");
-    } else {
-        out("movl	(%rax), %edx");
-        out("pushq	%rdx");
-        out("decl	%edx");
-        out("movl	%edx, (%rax)");
-    }
+void emit_postfix_dec(int size, int ptr_size) {
+    emit_postfix_incdec("sub", size, ptr_size);
 }
 
 void emit_copy(int size) {
     out("popq	%rax");
     out("popq	%rdx");
-    if (size == 4) {
-        out("movl	%edx, (%rax)");
-    } else if (size == 1) {
+    if (size == 1) {
         out("movb	%dl, (%rax)");
     } else {
-        out("movq	%rdx, (%rax)");
+        out_x("movX	%Zdx, (%rax)", size);
     }
     out("pushq	%rdx");
 }
@@ -217,94 +227,95 @@ void emit_pop() {
     out("");
 }
 
-void emit_add() {
+void emit_binop(char *op, int size) {
     out("popq	%rdx");
     out("popq	%rax");
-    out("addl	%edx, %eax");
+    out_strx(op, "X", "	%Zdx, %Zax", "", size);
     out("pushq	%rax");
 }
 
-void emit_sub() {
+void emit_add(int size) {
+    emit_binop("add", size);
+}
+
+void emit_sub(int size) {
+    emit_binop("sub", size);
+}
+
+void emit_mul(int size) {
     out("popq	%rdx");
     out("popq	%rax");
-    out("subl	%edx, %eax");
+    out_x("imulX	%Zdx", size);
     out("pushq	%rax");
 }
 
-void emit_mul() {
-    out("popq	%rdx");
-    out("popq	%rax");
-    out("imull	%edx, %eax");
-    out("pushq	%rax");
-}
-
-void emit_div() {
+void emit_div(int size) {
     out("popq	%rcx");
     out("popq	%rax");
     out("cdq");
-    out("idivl	%ecx");
+    out_x("idivX	%Zcx", size);
     out("pushq	%rax");
 }
 
-void emit_mod() {
+void emit_mod(int size) {
     out("popq	%rcx");
     out("popq	%rax");
     out("cdq");
-    out("idivl	%ecx");
+    out_x("idivX	%Zcx", size);
     out("pushq	%rdx");
 }
 
-void emit_eq_x(char *set) {
+void emit_eq_x(char *set, int size) {
     out("popq	%rdx");
     out("popq	%rcx");
     out("xorl   %eax, %eax");
-    out("subl	%edx, %ecx");
+    out_x("subX	%Zdx, %Zcx", size);
     out(set);
     out("pushq	%rax");
 }
 
-void emit_eq_eq() {
-    emit_eq_x("sete %al");
+void emit_eq_eq(int size) {
+    emit_eq_x("sete %al", size);
 }
 
-void emit_eq_ne() {
-    emit_eq_x("setne %al");
+void emit_eq_ne(int size) {
+    emit_eq_x("setne %al", size);
 }
 
-void emit_eq_lt() {
-    emit_eq_x("setnge %al");
+void emit_eq_lt(int size) {
+    emit_eq_x("setnge %al", size);
 }
 
-void emit_eq_le() {
-    emit_eq_x("setle %al");
+void emit_eq_le(int size) {
+    emit_eq_x("setle %al", size);
 }
 
-void emit_eq_gt() {
-    emit_eq_x("setnle %al");
+void emit_eq_gt(int size) {
+    emit_eq_x("setnle %al", size);
 }
 
-void emit_eq_ge() {
-    emit_eq_x("setge %al");
+void emit_eq_ge(int size) {
+    emit_eq_x("setge %al", size);
 }
 
-void emit_log_or() {
+void emit_log_or(int size) {
     out("popq	%rdx");
     out("popq	%rax");
-    out("orl	%edx, %eax");
+    out_x("orX	%Zdx, %Zax", size);
     out("pushq	%rax");
 }
 
-void emit_log_and() {
+void emit_log_and(int size) {
     out("popq	%rdx");
     out("popq	%rax");
-    out("andl	%edx, %eax");
+    out_x("andX	%Zdx, %Zax", size);
     out("pushq	%rax");
 }
 
-void emit_log_not() {
+void emit_log_not(int size) {
     out("popq	%rdx");
-    out("xorq   %rax, %rax");
-    out("orl	%edx, %edx");
+    out("xorl   %eax, %eax");
+    out_x("orX	%Zdx, %Zdx", size);
     out("setz %al");
     out("pushq	%rax");
 }
@@ -395,19 +406,19 @@ void compile(int pos) {
             compile(p->value.atom_pos);
             compile((p+1)->value.atom_pos);
             switch (p->type) {
-                case TYPE_ADD: emit_add(); break;
-                case TYPE_SUB: emit_sub(); break;
-                case TYPE_DIV: emit_div(); break;
-                case TYPE_MOD: emit_mod(); break;
-                case TYPE_MUL: emit_mul(); break;
-                case TYPE_EQ_EQ: emit_eq_eq(); break;
-                case TYPE_EQ_NE: emit_eq_ne(); break;
-                case TYPE_EQ_LE: emit_eq_le(); break;
-                case TYPE_EQ_LT: emit_eq_lt(); break;
-                case TYPE_EQ_GE: emit_eq_ge(); break;
-                case TYPE_EQ_GT: emit_eq_gt(); break;
-                case TYPE_LOG_OR: emit_log_or(); break;
-                case TYPE_LOG_AND: emit_log_and(); break;
+                case TYPE_ADD: emit_add(p->t->size); break;
+                case TYPE_SUB: emit_sub(p->t->size); break;
+                case TYPE_DIV: emit_div(p->t->size); break;
+                case TYPE_MOD: emit_mod(p->t->size); break;
+                case TYPE_MUL: emit_mul(p->t->size); break;
+                case TYPE_EQ_EQ: emit_eq_eq(p->t->size); break;
+                case TYPE_EQ_NE: emit_eq_ne(p->t->size); break;
+                case TYPE_EQ_LE: emit_eq_le(p->t->size); break;
+                case TYPE_EQ_LT: emit_eq_lt(p->t->size); break;
+                case TYPE_EQ_GE: emit_eq_ge(p->t->size); break;
+                case TYPE_EQ_GT: emit_eq_gt(p->t->size); break;
+                case TYPE_LOG_OR: emit_log_or(p->t->size); break;
+                case TYPE_LOG_AND: emit_log_and(p->t->size); break;
             }
             break;
         case TYPE_PREFIX_DEC:
@@ -422,12 +433,12 @@ void compile(int pos) {
 
         case TYPE_POSTFIX_DEC:
             compile(p->value.atom_pos);
-            emit_postfix_dec(p->t->size);
+            emit_postfix_dec(p->t->size, (p+1)->value.int_value);
             break;
 
         case TYPE_POSTFIX_INC:
             compile(p->value.atom_pos);
-            emit_postfix_inc(p->t->size);
+            emit_postfix_inc(p->t->size, (p+1)->value.int_value);
             break;
 
         case TYPE_NOP:
@@ -449,7 +460,7 @@ void compile(int pos) {
             
         case TYPE_LOG_NOT:
             compile(p->value.atom_pos);
-            emit_log_not();
+            emit_log_not(p->t->size);
             break;
         case TYPE_IF: 
         {
@@ -579,7 +590,7 @@ int main() {
 
     int gstr_i=0;
     char *gstr;
-    while (gstr = find_global_string(gstr_i)) {
+    while ((gstr = find_global_string(gstr_i)) != 0) {
         emit_global_label(gstr_i);
         emit_string(gstr);
         gstr_i++;
