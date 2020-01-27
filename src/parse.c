@@ -179,7 +179,7 @@ int parse_postfix() {
         op_type = TYPE_POSTFIX_DEC;
     }
     if (op_type) {
-        return alloc_deref_op_atom(op_type, alloc_ptr_atom(pos));
+        return alloc_postincdec_atom(op_type, pos);
     }
 
     return pos;
@@ -189,9 +189,9 @@ int parse_prefix_incdec() {
     int pos;
     int op_type = 0;
     if (expect(T_INC)) {
-        op_type = TYPE_PREFIX_INC;
+        op_type = TYPE_ADD;
     } else if (expect(T_DEC)) {
-        op_type = TYPE_PREFIX_DEC;
+        op_type = TYPE_SUB;
     } else {
         return 0;
     }
@@ -199,7 +199,7 @@ int parse_prefix_incdec() {
     if (!pos) {
         error("Invalid expr after '++'|'--'");
     }
-    return alloc_deref_op_atom(op_type, alloc_ptr_atom(pos));
+    return alloc_assign_op_atom(op_type, pos, alloc_num_atom(1, find_type("int")));
 }
 
 int parse_prefix();

@@ -71,8 +71,11 @@ int alloc_binop_atom(int type, int lpos, int rpos);
 int atom_to_lvalue(int);
 bool atom_same_type(int, int);
 
+int alloc_num_atom(int, type_s *);
 int alloc_var_atom(var *);
 int alloc_deref_atom(int);
+int alloc_postincdec_atom(int, int);
+int alloc_assign_op_atom(int, int, int);
 int alloc_ptr_atom(int);
 int alloc_str_atom(int);
 int alloc_func_atom(func *);
