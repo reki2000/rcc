@@ -10,6 +10,7 @@ void init_types() {
     add_type("", 8, 0);    // for pointer
     add_type("int", 4, 0);
     add_type("char", 1, 0);
+    add_type("long", 8, 0);
 }
 
 void dump_type(type_s *t) {
@@ -18,7 +19,8 @@ void dump_type(type_s *t) {
     strcat(buf, "type ");
     strcat(buf, t->name);
     _strcat3(buf, " size:", t->size, "");
-    _strcat3(buf, " ptr_to:", (int)(t->ptr_to), "");
+    strcat(buf, " ptr_to:");
+    strcat(buf, (t->ptr_to == 0) ? "" : t->ptr_to->name);
     debug(buf);
 }
 
