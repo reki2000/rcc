@@ -26,32 +26,36 @@
 
 * unary operators +,-
 * string literal
+* char
 * prefix ++, --
 * postfix ++, --
 
-- operators += -= *= /= %= |= &= ^=
+* pointer + -
 
-- pointer + -
+- 1-dimension array
+- char literal
+- long literal
+
+- operators += -= *= /= %= |= &= ^=
 
 - global symbols
 
-- 1-dimension array
 - multi-dimension array
 
 - multiple expressions with comma
+- cast
 - break, continue
 
 - variable initialization
+
+- multiple variable definition
 
 - struct
 - union
 - enum
 
-- char
-
 - typedef
 - sizeof
-
 
 - array initialization
 - prototype declaration

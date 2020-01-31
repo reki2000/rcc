@@ -555,7 +555,7 @@ void compile_func(func *f) {
 
     for (int i=0; i<f->argc; i++) {
         var *v = &(f->argv[i]);
-        emit_var_arg_init(i, v->offset, v->size);
+        emit_var_arg_init(i, v->offset, v->t->size);
     }
 
     compile(f->body_pos);

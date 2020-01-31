@@ -79,6 +79,9 @@ void atom_copy_type(int from, int to) {
 }
 
 type_s *atom_type(int pos) {
+    if (program[pos].t == 0) {
+        error_i("Null type at atom #", pos);
+    }
     return program[pos].t;
 }
 
@@ -107,6 +110,13 @@ int alloc_num_atom(int value, type_s *t) {
 int alloc_var_atom(var *v) {
     int pos = alloc_atom(1);
     build_int_atom(pos, TYPE_VAR_VAL, v->offset);
+    atom_set_type(pos, v->t);
+    return pos;
+}
+
+int alloc_array_var_atom(var *v) {
+    int pos = alloc_atom(1);
+    build_int_atom(pos, TYPE_VAR_REF, v->offset);
     atom_set_type(pos, v->t);
     return pos;
 }
@@ -197,6 +207,15 @@ void build_int_atom(int pos, int type, int value) {
     a->t = find_type("int");
 }
 
+int alloc_typed_int_atom(int type, int value, type_s *t) {
+    int pos = alloc_atom(1);
+    atom *a = &program[pos];
+    a->type = type;
+    a->value.int_value = value;
+    a->t = t;
+    return pos;
+}
+
 void build_ptr_atom(int pos, int type, void * value) {
     program[pos].type = type;
     program[pos].value.ptr_value = value;
@@ -225,6 +244,5 @@ int atom_to_lvalue(int pos) {
 }
 
 bool atom_same_type(int p1, int p2) {
-    
     return (program[p1].t == program[p2].t);
 }

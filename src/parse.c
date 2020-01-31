@@ -81,7 +81,10 @@ var *parse_var_name() {
 
 int parse_var() {
     var *v = parse_var_name();
-    if (v != 0) {
+    if (v) {
+        if (v->is_array) {
+            return alloc_array_var_atom(v);
+        }
         return alloc_var_atom(v);
     }
     return 0;
@@ -149,18 +152,6 @@ int parse_apply_func() {
     return pos;
 }
 
-int parse_ref() {
-    int pos;
-
-    pos = parse_var();
-    if (pos) return pos;
-
-    pos = parse_apply_func();
-    if (pos) return pos;
-
-    return 0;
-}
-
 int parse_postfix() {
     int pos;
     int op_type = 0;
@@ -171,6 +162,19 @@ int parse_postfix() {
         if (!pos) {
             return 0;
         }
+    }
+
+    if(expect(T_LBRACKET)) {
+        int index = parse_expr();
+        if (!index) {
+            error("invalid array index");
+        }
+        if(!expect(T_RBRACKET)) {
+            error("no closing ]");
+        }
+        return alloc_deref_atom(
+            alloc_binop_atom(TYPE_ADD, pos, index)
+        );
     }
 
     if(expect(T_INC)) {
@@ -681,7 +685,7 @@ int parse_func_var_declare() {
     if (!expect_ident(&ident)) {
         error("parse_var_declare: invalid name");
     }
-    add_var(ident, t);
+    add_var(ident, t, -1);
     debug_s("parse_var_declare: parsed: ", ident);
     return 1;
 }
@@ -715,12 +719,26 @@ int parse_var_declare() {
     if (!expect_ident(&ident)) {
         error("parse_var_declare: invalid name");
     }
+
+    int array_length = -1;
+    if (expect(T_LBRACKET)) {
+        array_length = 0;
+        expect_int(&array_length);
+        debug_i("array length:", array_length);
+        if (!expect(T_RBRACKET)) {
+            error("array declarator doesn't have closing ]");
+        }
+        t = add_pointer_type(t);
+    }
+
     if (!expect(T_SEMICOLON)) {
         error("parse_var_declare: no ;");
     }
-    add_var(ident, t);
+
+    add_var(ident, t, array_length);
     debug_s("parse_var_declare: parsed: ", ident);
-    return 1;
+
+    return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
 }
 
 int parse_block();
@@ -735,7 +753,6 @@ int parse_block_or_statement() {
 
 int parse_block() {
     int prev_pos = 0;
-    int pos;
 
     if (!expect(T_LBLACE)) {
         return 0;
@@ -743,22 +760,27 @@ int parse_block() {
 
     enter_var_frame();
     for (;;) {
-        if (parse_var_declare() == 0) {
+        int new_pos = parse_var_declare();
+        if (!new_pos) {
             break;
+        }
+        if (prev_pos) {
+            prev_pos = alloc_binop_atom(TYPE_ANDTHEN, prev_pos, new_pos);
+        } else {
+            prev_pos = new_pos;
         }
     }
 
     for (;;) {
         int new_pos = parse_block_or_statement();
-        if (new_pos == 0) {
+        if (!new_pos) {
             break;
         }
-        if (prev_pos != 0) {
-            pos = alloc_binop_atom(TYPE_ANDTHEN, prev_pos, new_pos);
+        if (prev_pos) {
+            prev_pos = alloc_binop_atom(TYPE_ANDTHEN, prev_pos, new_pos);
         } else {
-            pos = new_pos;
+            prev_pos = new_pos;
         }
-        prev_pos = pos;
     }
 
     if (!expect(T_RBLACE)) {
@@ -766,10 +788,10 @@ int parse_block() {
     }
 
     exit_var_frame();
-    if (pos == 0) {
-        pos = alloc_int_atom(TYPE_NOP, 0);
+    if (prev_pos == 0) {
+        return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
     }
-    return pos;
+    return prev_pos;
 }
 
 int parse_function() {

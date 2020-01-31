@@ -43,7 +43,7 @@ frame *get_top_frame() {
     return &env[env_top];
 }
 
-void add_var(char *name, type_s *t) {
+var *add_var(char *name, type_s *t, int length) {
     var *v;
     frame *f = &env[env_top];
 
@@ -54,20 +54,30 @@ void add_var(char *name, type_s *t) {
     f->num_vars++;
 
     int size = t->size;
-    if (size != 1 && f->offset % 4 != 0) {
+    if (length >= 0) {
+        if (!t->ptr_to) {
+            error_s("invalid var declare, not pointer type:", name);
+        }
+        f->offset += t->ptr_to->size * length;
+    } else {
+        f->offset += (size == 1) ? 4 : size;
+    }
+
+    if (f->offset % 4 != 0) {
         f->offset += (4-(f->offset % 4));
     }
-    f->offset += size;
+
     if (f->offset > max_offset) {
         max_offset = f->offset;
     }
 
     v->name = name;
-    v->size = t->size;
     v->offset = f->offset;
     v->t = t;
+    v->is_array = (length >= 0);
 
     debug_i("add_var: added @", f->offset);
+    return v;
 }
 
 int find_var_offset(char *name) {

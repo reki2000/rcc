@@ -14,10 +14,11 @@ program: function* eof
 function: type func_name '(' var_declare? ( ',' var_declare )* ')' block
 
 type: ( 'int' | 'char' ) '*'*
+var_declare: type var_name array_type? ';'
+array_type: '[' int? ']'
 
 block: '{' var_delcare* ( block_or_statement )* '}' <eof>
 block_or_statement: ( statement | block )
-var_declare: type var_name ';'
 
 statement: ';' | print_statement | if_statement | while_statement | for_statement | do_while_statement | expr_statement | return_statement
 if_statement: 'if' '(' expr ')' ( statement | block ( 'else' block_or_statement )? )
@@ -47,8 +48,9 @@ ptr: '&' var_name
 ptr_deref: '*' prefix
 prefix_incdec: ( '++' | '--' ) var_name
 
-postfix: primary | apply_func | postfix_incdec
+postfix: primary | apply_func | postfix_array | postfix_incdec
 apply_func: func_name '(' expr? ( ',' expr )* ')'
+postfix_array: postfix '[' expr ']'
 postfix_incdec: postfix ( '++' | '--' )
 
 primary: var_name | literal | '(' expr ')'

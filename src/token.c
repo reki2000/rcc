@@ -296,6 +296,10 @@ void tokenize() {
             add_token(T_LBLACE);
         } else if (expect_c('}')) {
             add_token(T_RBLACE);
+        } else if (expect_c('[')) {
+            add_token(T_LBRACKET);
+        } else if (expect_c(']')) {
+            add_token(T_RBRACKET);
         } else if (expect_c('(')) {
             add_token(T_LPAREN);
         } else if (expect_c(')')) {

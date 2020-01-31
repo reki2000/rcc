@@ -1,20 +1,11 @@
 int main() {
     char *s;
+    char buf[100];
     char *d;
     char *p;
-    int b;
-    int c;
-    char a;
-    char f;
-    char e;
-    int x;
 
-    x = 0;
-    b = 0;
-    c = 0;
     s = "ABCDEF";
-    d = &a;
-    p = d;
+    p = d = buf;
     while(*s) {
         *d++ = *s++;
     }

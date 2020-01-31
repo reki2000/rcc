@@ -17,7 +17,8 @@ typedef enum {
     T_RETURN,
     T_COMMA,
     T_INC, T_DEC,
-    T_STRING
+    T_STRING,
+    T_LBRACKET, T_RBRACKET
 } token_id;
 
 typedef struct {

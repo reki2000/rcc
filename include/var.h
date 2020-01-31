@@ -1,9 +1,8 @@
 typedef struct {
     char *name;
     int offset;
-    int size;
     type_s *t;
-    bool is_ptr;
+    bool is_array;
 } var;
 
 typedef struct {
@@ -18,7 +17,7 @@ extern int env_top;
 extern void enter_var_frame();
 extern void exit_var_frame();
 extern frame *get_top_frame();
-extern void add_var(char *, type_s *);
+extern var *add_var(char *, type_s *, int);
 extern int find_var_offset(char *);
 extern var *find_var(char *);
 
