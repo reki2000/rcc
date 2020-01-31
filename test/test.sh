@@ -2,6 +2,10 @@
 
 cd $(dirname $BASH_SOURCE)
 
+function clean {
+    rm out/*
+}
+
 function compile {
     ../bin/rekicc < $1 2>$2 > out/test.s
 }
@@ -12,6 +16,7 @@ function run {
       shift
     fi
     echo "test: $1 ------------------"
+    clean
     compile $1 $quiet \
         && gcc -o out/test.out out/test.s \
         && ( out/test.out > out/result.txt; echo $? >> out/result.txt )  \
