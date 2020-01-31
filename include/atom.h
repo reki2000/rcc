@@ -48,6 +48,8 @@ typedef struct {
     union {
         char *ptr_value;
         int int_value;
+        char char_value;
+        long long_value;
         int atom_pos;
     } value;
 } atom;

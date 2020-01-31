@@ -9,6 +9,9 @@ int main() {
     while(*s) {
         *d++ = *s++;
     }
+    
+    *d = '\0';
+
     while(*p) {
         print(*p++);
     }

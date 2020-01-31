@@ -18,7 +18,8 @@ typedef enum {
     T_COMMA,
     T_INC, T_DEC,
     T_STRING,
-    T_LBRACKET, T_RBRACKET
+    T_LBRACKET, T_RBRACKET,
+    T_CHAR
 } token_id;
 
 typedef struct {
@@ -26,6 +27,8 @@ typedef struct {
     union {
         int int_value;
         char *str_value;
+        char char_value;
+        long long_value;
     } value;
     int src_line;
     int src_column;
@@ -34,6 +37,7 @@ typedef struct {
 
 extern bool expect(token_id id);
 extern bool expect_int(int *value);
+extern bool expect_char(char *value);
 extern bool expect_ident(char **value);
 extern bool expect_string(char **value);
 

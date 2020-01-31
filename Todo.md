@@ -31,14 +31,17 @@
 * postfix ++, --
 
 * pointer + -
+* 1-dimension array
 
-- 1-dimension array
 - char literal
 - long literal
 
+- struct
+
+
 - operators += -= *= /= %= |= &= ^=
 
-- global symbols
+- global variable
 
 - multi-dimension array
 
@@ -50,7 +53,6 @@
 
 - multiple variable definition
 
-- struct
 - union
 - enum
 

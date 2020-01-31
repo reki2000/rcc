@@ -126,6 +126,44 @@ bool parse_int_token(int *retval) {
     return TRUE;
 }
 
+char escape(char escaped_char) {
+    char c;
+    switch (escaped_char) {
+        case 'n': c = '\n'; break;
+        case '0': c = '\0'; break;
+        case 't': c = '\t'; break;
+        case 'r': c = '\r'; break;
+        case 'a': c = '\a'; break;
+        case 'b': c = '\b'; break;
+        case 'f': c = '\f'; break;
+        case '"': c = '"'; break;
+        case '\'': c = '\''; break;
+        case '\\': c = '\\'; break;
+        default: error("Invalid letter after escape");
+    }
+    return c;
+}
+
+bool parse_char_token(char *retval) {
+    skip();
+    if (ch() != '\'') {
+        return FALSE;
+    }
+    next();
+    char c = ch();
+    next();
+    if (c == '\\') {
+        c = escape(ch());
+        next();
+    }
+    if (ch() != '\'') {
+        error_i("invalid char literal", ch());
+    }
+    next();
+    *retval = c;
+    return TRUE;
+}
+
 bool parse_string_token(char **retval) {
     char buf[1024];
     int buf_pos = 0;
@@ -148,19 +186,7 @@ bool parse_string_token(char **retval) {
         }
         if (c == '\\') {
             next();
-            switch (ch()) {
-                case 'n': c = '\n'; break;
-                case '0': c = '\0'; break;
-                case 't': c = '\t'; break;
-                case 'r': c = '\r'; break;
-                case 'a': c = '\a'; break;
-                case 'b': c = '\b'; break;
-                case 'f': c = '\f'; break;
-                case '"': c = '"'; break;
-                case '\'': c = '\''; break;
-                case '\\': c = '\\'; break;
-                default: error("Invalid letter after escape");
-            }
+            c = escape(ch());
         }
         buf[buf_pos++] = c;
         next();
@@ -230,6 +256,11 @@ void add_int_token(int val) {
 void add_string_token(char *val) {
     add_token(T_STRING);
     tokens[token_len - 1].value.str_value = val;
+}
+
+void add_char_token(char val) {
+    add_token(T_CHAR);
+    tokens[token_len - 1].value.char_value = val;
 }
 
 void add_ident_token(char *s) {
@@ -328,9 +359,12 @@ void tokenize() {
             add_token(T_WHILE);
         } else {
             int i;
+            char c;
             char *str;
             if (parse_int_token(&i)) {
                 add_int_token(i);
+            } else if (parse_char_token(&c)) {
+                add_char_token(c);
             } else if (parse_string_token(&str)) {
                 add_string_token(str);
             } else if (parse_ident_token(&str)) {
@@ -380,6 +414,15 @@ bool expect_ident(char **value) {
 bool expect_string(char **value) {
     if (tokens[token_pos].id == T_STRING) {
         *value = tokens[token_pos].value.str_value;
+        token_pos++;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+bool expect_char(char *value) {
+    if (tokens[token_pos].id == T_CHAR) {
+        *value = tokens[token_pos].value.char_value;
         token_pos++;
         return TRUE;
     }

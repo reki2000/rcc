@@ -55,9 +55,13 @@ postfix_incdec: postfix ( '++' | '--' )
 
 primary: var_name | literal | '(' expr ')'
 
-literal: signed_int | int
+literal: signed_int | int | char | global_string
+global_string: '"' escaped_string '"'
 signed_int: ( '+' | '-' ) int
+char: ''' ( ANY | escaped_char ) '''
 
+escaped_string: ( ANY | escaped_char )*
+escaped_char: '\' [abfnrtr"'\]
 func_name: IDENT
 var_name: IDENT
 int: DIGIT*

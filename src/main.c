@@ -87,8 +87,12 @@ int new_label() {
     return label_index++;
 }
 
-void emit_int(int i) {
-    out_int("movl	$", i, ", %eax");
+void emit_int(int i, int size) {
+    if (size == 8) {
+        out_int("movq	$", i, ", %rax");
+    } else {
+        out_int("movl	$", i, ", %eax");
+    }
     out("pushq	%rax");
 }
 
@@ -124,7 +128,6 @@ void emit_global_ref(int i) {
     out_int("lea	.G", i, ", %rax");
     out("pushq	%rax");
 }
-
 
 void emit_var_val(int i, int size) {
     if (size == 8) {
@@ -387,7 +390,7 @@ void compile(int pos) {
             break;
 
         case TYPE_INT: 
-            emit_int(p->value.int_value);
+            emit_int(p->value.int_value, p->t->size);
             break;
 
         case TYPE_ADD:

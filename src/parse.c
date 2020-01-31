@@ -17,7 +17,7 @@ int parse_primary();
 int parse_int() {
     int value;
     if (expect_int(&value)) {
-        return alloc_int_atom(TYPE_INT, value);
+        return alloc_num_atom(value, find_type("int"));
     }
     return 0;
 }
@@ -35,7 +35,7 @@ int parse_signed_int() {
             set_token_pos(start_pos);
             return 0;
         }
-        return alloc_binop_atom(TYPE_SUB, alloc_int_atom(TYPE_INT, 0), pos);
+        return alloc_binop_atom(TYPE_SUB, alloc_num_atom(0, find_type("int")), pos);
     }
 
     return 0;
@@ -49,10 +49,21 @@ int parse_string() {
     return 0;
 }
 
+int parse_char() {
+    char value;
+    if (expect_char(&value)) {
+        return alloc_num_atom(value, find_type("char"));
+    }
+    return 0;
+}
+
 int parse_literal() {
     int pos;
 
     pos = parse_string();
+    if (pos) return pos;
+
+    pos = parse_char();
     if (pos) return pos;
 
     pos = parse_int();
