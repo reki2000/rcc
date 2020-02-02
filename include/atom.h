@@ -38,7 +38,9 @@ enum {
     TYPE_POSTFIX_INC,
     TYPE_POSTFIX_DEC,
     TYPE_STRING,
-    TYPE_OFFSET
+    TYPE_OFFSET,
+    TYPE_GLOBAL_VAR_VAL,
+    TYPE_GLOBAL_VAR_REF
 };
 
 extern char* atom_name[];

@@ -9,7 +9,11 @@ run `make` and you get executed result of `test/test.c`
 
 ## Current BNF
 ```
-program: function* eof
+program: declaration* eof
+
+declaration: global_variable_declare | function
+
+global_variable_declare: type var_name array_type? ';' 
 
 function: type func_name '(' var_declare? ( ',' var_declare )* ')' block
 

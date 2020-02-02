@@ -3,6 +3,7 @@ typedef struct {
     int offset;
     type_s *t;
     bool is_array;
+    bool is_global;
 } var;
 
 typedef struct {

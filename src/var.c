@@ -9,7 +9,7 @@
 #include "atom.h"
 
 frame env[100];
-int env_top = 0;
+int env_top = -1;
 int max_offset = 0;
 
 void enter_var_frame() {
@@ -25,7 +25,7 @@ void enter_var_frame() {
 
 void exit_var_frame() {
     debug_i("exiting frame:", env_top);
-    if (env_top == 0) {
+    if (env_top < 0) {
         error("Invalid frame exit");
     }
     env_top--;
@@ -75,7 +75,9 @@ var *add_var(char *name, type_s *t, int length) {
     v->offset = f->offset;
     v->t = t;
     v->is_array = (length >= 0);
+    v->is_global = (env_top == 0);
 
+    debug_i("add_var: frame @", env_top);
     debug_i("add_var: added @", f->offset);
     return v;
 }
@@ -91,7 +93,7 @@ int find_var_offset(char *name) {
 
 var *find_var(char *name) {
     int env_pos;
-    for (env_pos = env_top; env_pos > 0; env_pos--) {
+    for (env_pos = env_top; env_pos >= 0; env_pos--) {
         var *var_ptr;
         for (var_ptr = env[env_pos].vars; var_ptr->name != 0; var_ptr++) {
             if (strcmp(name, var_ptr->name) == 0) {
@@ -105,7 +107,7 @@ var *find_var(char *name) {
 void dump_env() {
     int pos;
     var *var_ptr;
-    for (pos = env_top; pos > 0; pos--) {
+    for (pos = env_top; pos >= 0; pos--) {
         char buf[100];
         buf[0] = 0;
         _strcat3(buf, "env[", pos, "] ");

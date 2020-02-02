@@ -140,6 +140,17 @@ void emit_var_val(int i, int size) {
     out("pushq	%rax");
 }
 
+void emit_global_var_val(char *name, int size) {
+    if (size == 8) {
+        out_str("movq	", name, "(%rip), %rax");
+    } else if (size == 1) {
+        out_str("movzbl	", name, "(%rip), %eax");
+    } else {
+        out_str("movl	", name, "(%rip), %eax");
+    }
+    out("pushq	%rax");
+}
+
 char *reg(int no, int size) {
     char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9" };
     char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d" };
@@ -179,6 +190,11 @@ void emit_deref(int size) {
 
 void emit_var_ref(int i) {
     out_int("lea	-", i, "(%rbp), %rax");
+    out("pushq	%rax");
+}
+
+void emit_global_var_ref(char *name) {
+    out_str("lea	", name, "(%rip), %rax");
     out("pushq	%rax");
 }
 
@@ -374,6 +390,13 @@ void compile(int pos) {
             break;
         case TYPE_VAR_VAL:
             emit_var_val(p->value.int_value, p->t->size);
+            break;
+
+        case TYPE_GLOBAL_VAR_REF:
+            emit_global_var_ref(p->value.ptr_value);
+            break;
+        case TYPE_GLOBAL_VAR_VAL:
+            emit_global_var_val(p->value.ptr_value, p->t->size);
             break;
 
         case TYPE_BIND:
@@ -585,6 +608,15 @@ int main() {
     }
 
     out(".file	\"main.c\"");
+    out("");
+    for (var *v = env[0].vars; v->name != 0; v++) {
+        char buf[100];
+        buf[0] = 0;
+        strcat(buf, ".comm	");
+        strcat(buf, v->name);
+        _strcat3(buf, ", ", v->t->size, "");
+        out(buf);
+    }
     out("");
 
     out(".section	.rodata");

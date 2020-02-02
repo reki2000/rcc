@@ -18,7 +18,7 @@ char *atom_name[] = {
     "if", "for", "while", "dowhile", "break", "continue",
     "&(ptr_of)", "*(val_of)", "func", "return", "apply",
     "++n", "--n", "n++", "n--",
-    "str", ".", "->"
+    "str", ".", "->", "gvar_val", "gval_ref"
 };
 
 int alloc_atom(int size) {
@@ -115,14 +115,22 @@ int alloc_num_atom(int value, type_s *t) {
 
 int alloc_var_atom(var *v) {
     int pos = alloc_atom(1);
-    build_int_atom(pos, TYPE_VAR_VAL, v->offset);
+    if (v->is_global) {
+        build_ptr_atom(pos, TYPE_GLOBAL_VAR_VAL, v->name);
+    } else {
+        build_int_atom(pos, TYPE_VAR_VAL, v->offset);
+    }
     atom_set_type(pos, v->t);
     return pos;
 }
 
 int alloc_array_var_atom(var *v) {
     int pos = alloc_atom(1);
-    build_int_atom(pos, TYPE_VAR_REF, v->offset);
+    if (v->is_global) {
+        build_ptr_atom(pos, TYPE_GLOBAL_VAR_REF, v->name);
+    } else {
+        build_int_atom(pos, TYPE_VAR_REF, v->offset);
+    }
     atom_set_type(pos, v->t);
     return pos;
 }
@@ -162,10 +170,15 @@ int alloc_ptr_atom(int target) {
     int pos = alloc_atom(1);
     build_int_atom(pos, TYPE_PTR, target);
     atom_set_type(pos, add_pointer_type(atom_type(target)));
-    if (program[target].type != TYPE_VAR_VAL) {
+
+    atom *a = &program[target];
+    if (a->type == TYPE_VAR_VAL) {
+        a->type = TYPE_VAR_REF;
+    } else if (a->type == TYPE_GLOBAL_VAR_VAL) {
+        a->type = TYPE_GLOBAL_VAR_REF;
+    } else {
         error("cannot get pointer to non var atom");
     }
-    program[target].type = TYPE_VAR_REF;
     return pos;
 }
 
@@ -243,11 +256,19 @@ void build_pos_atom(int pos, int type, int value) {
 
 int atom_to_lvalue(int pos) {
     atom *a = &program[pos];
+    atom *a2;
     switch (a->type) {
         case TYPE_VAR_VAL:
             pos = alloc_atom(1);
-            atom *a2 = &program[pos];
+            a2 = &program[pos];
             a2->type = TYPE_VAR_REF;
+            a2->t = add_pointer_type(a->t);
+            a2->value.int_value = a->value.int_value;
+            return pos;
+        case TYPE_GLOBAL_VAR_VAL:
+            pos = alloc_atom(1);
+            a2 = &program[pos];
+            a2->type = TYPE_GLOBAL_VAR_REF;
             a2->t = add_pointer_type(a->t);
             a2->value.int_value = a->value.int_value;
             return pos;
