@@ -163,18 +163,7 @@ int parse_apply_func() {
     return pos;
 }
 
-int parse_postfix() {
-    int pos;
-    int op_type = 0;
-
-    pos = parse_primary();
-    if (!pos) {
-        pos = parse_apply_func();
-        if (!pos) {
-            return 0;
-        }
-    }
-
+int parse_postfix_array(int pos) {
     if(expect(T_LBRACKET)) {
         int index = parse_expr();
         if (!index) {
@@ -187,14 +176,69 @@ int parse_postfix() {
             alloc_binop_atom(TYPE_ADD, pos, index)
         );
     }
+    return pos;
+}
 
-    if(expect(T_INC)) {
+int parse_struct_member(int pos) {
+    if (expect(T_PERIOD)) {
+        char *name;
+        if (!expect_ident(&name)) {
+            error("invalid member name");
+        }
+        member_s *m = find_struct_member(program[pos].t, name);
+        if (!m) {
+            error_s("no member: ", name);
+        }
+        int lval = atom_to_lvalue(pos);
+        if (!lval) {
+            error("item is not struct");
+        }
+        return alloc_offset_atom(lval, m->t, m->offset);
+    } else if (expect(T_ALLOW)) {
+        char *name;
+        if (!expect_ident(&name)) {
+            error("invalid member name");
+        }
+        member_s *m = find_struct_member(program[pos].t->ptr_to, name);
+        if (!m) {
+            error_s("no member: ", name);
+        }
+        return alloc_offset_atom(pos, m->t, m->offset);
+    }
+    return pos;
+}
+
+int parse_postfix_incdec(int pos) {
+    int op_type = 0;
+
+    if (expect(T_INC)) {
         op_type = TYPE_POSTFIX_INC;
     } else if(expect(T_DEC)) {
         op_type = TYPE_POSTFIX_DEC;
     }
     if (op_type) {
         return alloc_postincdec_atom(op_type, pos);
+    }
+    return pos;
+}
+
+int parse_postfix() {
+    int pos;
+
+    pos = parse_primary();
+    if (!pos) {
+        pos = parse_apply_func();
+        if (!pos) {
+           return 0;
+        }
+    }
+
+    int prev_pos = 0;
+    while (prev_pos != pos) {
+        prev_pos = pos;
+        pos = parse_struct_member(pos);
+        pos = parse_postfix_array(pos);
+        pos = parse_postfix_incdec(pos);
     }
 
     return pos;
@@ -663,10 +707,9 @@ int parse_statement() {
     return pos;
 }
 
-type_s *parse_type_declare() {
-    char *type_name;
+type_s *parse_primitive_type() {
     type_s *t;
-
+    char *type_name;
     int pos = get_token_pos();
 
     if (!expect_ident(&type_name)) {
@@ -678,6 +721,81 @@ type_s *parse_type_declare() {
         set_token_pos(pos);
         return 0;
     };
+    return t;
+}
+
+type_s *parse_type_declare();
+
+int parse_struct_member_declare(type_s *st) {
+    char *ident;
+
+    type_s *t = parse_type_declare();
+    if (!t) {
+        return 0;
+    }
+
+    if (!expect_ident(&ident)) {
+        error("parse_var_declare: invalid name");
+    }
+
+    int array_length = -1;
+    if (expect(T_LBRACKET)) {
+        array_length = 0;
+        expect_int(&array_length);
+        debug_i("array length:", array_length);
+        if (!expect(T_RBRACKET)) {
+            error("array declarator doesn't have closing ]");
+        }
+        t = add_pointer_type(t);
+    }
+
+    if (!expect(T_SEMICOLON)) {
+        error("parse_var_declare: no ;");
+    }
+
+    add_struct_member(st, ident, t, array_length);
+    debug_s("parse_var_declare: parsed: ", ident);
+
+    return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+}
+
+type_s *parse_struct_type() {
+    type_s *t;
+    char *type_name;
+
+    if (!expect(T_STRUCT)) {
+        return 0;
+    }
+
+    if (expect_ident(&type_name)) {
+        debug_s("struct name: ", type_name);
+        t = add_struct_type(type_name);
+    } else {
+        t = add_struct_type("---");
+    }
+
+    if (expect(T_LBLACE)) {
+        debug("parsing struct member...");
+        while (parse_struct_member_declare(t) != 0) {
+        }
+        if (!expect(T_RBLACE)) {
+            error_s("struct no close } : ", type_name);
+        }
+    }
+
+    return t;
+}
+
+type_s *parse_type_declare() {
+    type_s *t;
+
+    t = parse_struct_type();
+    if (!t) {
+        t = parse_primitive_type();
+    }
+    if (!t) {
+        return 0;
+    }
 
     if (expect(T_ASTERISK)) {
         t = add_pointer_type(t);

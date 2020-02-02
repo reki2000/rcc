@@ -3,7 +3,7 @@
 cd $(dirname $BASH_SOURCE)
 
 function clean {
-    rm out/*
+    rm out/* 2>/dev/null
 }
 
 function compile {

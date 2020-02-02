@@ -53,9 +53,80 @@ type_s *add_pointer_type(type_s *t) {
 
 type_s *find_type(char *name) {
     for (int i=0; i<types_pos; i++) {
-        if (strcmp(name, types[i].name) == 0) {
+        if (strcmp(name, types[i].name) == 0 && types[i].struct_of == 0) {
             return &types[i];
         }
     }
     return 0;
 }
+
+
+struct_s structs[1024];
+int structs_len = 0;
+
+type_s *add_struct_type(char *name) {
+    type_s *t = find_struct_type(name);
+    if (t) {
+        return t;
+    }
+    if (structs_len > 1024) {
+        error_s("Too many structs:", name);
+    }
+    struct_s *s = &structs[structs_len++];
+    s->num_members = 0;
+
+    t = add_type(name, 0, 0);
+    t->struct_of = s;
+    return t;
+}
+
+type_s *find_struct_type(char *name) {
+    for (int i=0; i<types_pos; i++) {
+        if (strcmp(name, types[i].name) == 0 && types[i].struct_of != 0) {
+            return &types[i];
+        }
+    }
+    return 0;
+}
+
+member_s *add_struct_member(type_s *st, char *name, type_s *t, int array_size) {
+    struct_s *s = st->struct_of;
+    if (s == 0) {
+        error_s("not struct type: ", st->name);
+    }
+    if (s->num_members > 100) {
+        error_s("Too many struct members: ", name);
+    }
+    member_s *m = &(s->members[s->num_members++]);
+    m->name = name;
+    m->t = t;
+
+    // todo: alignment to 4 bytes
+    m->offset = st->size;
+    debug_i("added struct member @", m->offset);
+
+    if (array_size >= 0) {
+        st->size += t->ptr_to->size * array_size;
+    } else {
+        st->size += t->size;
+    }
+    debug_i("struct size: @", st->size);
+
+    return m;
+}
+
+member_s *find_struct_member(type_s *t, char *name) {
+    struct_s *s = t->struct_of;
+    if (s == 0) {
+        error_s("not struct type: ", t->name);
+    }
+    for (int i=0; i<s->num_members; i++) {
+        member_s *m = &(s->members[i]);
+        if (strcmp(name, m->name) == 0) {
+            return m;
+        }
+    }
+    return 0;
+}
+
+

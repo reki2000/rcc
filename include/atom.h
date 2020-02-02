@@ -37,7 +37,8 @@ enum {
     TYPE_PREFIX_DEC,
     TYPE_POSTFIX_INC,
     TYPE_POSTFIX_DEC,
-    TYPE_STRING
+    TYPE_STRING,
+    TYPE_OFFSET
 };
 
 extern char* atom_name[];
@@ -83,4 +84,5 @@ int alloc_ptr_atom(int);
 int alloc_str_atom(int);
 int alloc_func_atom(func *);
 int alloc_array_var_atom(var *);
+int alloc_offset_atom(int, type_s *, int);
 

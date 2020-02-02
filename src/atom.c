@@ -18,7 +18,7 @@ char *atom_name[] = {
     "if", "for", "while", "dowhile", "break", "continue",
     "&(ptr_of)", "*(val_of)", "func", "return", "apply",
     "++n", "--n", "n++", "n--",
-    "str",
+    "str", ".", "->"
 };
 
 int alloc_atom(int size) {
@@ -34,6 +34,7 @@ int alloc_atom(int size) {
 void dump_atom(int pos) {
     char buf[1024];
     buf[0] = 0;
+
     atom *p = &(program[pos]);
     _strcat3(buf, "atom#", pos, ",[");
     strcat(buf, atom_name[p->type]);
@@ -48,14 +49,19 @@ void dump_atom(int pos) {
 
     strcat(buf, " t:");
     type_s *t = p->t;
-    while(t) {
-        if (t->ptr_to) {
+
+    if (t) {
+        while (t->ptr_to) {
             strcat(buf, "*");
             t = t->ptr_to;
-        } else {
-            strcat(buf, t->name);
-            break;
         }
+
+        if (t->struct_of) {
+            strcat(buf, "struct ");
+        }
+        strcat(buf, t->name);
+    } else {
+        strcat(buf, "?");
     }
 
     strcat(buf, "\n");
@@ -161,6 +167,14 @@ int alloc_ptr_atom(int target) {
     }
     program[target].type = TYPE_VAR_REF;
     return pos;
+}
+
+int alloc_offset_atom(int base_pos, type_s *t, int offset) {
+    int pos = alloc_atom(2);
+    build_int_atom(pos, TYPE_ADD, alloc_num_atom(offset, find_type("int")));
+    atom_set_type(pos, add_pointer_type(t));
+    build_pos_atom(pos+1, TYPE_ARG, base_pos);
+    return alloc_deref_atom(pos);
 }
 
 int alloc_binop_atom(int type, int lpos, int rpos) {

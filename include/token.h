@@ -2,24 +2,25 @@ typedef enum {
     T_RESERVE,
     T_EOF,
     T_INT,
+    T_CHAR,
+    T_STRING,
     T_IDENT,
     T_LPAREN, T_RPAREN,
     T_LBLACE, T_RBLACE,
+    T_LBRACKET, T_RBRACKET,
     T_EQ, T_NE, T_LE, T_LT, T_GE, T_GT,
     T_L_AND, T_L_OR, T_L_NOT,
     T_PLUS, T_MINUS, T_ASTERISK, T_SLASH, T_PERCENT,
     T_EQUAL,
+    T_INC, T_DEC,
     T_SEMICOLON,
     T_PRINT,
     T_IF, T_ELSE,
     T_FOR, T_WHILE, T_DO, T_BREAK, T_CONTINUE,
-    T_AMP,
     T_RETURN,
-    T_COMMA,
-    T_INC, T_DEC,
-    T_STRING,
-    T_LBRACKET, T_RBRACKET,
-    T_CHAR
+    T_AMP, T_ALLOW,
+    T_COMMA, T_PERIOD, 
+    T_STRUCT
 } token_id;
 
 typedef struct {

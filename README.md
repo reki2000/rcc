@@ -13,7 +13,13 @@ program: function* eof
 
 function: type func_name '(' var_declare? ( ',' var_declare )* ')' block
 
-type: ( 'int' | 'char' ) '*'*
+type: ( struct_type | premitive_type ) '*'*
+premitive_type: 'int' | 'char' | 'long'
+struct_type: 'struct' ( struct_declare | struct_name )
+struct_declare: struct_name? '{' member_decrare* '}'
+member_declare: type member_name array_type? ';'
+struct_name: IDENT
+
 var_declare: type var_name array_type? ';'
 array_type: '[' int? ']'
 
@@ -48,10 +54,11 @@ ptr: '&' var_name
 ptr_deref: '*' prefix
 prefix_incdec: ( '++' | '--' ) var_name
 
-postfix: primary | apply_func | postfix_array | postfix_incdec
+postfix: primary | apply_func | struct_member | postfix_array | postfix_incdec
 apply_func: func_name '(' expr? ( ',' expr )* ')'
 postfix_array: postfix '[' expr ']'
 postfix_incdec: postfix ( '++' | '--' )
+struct_member: postfix '.' member_name | postfix '->' member_name
 
 primary: var_name | literal | '(' expr ')'
 

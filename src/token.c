@@ -321,6 +321,8 @@ void tokenize() {
             add_token(T_PLUS);
         } else if (expect_str("--")) {
             add_token(T_DEC);
+        } else if (expect_str("->")) {
+            add_token(T_ALLOW);
         } else if (expect_c('-')) {
             add_token(T_MINUS);
         } else if (expect_c('{')) {
@@ -337,6 +339,8 @@ void tokenize() {
             add_token(T_RPAREN);
         } else if (expect_c(';')) {
             add_token(T_SEMICOLON);
+        } else if (expect_c('.')) {
+            add_token(T_PERIOD);
         } else if (expect_c(',')) {
             add_token(T_COMMA);
         } else if (expect_reserved_str("break")) {
@@ -355,6 +359,8 @@ void tokenize() {
             add_token(T_PRINT);
         } else if (expect_reserved_str("return")) {
             add_token(T_RETURN);
+        } else if (expect_reserved_str("struct")) {
+            add_token(T_STRUCT);
         } else if (expect_reserved_str("while")) {
             add_token(T_WHILE);
         } else {

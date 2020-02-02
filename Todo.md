@@ -33,15 +33,17 @@
 * pointer + -
 * 1-dimension array
 
-- char literal
-- long literal
+* char literal
 
-- struct
-
-
-- operators += -= *= /= %= |= &= ^=
+* struct
 
 - global variable
+
+- atom refactoring
+
+- long literal
+
+- operators += -= *= /= %= |= &= ^=
 
 - multi-dimension array
 
