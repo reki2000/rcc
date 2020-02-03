@@ -250,22 +250,22 @@ void add_token(token_id id) {
 
 void add_int_token(int val) {
     add_token(T_INT);
-    tokens[token_len - 1].value.int_value = val;
+    tokens[token_len - 1].int_value = val;
 }
 
 void add_string_token(char *val) {
     add_token(T_STRING);
-    tokens[token_len - 1].value.str_value = val;
+    tokens[token_len - 1].str_value = val;
 }
 
 void add_char_token(char val) {
     add_token(T_CHAR);
-    tokens[token_len - 1].value.char_value = val;
+    tokens[token_len - 1].char_value = val;
 }
 
 void add_ident_token(char *s) {
     add_token(T_IDENT);
-    tokens[token_len - 1].value.str_value = s;
+    tokens[token_len - 1].str_value = s;
 }
 
 void dump_tokens() {
@@ -401,7 +401,7 @@ bool expect(token_id id) {
 
 bool expect_int(int *value) {
     if (tokens[token_pos].id == T_INT) {
-        *value = tokens[token_pos].value.int_value;
+        *value = tokens[token_pos].int_value;
         token_pos++;
         return TRUE;
     }
@@ -410,7 +410,7 @@ bool expect_int(int *value) {
 
 bool expect_ident(char **value) {
     if (tokens[token_pos].id == T_IDENT) {
-        *value = tokens[token_pos].value.str_value;
+        *value = tokens[token_pos].str_value;
         token_pos++;
         return TRUE;
     }
@@ -419,7 +419,7 @@ bool expect_ident(char **value) {
 
 bool expect_string(char **value) {
     if (tokens[token_pos].id == T_STRING) {
-        *value = tokens[token_pos].value.str_value;
+        *value = tokens[token_pos].str_value;
         token_pos++;
         return TRUE;
     }
@@ -428,7 +428,7 @@ bool expect_string(char **value) {
 
 bool expect_char(char *value) {
     if (tokens[token_pos].id == T_CHAR) {
-        *value = tokens[token_pos].value.char_value;
+        *value = tokens[token_pos].char_value;
         token_pos++;
         return TRUE;
     }

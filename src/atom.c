@@ -8,7 +8,7 @@
 #include "func.h"
 #include "atom.h"
 
-atom program[10000];
+atom_t program[10000];
 int atom_pos = 1;
 
 char *atom_name[] = {
@@ -17,7 +17,7 @@ char *atom_name[] = {
     "==","!=","<", ">", ">=", "<=", "&&", "||", "!",
     "if", "for", "while", "dowhile", "break", "continue",
     "&(ptr_of)", "*(val_of)", "func", "return", "apply",
-    "++n", "--n", "n++", "n--",
+    "n++", "n--",
     "str", ".", "->", "gvar_val", "gval_ref"
 };
 
@@ -35,16 +35,16 @@ void dump_atom(int pos) {
     char buf[1024];
     buf[0] = 0;
 
-    atom *p = &(program[pos]);
+    atom_t *p = &(program[pos]);
     _strcat3(buf, "atom#", pos, ",[");
     strcat(buf, atom_name[p->type]);
     strcat(buf, "] value:");
     switch (p->type) {
         case TYPE_APPLY:
-            strcat(buf, ((func *)(p->value.ptr_value))->name);
+            strcat(buf, ((func *)(p->ptr_value))->name);
             break;
         default:
-            _strcat3(buf, "", p->value.int_value, "");
+            _strcat3(buf, "", p->int_value, "");
     }
 
     strcat(buf, " t:");
@@ -80,69 +80,88 @@ int atom_set_type(int pos, type_s *t) {
     return pos;
 }
 
-void atom_copy_type(int from, int to) {
-    atom_set_type(to, program[from].t);
-}
-
 type_s *atom_type(int pos) {
     if (program[pos].t == 0) {
-        error_i("Null type at atom #", pos);
+        error_i("Null type at atom_t #", pos);
     }
     return program[pos].t;
 }
 
-int alloc_int_atom(int type, int value) {
-    int pos = alloc_atom(1);
-    build_int_atom(pos, type, value);
-    return pos;
+void build_int_atom(int pos, int type, int value) {
+    atom_t *a = &program[pos];
+    a->type = type;
+    a->int_value = value;
+    a->t = find_type("int");
 }
 
-int alloc_pos_atom(int type, int value) {
-    int pos = alloc_atom(1);
-    build_pos_atom(pos, type, value);
-    return pos;
+void build_ptr_atom(int pos, int type, void *ptr) {
+    atom_t *a = &program[pos];
+    a->type = type;
+    a->ptr_value = ptr;
 }
 
+void build_pos_atom(int pos, int type, int target) {
+    atom_t *a = &program[pos];
+    a->type = type;
+    a->atom_pos = target;
+    a->t = program[target].t;
+}
 
-int alloc_num_atom(int value, type_s *t) {
+int alloc_typed_pos_atom(int type, int pos, type_s *t) {
+    int new = alloc_atom(1);
+    atom_t *a = &program[new];
+    a->type = type;
+    a->atom_pos = pos;
+    a->t = t;
+    return new;
+}
+
+int alloc_typed_int_atom(int type, int value, type_s *t) {
     int pos = alloc_atom(1);
-    atom *a = &program[pos];
-    a->type = TYPE_INT;
-    a->value.int_value = value;
+    atom_t *a = &program[pos];
+    a->type = type;
+    a->int_value = value;
     a->t = t;
     return pos;
 }
 
 int alloc_var_atom(var *v) {
     int pos = alloc_atom(1);
-    if (v->is_global) {
-        build_ptr_atom(pos, TYPE_GLOBAL_VAR_VAL, v->name);
+    if (v->is_array) {
+        if (v->is_global) {
+            build_ptr_atom(pos, TYPE_GLOBAL_VAR_REF, v->name);
+        } else {
+            build_int_atom(pos, TYPE_VAR_REF, v->offset);
+        }
     } else {
-        build_int_atom(pos, TYPE_VAR_VAL, v->offset);
-    }
-    atom_set_type(pos, v->t);
-    return pos;
-}
-
-int alloc_array_var_atom(var *v) {
-    int pos = alloc_atom(1);
-    if (v->is_global) {
-        build_ptr_atom(pos, TYPE_GLOBAL_VAR_REF, v->name);
-    } else {
-        build_int_atom(pos, TYPE_VAR_REF, v->offset);
+        if (v->is_global) {
+            build_ptr_atom(pos, TYPE_GLOBAL_VAR_VAL, v->name);
+        } else {
+            build_int_atom(pos, TYPE_VAR_VAL, v->offset);
+        }
     }
     atom_set_type(pos, v->t);
     return pos;
 }
 
 int alloc_deref_atom(int target) {
-    if (!atom_type(target)->ptr_to) {
+    atom_t *a = &program[target];
+    if (!a->t->ptr_to) {
         error("target is not pointer type");
     }
-    int pos = alloc_atom(1);
-    build_int_atom(pos, TYPE_PTR_DEREF, target);
-    atom_set_type(pos, atom_type(target)->ptr_to);
-    return pos;
+    return alloc_typed_pos_atom(TYPE_PTR_DEREF, target, a->t->ptr_to);
+}
+
+int alloc_ptr_atom(int target) {
+    atom_t *a = &program[target];
+    if (a->type == TYPE_VAR_VAL) {
+        a->type = TYPE_VAR_REF;
+    } else if (a->type == TYPE_GLOBAL_VAR_VAL) {
+        a->type = TYPE_GLOBAL_VAR_REF;
+    } else {
+        error("cannot get pointer to non var atom");
+    }
+    return alloc_typed_pos_atom(TYPE_PTR, target, add_pointer_type(a->t));
 }
 
 int alloc_postincdec_atom(int type, int target) {
@@ -151,12 +170,7 @@ int alloc_postincdec_atom(int type, int target) {
     if (!target) {
         error("postincdec target is not lvalue");
     }
-    int pos = alloc_atom(2);
-    build_pos_atom(pos, type, target);
-    atom_set_type(pos, t);
-    build_int_atom(pos+1, TYPE_ARG, (t->ptr_to == 0) ? 1 : t->ptr_to->size);
-    atom_set_type(pos+1, find_type("int"));
-    return pos;
+    return alloc_typed_pos_atom(type, target, t);
 }
 
 int alloc_func_atom(func *f) {
@@ -166,25 +180,9 @@ int alloc_func_atom(func *f) {
     return pos;
 }
 
-int alloc_ptr_atom(int target) {
-    int pos = alloc_atom(1);
-    build_int_atom(pos, TYPE_PTR, target);
-    atom_set_type(pos, add_pointer_type(atom_type(target)));
-
-    atom *a = &program[target];
-    if (a->type == TYPE_VAR_VAL) {
-        a->type = TYPE_VAR_REF;
-    } else if (a->type == TYPE_GLOBAL_VAR_VAL) {
-        a->type = TYPE_GLOBAL_VAR_REF;
-    } else {
-        error("cannot get pointer to non var atom");
-    }
-    return pos;
-}
-
 int alloc_offset_atom(int base_pos, type_s *t, int offset) {
     int pos = alloc_atom(2);
-    build_int_atom(pos, TYPE_ADD, alloc_num_atom(offset, find_type("int")));
+    build_int_atom(pos, TYPE_ADD, alloc_typed_int_atom(TYPE_INT, offset, find_type("int")));
     atom_set_type(pos, add_pointer_type(t));
     build_pos_atom(pos+1, TYPE_ARG, base_pos);
     return alloc_deref_atom(pos);
@@ -199,8 +197,7 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
         if (atom_type(rpos)->ptr_to != 0) {
             error("Cannot + or - between pointers");
         }
-        int size = alloc_int_atom(TYPE_INT, 0);
-        build_int_atom(size, TYPE_INT, lpos_t->ptr_to->size);
+        int size = alloc_typed_int_atom(TYPE_INT, lpos_t->ptr_to->size, find_type("int"));
         rpos = alloc_binop_atom(TYPE_MUL, rpos, size);
     }
 
@@ -220,60 +217,26 @@ int alloc_assign_op_atom(int type, int lval, int rval) {
     return alloc_binop_atom(TYPE_BIND, rval, lval);
 }
 
-int alloc_str_atom(int index) {
-    int pos = alloc_atom(1);
-    build_int_atom(pos, TYPE_STRING, index);
-    atom_set_type(pos, add_pointer_type(find_type("char")));
-    return pos;
-}
-
-void build_int_atom(int pos, int type, int value) {
-    atom *a = &program[pos];
-    a->type = type;
-    a->value.int_value = value;
-    a->t = find_type("int");
-}
-
-int alloc_typed_int_atom(int type, int value, type_s *t) {
-    int pos = alloc_atom(1);
-    atom *a = &program[pos];
-    a->type = type;
-    a->value.int_value = value;
-    a->t = t;
-    return pos;
-}
-
-void build_ptr_atom(int pos, int type, void * value) {
-    program[pos].type = type;
-    program[pos].value.ptr_value = value;
-}
-
-void build_pos_atom(int pos, int type, int value) {
-    program[pos].type = type;
-    program[pos].value.atom_pos = value;
-    atom_copy_type(value, pos);
-}
-
 int atom_to_lvalue(int pos) {
-    atom *a = &program[pos];
-    atom *a2;
+    atom_t *a = &program[pos];
+    atom_t *a2;
     switch (a->type) {
         case TYPE_VAR_VAL:
             pos = alloc_atom(1);
             a2 = &program[pos];
             a2->type = TYPE_VAR_REF;
             a2->t = add_pointer_type(a->t);
-            a2->value.int_value = a->value.int_value;
+            a2->int_value = a->int_value;
             return pos;
         case TYPE_GLOBAL_VAR_VAL:
             pos = alloc_atom(1);
             a2 = &program[pos];
             a2->type = TYPE_GLOBAL_VAR_REF;
             a2->t = add_pointer_type(a->t);
-            a2->value.int_value = a->value.int_value;
+            a2->int_value = a->int_value;
             return pos;
         case TYPE_PTR_DEREF:
-            return a->value.atom_pos;
+            return a->atom_pos;
     }
     return 0;
 }

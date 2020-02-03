@@ -130,23 +130,19 @@ void emit_global_ref(int i) {
 }
 
 void emit_var_val(int i, int size) {
-    if (size == 8) {
-        out_int("movq	-", i, "(%rbp), %rax");
-    } else if (size == 1) {
+    if (size == 1) {
         out_int("movzbl	-", i, "(%rbp), %eax");
     } else {
-        out_int("movl	-", i, "(%rbp), %eax");
+        out_intx("movX	", "-", i, "(%rbp), %Zax", size);
     }
     out("pushq	%rax");
 }
 
 void emit_global_var_val(char *name, int size) {
-    if (size == 8) {
-        out_str("movq	", name, "(%rip), %rax");
-    } else if (size == 1) {
+    if (size == 1) {
         out_str("movzbl	", name, "(%rip), %eax");
     } else {
-        out_str("movl	", name, "(%rip), %eax");
+        out_strx("movX	", "", name, "(%rip), %Zax", size);
     }
     out("pushq	%rax");
 }
@@ -164,8 +160,8 @@ void emit_var_arg_init(int no, int offset, int size) {
     strcat(buf, size == 8 ? "movq" : size == 4 ? "movl" : "movzbl");
     strcat(buf, "\t");
     strcat(buf, reg(no, (size == 1) ? 4 : size));
-    strcat(buf, ", -");
-    out_int(buf, offset, "(%rbp)");
+    strcat(buf, ", ");
+    out_int(buf, -offset, "(%rbp)");
 }
 
 void emit_pop_argv(int no) {
@@ -198,36 +194,12 @@ void emit_global_var_ref(char *name) {
     out("pushq	%rax");
 }
 
-void emit_prefix_incdec(char *op, int size) {
-    out("popq	%rax");
-    out_x("movX	(%rax), %Zdx", size);
-    out_strx(op, "X", "	%Zdx", "", size);
-    out_x("movX	%Zdx, (%rax)", size);
-    out("pushq	%rdx");
-}
-
-void emit_prefix_inc(int size) {
-    emit_prefix_incdec("inc", size);
-}
-
-void emit_prefix_dec(int size) {
-    emit_prefix_incdec("dec", size);
-}
-
-void emit_postfix_incdec(char *op, int size, int ptr_size) {
+void emit_postfix_add(int size, int ptr_size) {
     out("popq	%rax");
     out_x("movX	(%rax), %Zdx", size);
     out("pushq	%rdx");
-    out_intx(op,  "X	$", ptr_size, ", %Zdx", size);
+    out_intx("add",  "X	$", ptr_size, ", %Zdx", size);
     out_x("movX	%Zdx, (%rax)", size);
-}
-
-void emit_postfix_inc(int size, int ptr_size) {
-    emit_postfix_incdec("add", size, ptr_size);
-}
-
-void emit_postfix_dec(int size, int ptr_size) {
-    emit_postfix_incdec("sub", size, ptr_size);
 }
 
 void emit_copy(int size) {
@@ -382,38 +354,38 @@ void emit_jmp_true(int i) {
 int func_return_label;
 
 void compile(int pos) {
-    atom *p = &(program[pos]);
-    debug_i("compiling atom @", pos);
+    atom_t *p = &(program[pos]);
+    debug_i("compiling atom_t @", pos);
     switch (p->type) {
         case TYPE_VAR_REF:
-            emit_var_ref(p->value.int_value);
+            emit_var_ref(p->int_value);
             break;
         case TYPE_VAR_VAL:
-            emit_var_val(p->value.int_value, p->t->size);
+            emit_var_val(p->int_value, p->t->size);
             break;
 
         case TYPE_GLOBAL_VAR_REF:
-            emit_global_var_ref(p->value.ptr_value);
+            emit_global_var_ref(p->ptr_value);
             break;
         case TYPE_GLOBAL_VAR_VAL:
-            emit_global_var_val(p->value.ptr_value, p->t->size);
+            emit_global_var_val(p->ptr_value, p->t->size);
             break;
 
         case TYPE_BIND:
-            compile(p->value.atom_pos); // rvalue
-            compile((p+1)->value.atom_pos); // lvalue - should be an address
+            compile(p->atom_pos); // rvalue
+            compile((p+1)->atom_pos); // lvalue - should be an address
             emit_copy(p->t->size);
             break;
         case TYPE_PTR:
-            compile(p->value.atom_pos);
+            compile(p->atom_pos);
             break;
         case TYPE_PTR_DEREF:
-            compile(p->value.atom_pos);
+            compile(p->atom_pos);
             emit_deref(p->t->size);
             break;
 
         case TYPE_INT: 
-            emit_int(p->value.int_value, p->t->size);
+            emit_int(p->int_value, p->t->size);
             break;
 
         case TYPE_ADD:
@@ -429,8 +401,8 @@ void compile(int pos) {
         case TYPE_EQ_GE:
         case TYPE_LOG_OR:
         case TYPE_LOG_AND:
-            compile(p->value.atom_pos);
-            compile((p+1)->value.atom_pos);
+            compile(p->atom_pos);
+            compile((p+1)->atom_pos);
             switch (p->type) {
                 case TYPE_ADD: emit_add(p->t->size); break;
                 case TYPE_SUB: emit_sub(p->t->size); break;
@@ -447,61 +419,52 @@ void compile(int pos) {
                 case TYPE_LOG_AND: emit_log_and(p->t->size); break;
             }
             break;
-        case TYPE_PREFIX_DEC:
-            compile(p->value.atom_pos);
-            emit_prefix_dec(p->t->size);
-            break;
-
-        case TYPE_PREFIX_INC:
-            compile(p->value.atom_pos);
-            emit_prefix_inc(p->t->size);
-            break;
 
         case TYPE_POSTFIX_DEC:
-            compile(p->value.atom_pos);
-            emit_postfix_dec(p->t->size, (p+1)->value.int_value);
+            compile(p->atom_pos);
+            emit_postfix_add(p->t->size, (p->t->ptr_to) ? -(p->t->ptr_to->size) : -1);
             break;
 
         case TYPE_POSTFIX_INC:
-            compile(p->value.atom_pos);
-            emit_postfix_inc(p->t->size, (p+1)->value.int_value);
+            compile(p->atom_pos);
+            emit_postfix_add(p->t->size, (p->t->ptr_to) ? p->t->ptr_to->size : 1);
             break;
 
         case TYPE_NOP:
             break;
 
         case TYPE_EXPR_STATEMENT:
-            compile(p->value.atom_pos);
+            compile(p->atom_pos);
             emit_pop();
             break;
         case TYPE_ANDTHEN:
-            compile(p->value.atom_pos);
-            compile((p+1)->value.atom_pos);
+            compile(p->atom_pos);
+            compile((p+1)->atom_pos);
             break;
 
         case TYPE_PRINT:
-            compile(p->value.atom_pos);
+            compile(p->atom_pos);
             emit_print();
             break;
             
         case TYPE_LOG_NOT:
-            compile(p->value.atom_pos);
+            compile(p->atom_pos);
             emit_log_not(p->t->size);
             break;
         case TYPE_IF: 
         {
-            bool has_else = ((p+2)->value.atom_pos != 0);
+            bool has_else = ((p+2)->atom_pos != 0);
             int l_end = new_label();
             int l_else = new_label();
 
-            compile(p->value.atom_pos);
+            compile(p->atom_pos);
             emit_jmp_false(has_else ? l_else : l_end);
-            compile((p+1)->value.atom_pos);
+            compile((p+1)->atom_pos);
 
             if (has_else) {
                 emit_jmp(l_end);
                 emit_label(l_else);
-                compile((p+2)->value.atom_pos);
+                compile((p+2)->atom_pos);
             }
             emit_label(l_end);
         }
@@ -510,13 +473,13 @@ void compile(int pos) {
         {
             int l_body = new_label();
             int l_end = new_label();
-            compile((p+2)->value.atom_pos);
+            compile((p+2)->atom_pos);
             emit_pop();
             emit_label(l_body);
-            compile((p+1)->value.atom_pos);
+            compile((p+1)->atom_pos);
             emit_jmp_false(l_end);
-            compile(p->value.atom_pos);
-            compile((p+3)->value.atom_pos);
+            compile(p->atom_pos);
+            compile((p+3)->atom_pos);
             emit_jmp(l_body);
             emit_label(l_end);
         }
@@ -526,9 +489,9 @@ void compile(int pos) {
             int l_body = new_label();
             int l_end = new_label();
             emit_label(l_body);
-            compile((p+1)->value.atom_pos);
+            compile((p+1)->atom_pos);
             emit_jmp_false(l_end);
-            compile(p->value.atom_pos);
+            compile(p->atom_pos);
             emit_jmp(l_body);
             emit_label(l_end);
         }
@@ -537,22 +500,22 @@ void compile(int pos) {
         {
             int l_body = new_label();
             emit_label(l_body);
-            compile(p->value.atom_pos);
-            compile((p+1)->value.atom_pos);
+            compile(p->atom_pos);
+            compile((p+1)->atom_pos);
             emit_jmp_true(l_body);
         }
             break;
 
         case TYPE_RETURN:
-            compile(p->value.atom_pos);
+            compile(p->atom_pos);
             emit_pop();
             emit_jmp(func_return_label);
             break;
 
         case TYPE_APPLY: {
-            func *f = (func *)(p->value.ptr_value);
+            func *f = (func *)(p->ptr_value);
             for (int i=0; i<f->argc; i++) {
-                compile((p+i+1)->value.atom_pos);
+                compile((p+i+1)->atom_pos);
                 emit_pop_argv(i);
             }
             emit_call(f->name);
@@ -560,7 +523,7 @@ void compile(int pos) {
             break;
         
         case TYPE_STRING:
-            emit_global_ref(p->value.int_value);
+            emit_global_ref(p->int_value);
             break;
 
         default:

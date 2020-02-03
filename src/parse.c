@@ -17,7 +17,7 @@ int parse_primary();
 int parse_int() {
     int value;
     if (expect_int(&value)) {
-        return alloc_num_atom(value, find_type("int"));
+        return alloc_typed_int_atom(TYPE_INT, value, find_type("int"));
     }
     return 0;
 }
@@ -35,7 +35,7 @@ int parse_signed_int() {
             set_token_pos(start_pos);
             return 0;
         }
-        return alloc_binop_atom(TYPE_SUB, alloc_num_atom(0, find_type("int")), pos);
+        return alloc_binop_atom(TYPE_SUB, alloc_typed_int_atom(TYPE_INT, 0, find_type("int")), pos);
     }
 
     return 0;
@@ -44,7 +44,8 @@ int parse_signed_int() {
 int parse_string() {
     char *s;
     if (expect_string(&s)) {
-        return alloc_str_atom(add_global_string(s));
+        int index = add_global_string(s);
+        return alloc_typed_int_atom(TYPE_STRING, index, add_pointer_type(find_type("char")));
     }
     return 0;
 }
@@ -52,7 +53,7 @@ int parse_string() {
 int parse_char() {
     char value;
     if (expect_char(&value)) {
-        return alloc_num_atom(value, find_type("char"));
+        return alloc_typed_int_atom(TYPE_INT, value, find_type("char"));
     }
     return 0;
 }
@@ -93,9 +94,6 @@ var *parse_var_name() {
 int parse_var() {
     var *v = parse_var_name();
     if (v) {
-        if (v->is_array) {
-            return alloc_array_var_atom(v);
-        }
         return alloc_var_atom(v);
     }
     return 0;
@@ -258,7 +256,7 @@ int parse_prefix_incdec() {
     if (!pos) {
         error("Invalid expr after '++'|'--'");
     }
-    return alloc_assign_op_atom(op_type, pos, alloc_num_atom(1, find_type("int")));
+    return alloc_assign_op_atom(op_type, pos, alloc_typed_int_atom(TYPE_INT, 1, find_type("int")));
 }
 
 int parse_prefix();
@@ -301,7 +299,7 @@ int parse_signed() {
         if (!pos) {
             error("Invalid '-'");
         }
-        return alloc_binop_atom(TYPE_SUB, alloc_int_atom(TYPE_INT, 0), pos);
+        return alloc_binop_atom(TYPE_SUB, alloc_typed_int_atom(TYPE_INT, 0, find_type("int")), pos);
     }
     return 0;
 }
@@ -313,7 +311,7 @@ int parse_logical_not() {
         if (!pos) {
             error("Invalid '!'");
         }
-        return alloc_pos_atom(TYPE_LOG_NOT, pos);
+        return alloc_typed_pos_atom(TYPE_LOG_NOT, pos, find_type("int"));
     }
     return 0;
 }
@@ -520,7 +518,7 @@ int parse_expr_statement() {
 
     pos = parse_expr();
     if (pos != 0 && expect(T_SEMICOLON)) {
-        int oppos = alloc_pos_atom(TYPE_EXPR_STATEMENT, pos);
+        int oppos = alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, pos, find_type("void"));
         debug_i("parse_expr_statement: parsed @", oppos);
         return oppos;
     }
@@ -660,7 +658,7 @@ int parse_print_statement() {
         if (!expect(T_LPAREN)) return 0;
         pos = parse_expr();
         if (pos != 0 && expect(T_RPAREN) && expect(T_SEMICOLON)) {
-            int oppos = alloc_pos_atom(TYPE_PRINT, pos);
+            int oppos = alloc_typed_pos_atom(TYPE_PRINT, pos, find_type("void"));
             debug_i("parse_print_statement: parsed @", oppos);
             return oppos;
         }
@@ -674,7 +672,7 @@ int parse_return_statement() {
     if (expect(T_RETURN)) {
         pos = parse_expr();
         if (pos != 0 && expect(T_SEMICOLON)) {
-            int oppos = alloc_pos_atom(TYPE_RETURN, pos);
+            int oppos = alloc_typed_pos_atom(TYPE_RETURN, pos, find_type("void"));
             return oppos;
         }
     }
@@ -683,7 +681,7 @@ int parse_return_statement() {
 
 int parse_statement() {
     if (expect(T_SEMICOLON)) {
-        return alloc_int_atom(TYPE_NOP, 0);
+        return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
     } 
     int pos = parse_print_statement();
     if (pos == 0) {

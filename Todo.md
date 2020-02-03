@@ -39,7 +39,11 @@
 
 - global variable
 
-- atom refactoring
+- atom_t refactoring
+ - use atom_t * instead of pos
+ - rename TYPE to *
+ - use a.* to a.*
+ - organize atom functions
 
 - long literal
 

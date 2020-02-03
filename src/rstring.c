@@ -1,8 +1,14 @@
 #include "rstring.h"
+#include "types.h"
 
 void _strcati(char *dst, int i) {
     char buf[100];
     int pos = 0;
+    bool is_negative = FALSE;
+    if (i < 0) {
+        is_negative = TRUE;
+        i = -i;
+    }
     for (;;) {
         buf[pos] = '0' + (i % 10);
         i /= 10;
@@ -12,6 +18,10 @@ void _strcati(char *dst, int i) {
         pos++;
     }
     dst += strlen(dst);
+    if (is_negative) {
+        *dst++ = '-';
+        *dst = 0;
+    }
     for (;pos >= 0; pos--) {
         *dst = buf[pos];
         dst++;

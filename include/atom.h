@@ -33,8 +33,6 @@ enum {
     TYPE_FUNC,
     TYPE_RETURN,
     TYPE_APPLY,
-    TYPE_PREFIX_INC,
-    TYPE_PREFIX_DEC,
     TYPE_POSTFIX_INC,
     TYPE_POSTFIX_DEC,
     TYPE_STRING,
@@ -54,37 +52,31 @@ typedef struct {
         char char_value;
         long long_value;
         int atom_pos;
-    } value;
-} atom;
+    };
+} atom_t;
 
-extern atom program[];
+extern atom_t program[];
 
 int alloc_atom(int size);
 
 void dump_atom(int pos);
 void dump_atom_all();
 
-void build_int_atom(int pos, int type, int value);
-void build_string_atom(int pos, int type, char * value);
 void build_pos_atom(int pos, int type, int value);
-void build_ptr_atom(int pos, int type, void *value);
-
-int alloc_int_atom(int type, int value);
-int alloc_pos_atom(int type, int value);
-int alloc_binop_atom(int type, int lpos, int rpos);
 
 int atom_to_lvalue(int);
 bool atom_same_type(int, int);
 
-int alloc_num_atom(int, type_s *);
+int alloc_binop_atom(int type, int lpos, int rpos);
+
+int alloc_typed_pos_atom(int , int, type_s *);
 int alloc_typed_int_atom(int, int, type_s *);
+
 int alloc_var_atom(var *);
 int alloc_deref_atom(int);
 int alloc_postincdec_atom(int, int);
 int alloc_assign_op_atom(int, int, int);
 int alloc_ptr_atom(int);
-int alloc_str_atom(int);
 int alloc_func_atom(func *);
-int alloc_array_var_atom(var *);
 int alloc_offset_atom(int, type_s *, int);
 

@@ -1,4 +1,4 @@
 int parse();
 void parse_init();
 
-extern atom program[];
+extern atom_t program[];

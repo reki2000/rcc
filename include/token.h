@@ -30,7 +30,7 @@ typedef struct {
         char *str_value;
         char char_value;
         long long_value;
-    } value;
+    };
     int src_line;
     int src_column;
     int src_pos;
