@@ -487,6 +487,38 @@ int parse_value() {
     return parse_logical_or();
 }
 
+int parse_postfix_assignment(int pos) {
+    int op = 0;
+    if (expect(T_PLUS_EQUAL)) {
+        op = TYPE_ADD;
+    } else if (expect(T_MINUS_EQUAL)) {
+        op = TYPE_SUB;
+    } else if (expect(T_ASTERISK_EQUAL)) {
+        op = TYPE_MUL;
+    } else if (expect(T_SLASH_EQUAL)) {
+        op = TYPE_DIV;
+    } else if (expect(T_PERCENT_EQUAL)) {
+        op = TYPE_MOD;
+    } else if (expect(T_AMP_EQUAL)) {
+        op = TYPE_AND;
+    } else if (expect(T_PIPE_EQUAL)) {
+        op = TYPE_OR;
+    } else if (expect(T_HAT_EQUAL)) {
+        op = TYPE_XOR;
+    }
+
+    if (!op) {
+        return pos;
+    }
+    
+    int expr_pos = parse_expr();
+    if (!pos) {
+        error_i("no expr after assignment postfix", pos);
+    }
+    return alloc_assign_op_atom(op, pos, expr_pos);
+}
+
+
 
 int parse_expr() {
     int lval = parse_value();
@@ -494,21 +526,29 @@ int parse_expr() {
         return 0;
     }
 
-    while (expect(T_EQUAL)) {
-        int rval = parse_expr();
-        if (!rval) {
-            error("cannot bind - no rvalue");
+    while (TRUE) {
+        if (expect(T_EQUAL)) {
+            int rval = parse_expr();
+            if (!rval) {
+                error("cannot bind - no rvalue");
+            }
+            if (!atom_same_type(lval, rval)) {
+                dump_atom_tree(lval, 0);
+                dump_atom_tree(rval, 0);
+                error("cannot bind - not same type");
+            }
+            lval = atom_to_lvalue(lval);
+            if (!lval) {
+                error("cannot bind - lhs cannot be a lvalue");
+            }
+            lval = alloc_binop_atom(TYPE_BIND, rval, lval);
+        } else {
+            int pos = parse_postfix_assignment(lval);
+            if (pos == lval) {
+                break;
+            }
+            lval = pos;
         }
-        if (!atom_same_type(lval, rval)) {
-            dump_atom_tree(lval, 0);
-            dump_atom_tree(rval, 0);
-            error("cannot bind - not same type");
-        }
-        lval = atom_to_lvalue(lval);
-        if (!lval) {
-            error("cannot bind - lhs cannot be a lvalue");
-        }
-        lval = alloc_binop_atom(TYPE_BIND, rval, lval);
     }
     return lval;
 }

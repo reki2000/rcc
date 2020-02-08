@@ -39,7 +39,8 @@ print_statement: 'print' '(' expr ');'
 return_statement: 'return' expr ';'
 expr_statement: expr ';'
 
-expr: value ( '=' expr )*
+expr: value ( ( '=' expr  | postfix_assignment )*
+postfix_assignment: ( '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' ) expr
 
 value: logical_or
 logical_or: logical_and ( '||' logical_and )*

@@ -44,9 +44,10 @@
 
 - [x] multi-dimension array
 
-- [ ] long literal (10000L)
+- [*] operators += -= *= /= %= |= &= ^=
 
-- [ ] operators += -= *= /= %= |= &= ^=
+- [ ] long literal (10000L)
+- [ ] hex literal (0x0000)
 
 - [ ] multiple expressions with comma
 - [ ] cast
@@ -68,7 +69,7 @@
 
 - [ ] switch case
 
-- [ ] bit operators >> >>= << <<= & | ^  &= |= ^= ~
+- [ ] bit operators >> >>= << <<= & | ^  ~
 - [ ] trinary operator ?:
 
 - [ ] include

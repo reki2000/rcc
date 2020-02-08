@@ -20,7 +20,10 @@ typedef enum {
     T_RETURN,
     T_AMP, T_ALLOW,
     T_COMMA, T_PERIOD, 
-    T_STRUCT
+    T_STRUCT,
+    T_PLUS_EQUAL, T_MINUS_EQUAL, T_ASTERISK_EQUAL, T_SLASH_EQUAL, T_PERCENT_EQUAL,
+    T_PIPE_EQUAL, T_AMP_EQUAL, T_HAT_EQUAL,
+    T_PIPE, T_HAT
 } token_id;
 
 typedef struct {

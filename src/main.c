@@ -237,6 +237,18 @@ void emit_sub(int size) {
     emit_binop("sub", size);
 }
 
+void emit_bit_and(int size) {
+    emit_binop("and", size);
+}
+
+void emit_bit_or(int size) {
+    emit_binop("or", size);
+}
+
+void emit_bit_xor(int size) {
+    emit_binop("xor", size);
+}
+
 void emit_mul(int size) {
     out("popq	%rdx");
     out("popq	%rax");
@@ -407,6 +419,9 @@ void compile(int pos) {
         case TYPE_EQ_GE:
         case TYPE_LOG_OR:
         case TYPE_LOG_AND:
+        case TYPE_OR:
+        case TYPE_AND:
+        case TYPE_XOR:
             compile(p->atom_pos);
             compile((p+1)->atom_pos);
             switch (p->type) {
@@ -423,6 +438,9 @@ void compile(int pos) {
                 case TYPE_EQ_GT: emit_eq_gt(p->t->size); break;
                 case TYPE_LOG_OR: emit_log_or(p->t->size); break;
                 case TYPE_LOG_AND: emit_log_and(p->t->size); break;
+                case TYPE_OR: emit_bit_or(p->t->size); break;
+                case TYPE_AND: emit_bit_and(p->t->size); break;
+                case TYPE_XOR: emit_bit_xor(p->t->size); break;
             }
             break;
 
