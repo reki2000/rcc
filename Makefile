@@ -2,17 +2,13 @@
 
 CC = gcc
 CFLAGS = -g -Wall -Wextra -I./include
+RM = rm -f
 
 PROG      = bin/rekicc
 SRCDIR    = ./src
 SOURCES   = $(wildcard $(SRCDIR)/*.c)
 OBJDIR    = ./out
 OBJECTS   = $(addprefix $(OBJDIR)/, $(notdir $(SOURCES:.c=.o)))
-
-.PHONY: test
-
-test: $(PROG)
-	test/test.sh
 
 all: $(PROG)
 
@@ -24,4 +20,4 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 clean:
-	$(RM) bin/* out/*.o test/out/* core test/core
+	$(RM) bin/* out/* test/out/* core test/core

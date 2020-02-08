@@ -76,13 +76,13 @@ int parse_literal() {
     return 0;
 }
 
-var *parse_var_name() {
+var_t *parse_var_name() {
     int pos = get_token_pos();
     char *ident;
     if (!expect_ident(&ident)) {
         return 0;
     }
-    var *v = find_var(ident);
+    var_t *v = find_var(ident);
     if (!v) {
         debug_s("variable not declared: ", ident);
         set_token_pos(pos);
@@ -92,7 +92,7 @@ var *parse_var_name() {
 }
 
 int parse_var() {
-    var *v = parse_var_name();
+    var_t *v = parse_var_name();
     if (v) {
         return alloc_var_atom(v);
     }
@@ -170,9 +170,7 @@ int parse_postfix_array(int pos) {
         if(!expect(T_RBRACKET)) {
             error("no closing ]");
         }
-        return alloc_deref_atom(
-            alloc_binop_atom(TYPE_ADD, pos, index)
-        );
+        return alloc_index_atom(pos, index);
     }
     return pos;
 }
@@ -183,7 +181,7 @@ int parse_struct_member(int pos) {
         if (!expect_ident(&name)) {
             error("invalid member name");
         }
-        member_s *m = find_struct_member(program[pos].t, name);
+        member_t *m = find_struct_member(program[pos].t, name);
         if (!m) {
             error_s("no member: ", name);
         }
@@ -197,7 +195,7 @@ int parse_struct_member(int pos) {
         if (!expect_ident(&name)) {
             error("invalid member name");
         }
-        member_s *m = find_struct_member(program[pos].t->ptr_to, name);
+        member_t *m = find_struct_member(program[pos].t->ptr_to, name);
         if (!m) {
             error_s("no member: ", name);
         }
@@ -499,14 +497,16 @@ int parse_expr() {
     while (expect(T_EQUAL)) {
         int rval = parse_expr();
         if (!rval) {
-            error("cannot find rvalue");
+            error("cannot bind - no rvalue");
         }
         if (!atom_same_type(lval, rval)) {
-            error("not same type");
+            dump_atom_tree(lval, 0);
+            dump_atom_tree(rval, 0);
+            error("cannot bind - not same type");
         }
         lval = atom_to_lvalue(lval);
         if (!lval) {
-            error("cannot bind - not lvalue");
+            error("cannot bind - lhs cannot be a lvalue");
         }
         lval = alloc_binop_atom(TYPE_BIND, rval, lval);
     }
@@ -518,9 +518,7 @@ int parse_expr_statement() {
 
     pos = parse_expr();
     if (pos != 0 && expect(T_SEMICOLON)) {
-        int oppos = alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, pos, find_type("void"));
-        debug_i("parse_expr_statement: parsed @", oppos);
-        return oppos;
+        return alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, pos, find_type("void"));
     }
     return 0;
 }
@@ -705,8 +703,8 @@ int parse_statement() {
     return pos;
 }
 
-type_s *parse_primitive_type() {
-    type_s *t;
+type_t *parse_primitive_type() {
+    type_t *t;
     char *type_name;
     int pos = get_token_pos();
 
@@ -722,12 +720,28 @@ type_s *parse_primitive_type() {
     return t;
 }
 
-type_s *parse_type_declare();
+type_t *parse_type_declare();
 
-int parse_struct_member_declare(type_s *st) {
+type_t *parse_var_array_declare(type_t *t) {
+    if (!expect(T_LBRACKET)) {
+        return t;
+    }
+
+    int length = 0;
+    expect_int(&length);
+    debug_i("array length:", length);
+
+    if (!expect(T_RBRACKET)) {
+        error("array declarator doesn't have closing ]");
+    }
+
+    return add_array_type(parse_var_array_declare(t), length);
+}
+
+int parse_struct_member_declare(type_t *st) {
     char *ident;
 
-    type_s *t = parse_type_declare();
+    type_t *t = parse_type_declare();
     if (!t) {
         return 0;
     }
@@ -736,29 +750,20 @@ int parse_struct_member_declare(type_s *st) {
         error("parse_var_declare: invalid name");
     }
 
-    int array_length = -1;
-    if (expect(T_LBRACKET)) {
-        array_length = 0;
-        expect_int(&array_length);
-        debug_i("array length:", array_length);
-        if (!expect(T_RBRACKET)) {
-            error("array declarator doesn't have closing ]");
-        }
-        t = add_pointer_type(t);
-    }
+    t = parse_var_array_declare(t);
 
     if (!expect(T_SEMICOLON)) {
         error("parse_var_declare: no ;");
     }
 
-    add_struct_member(st, ident, t, array_length);
+    add_struct_member(st, ident, t);
     debug_s("parse_var_declare: parsed: ", ident);
 
     return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
 }
 
-type_s *parse_struct_type() {
-    type_s *t;
+type_t *parse_struct_type() {
+    type_t *t;
     char *type_name;
 
     if (!expect(T_STRUCT)) {
@@ -784,8 +789,8 @@ type_s *parse_struct_type() {
     return t;
 }
 
-type_s *parse_type_declare() {
-    type_s *t;
+type_t *parse_type_declare() {
+    type_t *t;
 
     t = parse_struct_type();
     if (!t) {
@@ -795,7 +800,7 @@ type_s *parse_type_declare() {
         return 0;
     }
 
-    if (expect(T_ASTERISK)) {
+    while (expect(T_ASTERISK)) {
         t = add_pointer_type(t);
     }
     return t;
@@ -804,7 +809,7 @@ type_s *parse_type_declare() {
 int parse_func_var_declare() {
     char *ident;
 
-    type_s *t = parse_type_declare();
+    type_t *t = parse_type_declare();
     if (!t) {
         return 0;
     }
@@ -812,7 +817,7 @@ int parse_func_var_declare() {
     if (!expect_ident(&ident)) {
         error("parse_var_declare: invalid name");
     }
-    add_var(ident, t, -1);
+    add_var(ident, t);
     debug_s("parse_var_declare: parsed: ", ident);
     return 1;
 }
@@ -834,11 +839,10 @@ int parse_func_args() {
     return argc;
 }
 
-
 int parse_var_declare() {
     char *ident;
 
-    type_s *t = parse_type_declare();
+    type_t *t = parse_type_declare();
     if (!t) {
         return 0;
     }
@@ -847,22 +851,13 @@ int parse_var_declare() {
         error("parse_var_declare: invalid name");
     }
 
-    int array_length = -1;
-    if (expect(T_LBRACKET)) {
-        array_length = 0;
-        expect_int(&array_length);
-        debug_i("array length:", array_length);
-        if (!expect(T_RBRACKET)) {
-            error("array declarator doesn't have closing ]");
-        }
-        t = add_pointer_type(t);
-    }
+    t = parse_var_array_declare(t);
 
     if (!expect(T_SEMICOLON)) {
         error("parse_var_declare: no ;");
     }
 
-    add_var(ident, t, array_length);
+    add_var(ident, t);
     debug_s("parse_var_declare: parsed: ", ident);
 
     return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
@@ -922,20 +917,15 @@ int parse_block() {
 }
 
 int parse_function() {
-    char *ident;
-    type_s *t;
-    int body_pos;
-    func *f;
-    frame *frame;
-
     int pos = get_token_pos();
 
-    t = parse_type_declare();
+    type_t *t = parse_type_declare();
     if (!t) {
         set_token_pos(pos);
         return 0;
     };
 
+    char *ident;
     if (!expect_ident(&ident)) {
         error("parse_function: invalid name");
     }
@@ -955,10 +945,10 @@ int parse_function() {
         error("parse_function: no ')'");
     }
 
-    frame = get_top_frame();
-    f = add_function(ident, t, frame->num_vars, frame->vars);
+    frame_t *frame = get_top_frame();
+    func *f = add_function(ident, t, frame->num_vars, frame->vars);
 
-    body_pos = parse_block();
+    int body_pos = parse_block();
     if (!body_pos) {
         error_s("No body for function: ", ident);
     }
@@ -980,6 +970,4 @@ void parse() {
         if (pos) continue;
     }
     exit_var_frame();
-    
-    dump_atom_all();
 }

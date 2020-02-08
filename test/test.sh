@@ -20,7 +20,7 @@ function run {
     compile $1 $quiet \
         && gcc -o out/test.out out/test.s \
         && ( out/test.out > out/result.txt; echo $? >> out/result.txt )  \
-        && diff $2 out/result.txt \
+        && diff -B $2 out/result.txt \
         && echo "end : $1 ------------------" \
         || ( echo "ERROR"; cat out/debug.log; false )
 }

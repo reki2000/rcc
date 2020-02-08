@@ -22,7 +22,7 @@ func *find_func_name(char *name) {
     return 0;
 }
 
-func *find_function(char *name, type_s *ret_type, int argc, var *argv) {
+func *find_function(char *name, type_t *ret_type, int argc, var_t *argv) {
     func *f = find_func_name(name);
     if (!f) {
         return 0;
@@ -42,7 +42,7 @@ func *find_function(char *name, type_s *ret_type, int argc, var *argv) {
     return 0;
 }
 
-func *add_function(char *name, type_s *ret_type, int argc, var *argv) {
+func *add_function(char *name, type_t *ret_type, int argc, var_t *argv) {
     if (function_len >= 1000) {
         error("Too many functions");
     }

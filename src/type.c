@@ -3,55 +3,73 @@
 #include "types.h"
 #include "type.h"
 
-type_s types[1024];
+type_t types[1024];
 int types_pos = 0;
 
 void init_types() {
-    add_type("", 8, 0);    // for pointer
-    add_type("void", 0, 0);
-    add_type("int", 4, 0);
-    add_type("char", 1, 0);
-    add_type("long", 8, 0);
+    add_type("", 8, 0, 0);    // for pointer
+    add_type("void", 0, 0, 0);
+    add_type("int", 4, 0, 0);
+    add_type("char", 1, 0, 0);
+    add_type("long", 8, 0, 0);
 }
 
-void dump_type(type_s *t) {
+void dump_type(type_t *t) {
     char buf[100];
     buf[0] = 0;
     strcat(buf, "type ");
+    if (t->struct_of) {
+            strcat(buf, "struct ");
+    }
     strcat(buf, t->name);
     _strcat3(buf, " size:", t->size, "");
     strcat(buf, " ptr_to:");
     strcat(buf, (t->ptr_to == 0) ? "" : t->ptr_to->name);
+    if (t->array_length) {
+        _strcat3(buf, " [", t->array_length, "] ");
+    }
     debug(buf);
 }
 
-type_s *add_type(char* name, int size, type_s *t) {
-    type_s *p = &types[types_pos++];
+type_t *add_type(char* name, int size, type_t *prt_to, int array_length) {
+    type_t *p = &types[types_pos++];
     p->name = name;
     p->size = size;
-    p->ptr_to = t;
+    p->ptr_to = prt_to;
+    p->array_length = array_length;
     dump_type(p);
     return p;
 }
 
-type_s *find_pointer(type_s *t) {
+type_t *find_pointer(type_t *ptr_to, int array_length) {
     for (int i=0; i<types_pos; i++) {
-        if (types[i].ptr_to == t) {
-            return &types[i];
+        type_t *t = &types[i];
+        if (t->ptr_to == ptr_to && t->array_length == array_length) {
+            return t;
         }
     }
     return 0;
 }
 
-type_s *add_pointer_type(type_s *t) {
-    type_s *p = find_pointer(t);
+type_t *add_pointer_type(type_t *t) {
+    type_t *p = find_pointer(t, 0);
     if (!p) {
-        p = add_type("", 8, t);
+        int size = 8;
+        p = add_type("", size, t, 0);
     }
     return p;
 }
 
-type_s *find_type(char *name) {
+type_t *add_array_type(type_t *t, int array_length) {
+    type_t *p = find_pointer(t, array_length);
+    if (!p) {
+        int size = array_length * t->size;
+        p = add_type("", align(size, 4), t, array_length);
+    }
+    return p;
+}
+
+type_t *find_type(char *name) {
     for (int i=0; i<types_pos; i++) {
         if (strcmp(name, types[i].name) == 0 && types[i].struct_of == 0) {
             return &types[i];
@@ -61,26 +79,26 @@ type_s *find_type(char *name) {
 }
 
 
-struct_s structs[1024];
+struct_t structs[1024];
 int structs_len = 0;
 
-type_s *add_struct_type(char *name) {
-    type_s *t = find_struct_type(name);
+type_t *add_struct_type(char *name) {
+    type_t *t = find_struct_type(name);
     if (t) {
         return t;
     }
     if (structs_len > 1024) {
         error_s("Too many structs:", name);
     }
-    struct_s *s = &structs[structs_len++];
+    struct_t *s = &structs[structs_len++];
     s->num_members = 0;
 
-    t = add_type(name, 0, 0);
+    t = add_type(name, 0, 0, 0);
     t->struct_of = s;
     return t;
 }
 
-type_s *find_struct_type(char *name) {
+type_t *find_struct_type(char *name) {
     for (int i=0; i<types_pos; i++) {
         if (strcmp(name, types[i].name) == 0 && types[i].struct_of != 0) {
             return &types[i];
@@ -89,15 +107,15 @@ type_s *find_struct_type(char *name) {
     return 0;
 }
 
-member_s *add_struct_member(type_s *st, char *name, type_s *t, int array_size) {
-    struct_s *s = st->struct_of;
+member_t *add_struct_member(type_t *st, char *name, type_t *t) {
+    struct_t *s = st->struct_of;
     if (s == 0) {
         error_s("not struct type: ", st->name);
     }
     if (s->num_members > 100) {
         error_s("Too many struct members: ", name);
     }
-    member_s *m = &(s->members[s->num_members++]);
+    member_t *m = &(s->members[s->num_members++]);
     m->name = name;
     m->t = t;
 
@@ -105,23 +123,19 @@ member_s *add_struct_member(type_s *st, char *name, type_s *t, int array_size) {
     m->offset = st->size;
     debug_i("added struct member @", m->offset);
 
-    if (array_size >= 0) {
-        st->size += t->ptr_to->size * array_size;
-    } else {
-        st->size += t->size;
-    }
+    st->size += t->size;
     debug_i("struct size: @", st->size);
 
     return m;
 }
 
-member_s *find_struct_member(type_s *t, char *name) {
-    struct_s *s = t->struct_of;
+member_t *find_struct_member(type_t *t, char *name) {
+    struct_t *s = t->struct_of;
     if (s == 0) {
         error_s("not struct type: ", t->name);
     }
     for (int i=0; i<s->num_members; i++) {
-        member_s *m = &(s->members[i]);
+        member_t *m = &(s->members[i]);
         if (strcmp(name, m->name) == 0) {
             return m;
         }
@@ -129,4 +143,9 @@ member_s *find_struct_member(type_s *t, char *name) {
     return 0;
 }
 
-
+bool is_convertable(type_t *to, type_t *from) {
+    if (to == from) return TRUE;
+    if (!to || !from) return FALSE;
+    if (is_convertable(to->ptr_to, from->ptr_to)) return TRUE;
+    return FALSE;
+}

@@ -31,11 +31,17 @@ int alloc_atom(int size) {
     return current;
 }
 
-void dump_atom(int pos) {
+void dump_atom(int pos, int indent) {
+    dump_atom2(&program[pos], indent, pos);
+}
+void dump_atom2(atom_t *p, int indent, int pos) {
     char buf[1024];
     buf[0] = 0;
 
-    atom_t *p = &(program[pos]);
+    for (int i=0; i<indent; i++) {
+        strcat(buf, " ");
+    }
+
     _strcat3(buf, "atom#", pos, ",[");
     strcat(buf, atom_name[p->type]);
     strcat(buf, "] value:");
@@ -48,11 +54,16 @@ void dump_atom(int pos) {
     }
 
     strcat(buf, " t:");
-    type_s *t = p->t;
+    type_t *t_org = p->t;
+    type_t *t = p->t;
 
     if (t) {
         while (t->ptr_to) {
-            strcat(buf, "*");
+            if (t->array_length > 0) {
+                _strcat3(buf, "[", t->array_length, "]");
+            } else {
+                strcat(buf, "*");
+            }
             t = t->ptr_to;
         }
 
@@ -60,6 +71,7 @@ void dump_atom(int pos) {
             strcat(buf, "struct ");
         }
         strcat(buf, t->name);
+       _strcat3(buf, " size:", t_org->size, "");
     } else {
         strcat(buf, "?");
     }
@@ -71,16 +83,56 @@ void dump_atom(int pos) {
 void dump_atom_all() {
     int i;
     for (i=1; i<atom_pos; i++) {
-        dump_atom(i);
+        dump_atom(i, 0);
     }
 }
 
-int atom_set_type(int pos, type_s *t) {
+void dump_atom_tree(int pos, int indent) {
+    dump_atom(pos, indent);
+    atom_t *a = &program[pos];
+    switch (a->type) {
+        case TYPE_ANDTHEN:
+            dump_atom_tree(a->atom_pos, indent);
+            dump_atom_tree((a+1)->atom_pos, indent);
+            break;
+        case TYPE_ADD:
+        case TYPE_MUL:
+        case TYPE_EQ_EQ:
+        case TYPE_EQ_GE:
+        case TYPE_EQ_GT:
+        case TYPE_EQ_LE:
+        case TYPE_EQ_LT:
+        case TYPE_LOG_AND:
+        case TYPE_LOG_OR:
+        case TYPE_BIND:
+            dump_atom_tree(a->atom_pos, indent + 1);
+            dump_atom_tree((a+1)->atom_pos, indent + 1);
+            break;
+        case TYPE_EXPR_STATEMENT:
+        case TYPE_PTR_DEREF:
+        case TYPE_RETURN:
+            dump_atom_tree(a->atom_pos, indent + 1);
+            break;
+        case TYPE_WHILE:
+        case TYPE_DO_WHILE:
+            dump_atom_tree(a->atom_pos, indent + 1);
+            dump_atom_tree((a+1)->atom_pos, indent + 1);
+            break;
+        case TYPE_FOR:
+            dump_atom_tree(a->atom_pos, indent + 1);
+            dump_atom_tree((a+1)->atom_pos, indent + 1);
+            dump_atom_tree((a+2)->atom_pos, indent + 1);
+            dump_atom_tree((a+3)->atom_pos, indent + 1);
+            break;
+    }
+}
+
+int atom_set_type(int pos, type_t *t) {
     program[pos].t = t;
     return pos;
 }
 
-type_s *atom_type(int pos) {
+type_t *atom_type(int pos) {
     if (program[pos].t == 0) {
         error_i("Null type at atom_t #", pos);
     }
@@ -107,7 +159,7 @@ void build_pos_atom(int pos, int type, int target) {
     a->t = program[target].t;
 }
 
-int alloc_typed_pos_atom(int type, int pos, type_s *t) {
+int alloc_typed_pos_atom(int type, int pos, type_t *t) {
     int new = alloc_atom(1);
     atom_t *a = &program[new];
     a->type = type;
@@ -116,7 +168,7 @@ int alloc_typed_pos_atom(int type, int pos, type_s *t) {
     return new;
 }
 
-int alloc_typed_int_atom(int type, int value, type_s *t) {
+int alloc_typed_int_atom(int type, int value, type_t *t) {
     int pos = alloc_atom(1);
     atom_t *a = &program[pos];
     a->type = type;
@@ -125,23 +177,20 @@ int alloc_typed_int_atom(int type, int value, type_s *t) {
     return pos;
 }
 
-int alloc_var_atom(var *v) {
+int alloc_var_atom(var_t *v) {
     int pos = alloc_atom(1);
-    if (v->is_array) {
-        if (v->is_global) {
-            build_ptr_atom(pos, TYPE_GLOBAL_VAR_REF, v->name);
-        } else {
-            build_int_atom(pos, TYPE_VAR_REF, v->offset);
-        }
+    if (v->is_global) {
+        build_ptr_atom(pos, TYPE_GLOBAL_VAR_REF, v->name);
     } else {
-        if (v->is_global) {
-            build_ptr_atom(pos, TYPE_GLOBAL_VAR_VAL, v->name);
-        } else {
-            build_int_atom(pos, TYPE_VAR_VAL, v->offset);
-        }
+        build_int_atom(pos, TYPE_VAR_REF, v->offset);
     }
-    atom_set_type(pos, v->t);
-    return pos;
+    if (v->t->array_length > 0) {
+        atom_set_type(pos, add_pointer_type(v->t->ptr_to));
+        return pos;
+    } else {
+        atom_set_type(pos, add_pointer_type(v->t));
+        return alloc_deref_atom(pos);
+    }
 }
 
 int alloc_deref_atom(int target) {
@@ -154,18 +203,14 @@ int alloc_deref_atom(int target) {
 
 int alloc_ptr_atom(int target) {
     atom_t *a = &program[target];
-    if (a->type == TYPE_VAR_VAL) {
-        a->type = TYPE_VAR_REF;
-    } else if (a->type == TYPE_GLOBAL_VAR_VAL) {
-        a->type = TYPE_GLOBAL_VAR_REF;
-    } else {
-        error("cannot get pointer to non var atom");
+    if (a->type != TYPE_PTR_DEREF) {
+        error("cannot get pointer to non var_t atom");
     }
-    return alloc_typed_pos_atom(TYPE_PTR, target, add_pointer_type(a->t));
+    return a->atom_pos;
 }
 
 int alloc_postincdec_atom(int type, int target) {
-    type_s *t = atom_type(target);
+    type_t *t = atom_type(target);
     target = atom_to_lvalue(target);
     if (!target) {
         error("postincdec target is not lvalue");
@@ -180,7 +225,24 @@ int alloc_func_atom(func *f) {
     return pos;
 }
 
-int alloc_offset_atom(int base_pos, type_s *t, int offset) {
+int alloc_index_atom(int base_pos, int index_pos) {
+    int pos = atom_to_lvalue(base_pos);
+    if (!pos) {
+        pos = base_pos;
+    }
+    type_t *t = atom_type(pos);
+    if (t->array_length > 0) {
+        t = add_pointer_type(t->ptr_to);
+    }
+    if (t->ptr_to && t->ptr_to->array_length > 0) {
+        t = t->ptr_to;
+    }
+    int pos2 = alloc_binop_atom(TYPE_ADD, pos, index_pos);
+    atom_set_type(pos2, t);
+    return alloc_deref_atom(pos2);
+}
+
+int alloc_offset_atom(int base_pos, type_t *t, int offset) {
     int pos = alloc_atom(2);
     build_int_atom(pos, TYPE_ADD, alloc_typed_int_atom(TYPE_INT, offset, find_type("int")));
     atom_set_type(pos, add_pointer_type(t));
@@ -192,7 +254,7 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
     int pos = alloc_atom(2);
     build_pos_atom(pos, type, lpos);
 
-    type_s *lpos_t = atom_type(lpos);
+    type_t *lpos_t = atom_type(lpos);
     if (lpos_t->ptr_to != 0 && (type == TYPE_ADD || type == TYPE_SUB)) {
         if (atom_type(rpos)->ptr_to != 0) {
             error("Cannot + or - between pointers");
@@ -207,6 +269,8 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
 
 int alloc_assign_op_atom(int type, int lval, int rval) {
     if (!atom_same_type(lval, rval)) {
+        dump_atom(lval, 0);
+        dump_atom(rval, 0);
         error("not same type");
     }
     rval = alloc_binop_atom(type, lval, rval);
@@ -236,11 +300,16 @@ int atom_to_lvalue(int pos) {
             a2->int_value = a->int_value;
             return pos;
         case TYPE_PTR_DEREF:
-            return a->atom_pos;
+            pos = a->atom_pos;
+            a2 = &program[pos];
+            if (a2->t->array_length > 0) {
+                atom_set_type(pos, add_pointer_type(a2->t->ptr_to));
+            }
+            return pos;
     }
     return 0;
 }
 
 bool atom_same_type(int p1, int p2) {
-    return (program[p1].t == program[p2].t);
+    return is_convertable(program[p1].t, program[p2].t);
 }

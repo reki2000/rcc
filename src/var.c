@@ -8,7 +8,7 @@
 #include "func.h"
 #include "atom.h"
 
-frame env[100];
+frame_t env[100];
 int env_top = -1;
 int max_offset = 0;
 
@@ -18,7 +18,7 @@ void enter_var_frame() {
     if (env_top >= 100) {
         error("Too many frames");
     }
-    env[env_top].vars = _calloc(sizeof(var), 100);
+    env[env_top].vars = _calloc(sizeof(var_t), 100);
     env[env_top].offset = env[env_top - 1].offset;
     env[env_top].num_vars = 0;
 }
@@ -26,7 +26,7 @@ void enter_var_frame() {
 void exit_var_frame() {
     debug_i("exiting frame:", env_top);
     if (env_top < 0) {
-        error("Invalid frame exit");
+        error("Invalid frame_t exit");
     }
     env_top--;
 }
@@ -39,13 +39,13 @@ void reset_var_max_offset() {
     max_offset = 0;
 }
 
-frame *get_top_frame() {
+frame_t *get_top_frame() {
     return &env[env_top];
 }
 
-var *add_var(char *name, type_s *t, int length) {
-    var *v;
-    frame *f = &env[env_top];
+var_t *add_var(char *name, type_t *t) {
+    var_t *v;
+    frame_t *f = &env[env_top];
 
     if (f->num_vars >= 100) {
         error("Too many variables");
@@ -53,20 +53,7 @@ var *add_var(char *name, type_s *t, int length) {
     v = &(f->vars[f->num_vars]);
     f->num_vars++;
 
-    int size = t->size;
-    if (length >= 0) {
-        if (!t->ptr_to) {
-            error_s("invalid var declare, not pointer type:", name);
-        }
-        f->offset += t->ptr_to->size * length;
-    } else {
-        f->offset += (size == 1) ? 4 : size;
-    }
-
-    if (f->offset % 4 != 0) {
-        f->offset += (4-(f->offset % 4));
-    }
-
+    f->offset += align(t->size, 4);
     if (f->offset > max_offset) {
         max_offset = f->offset;
     }
@@ -74,16 +61,15 @@ var *add_var(char *name, type_s *t, int length) {
     v->name = name;
     v->offset = f->offset;
     v->t = t;
-    v->is_array = (length >= 0);
     v->is_global = (env_top == 0);
 
-    debug_i("add_var: frame @", env_top);
+    debug_i("add_var: frame_t @", env_top);
     debug_i("add_var: added @", f->offset);
     return v;
 }
 
 int find_var_offset(char *name) {
-    var *v;
+    var_t *v;
     v = find_var(name);
     if (v != 0) {
         return v->offset;
@@ -91,10 +77,10 @@ int find_var_offset(char *name) {
     return 0;
 }
 
-var *find_var(char *name) {
+var_t *find_var(char *name) {
     int env_pos;
     for (env_pos = env_top; env_pos >= 0; env_pos--) {
-        var *var_ptr;
+        var_t *var_ptr;
         for (var_ptr = env[env_pos].vars; var_ptr->name != 0; var_ptr++) {
             if (strcmp(name, var_ptr->name) == 0) {
                 return var_ptr;
@@ -106,7 +92,7 @@ var *find_var(char *name) {
 
 void dump_env() {
     int pos;
-    var *var_ptr;
+    var_t *var_ptr;
     for (pos = env_top; pos >= 0; pos--) {
         char buf[100];
         buf[0] = 0;

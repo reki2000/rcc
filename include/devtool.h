@@ -5,3 +5,4 @@ void error(char *);
 void error_i(char *, int);
 void error_s(char *, char *);
 char * _slice(char *, int);
+int align(int, int);

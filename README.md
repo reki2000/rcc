@@ -25,9 +25,9 @@ member_declare: type member_name array_type? ';'
 struct_name: IDENT
 
 var_declare: type var_name array_type? ';'
-array_type: '[' int? ']'
+array_type: ( '[' int? ']' )+
 
-block: '{' var_delcare* ( block_or_statement )* '}' <eof>
+block: '{' var_delcare* ( block_or_statement )* '}'
 block_or_statement: ( statement | block )
 
 statement: ';' | print_statement | if_statement | while_statement | for_statement | do_while_statement | expr_statement | return_statement

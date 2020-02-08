@@ -27,6 +27,10 @@ void out(char *str) {
 }
 
 void out_x(char *fmt, int size) {
+    if (size != 8 && size != 4 && size != 1) {
+        debug_s(" ", fmt);
+        error_i("unknown size:", size);
+    }
     char buf[1024];
     buf[0] = 0;
     char *d = &buf[0];
@@ -381,6 +385,8 @@ void compile(int pos) {
             break;
         case TYPE_PTR_DEREF:
             compile(p->atom_pos);
+            debug("deref:");
+            dump_atom2(p,0,0);
             emit_deref(p->t->size);
             break;
 
@@ -543,7 +549,7 @@ void compile_func(func *f) {
     out_int("subq	$", f->max_offset, ", %rsp");
 
     for (int i=0; i<f->argc; i++) {
-        var *v = &(f->argv[i]);
+        var_t *v = &(f->argv[i]);
         emit_var_arg_init(i, v->offset, v->t->size);
     }
 
@@ -572,7 +578,7 @@ int main() {
 
     out(".file	\"main.c\"");
     out("");
-    for (var *v = env[0].vars; v->name != 0; v++) {
+    for (var_t *v = env[0].vars; v->name != 0; v++) {
         char buf[100];
         buf[0] = 0;
         strcat(buf, ".comm	");
@@ -600,6 +606,8 @@ int main() {
 
     f = &functions[0];
     while (f->name != 0) {
+        debug_s(f->name, " --------------------- ");
+        dump_atom_tree(f->body_pos, 0);
         compile_func(f);
         f++;
     }

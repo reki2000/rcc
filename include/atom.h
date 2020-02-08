@@ -45,7 +45,7 @@ extern char* atom_name[];
 
 typedef struct {
     int type;
-    type_s *t;
+    type_t *t;
     union {
         char *ptr_value;
         int int_value;
@@ -59,8 +59,10 @@ extern atom_t program[];
 
 int alloc_atom(int size);
 
-void dump_atom(int pos);
+void dump_atom(int pos, int);
+void dump_atom2(atom_t *a, int, int);
 void dump_atom_all();
+void dump_atom_tree(int, int);
 
 void build_pos_atom(int pos, int type, int value);
 
@@ -69,14 +71,15 @@ bool atom_same_type(int, int);
 
 int alloc_binop_atom(int type, int lpos, int rpos);
 
-int alloc_typed_pos_atom(int , int, type_s *);
-int alloc_typed_int_atom(int, int, type_s *);
+int alloc_typed_pos_atom(int , int, type_t *);
+int alloc_typed_int_atom(int, int, type_t *);
 
-int alloc_var_atom(var *);
+int alloc_var_atom(var_t *);
 int alloc_deref_atom(int);
 int alloc_postincdec_atom(int, int);
 int alloc_assign_op_atom(int, int, int);
 int alloc_ptr_atom(int);
 int alloc_func_atom(func *);
-int alloc_offset_atom(int, type_s *, int);
+int alloc_offset_atom(int, type_t *, int);
+int alloc_index_atom(int, int);
 

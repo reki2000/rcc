@@ -36,21 +36,18 @@ void debug_s(char *str, char *val) {
 void error(char *str) {
     debug(str);
     dump_tokens();
-    dump_atom_all();
     __exit(1);
 }
 
 void error_i(char *str, int val) {
     debug_i(str, val);
     dump_tokens();
-    dump_atom_all();
     __exit(1);
 }
 
 void error_s(char *str, char *val) {
     debug_s(str, val);
     dump_tokens();
-    dump_atom_all();
     __exit(1);
 }
 
@@ -65,4 +62,12 @@ char *_slice(char *src, int count) {
     }
     *d = 0;
     return ret;
+}
+
+int align(int addr, int size) {
+    int mod = addr % size;
+    if (!mod) {
+        return addr;
+    }
+    return addr + (size - mod);
 }

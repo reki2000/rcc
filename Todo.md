@@ -1,92 +1,94 @@
 # Todo
 
-* print integer
-* assignment expression
+- [x] print integer
+- [x] assignment expression
 
-* equality oeprators == != > < >= <=
-* logical operators && || !
-* tokernize
+- [x] equality oeprators == != > < >= <=
+- [x] logical operators && || !
+- [x] tokernize
 
-* if statement
-* for statement
-* while statement
-* do-while statement
+- [x] if statement
+- [x] for statement
+- [x] while statement
+- [x] do-while statement
 
-* pointer
-* assignment using pointer
+- [x] pointer
+- [x] assignment using pointer
 
-* return
-* delcare function without args but returns a value
-* call no args function
-* declare function with args
-* call function with args
+- [x] return
+- [x] delcare function without args but returns a value
+- [x] call no args function
+- [x] declare function with args
+- [x] call function with args
 
-* regression test
-- AST design revisited
+- [x] regression test
 
-* unary operators +,-
-* string literal
-* char
-* prefix ++, --
-* postfix ++, --
+- [x] unary operators +,-
+- [x] string literal
+- [x] char
+- [x] prefix ++, --
+- [x] postfix ++, --
 
-* pointer + -
-* 1-dimension array
+- [x] pointer + -
+- [x] 1-dimension array
 
-* char literal
+- [x] char literal
 
-* struct
+- [x] struct
 
-- global variable
+- [x] global variable
 
-- atom_t refactoring
- - use atom_t * instead of pos
- - rename TYPE to *
- - use a.* to a.*
+- [x] atom_t refactoring 1
+ - use a.value.* to a.*
  - organize atom functions
 
-- long literal
+- [x] multi-dimension array
 
-- operators += -= *= /= %= |= &= ^=
+- [ ] long literal (10000L)
 
-- multi-dimension array
+- [ ] operators += -= *= /= %= |= &= ^=
 
-- multiple expressions with comma
-- cast
-- break, continue
+- [ ] multiple expressions with comma
+- [ ] cast
+- [ ] break, continue
 
-- variable initialization
+- [ ] variable initialization
 
-- multiple variable definition
+- [ ] multiple variable definition
 
-- union
-- enum
+- [ ] union
+- [ ] enum
 
-- typedef
-- sizeof
+- [ ] typedef
+- [ ] sizeof
 
-- array initialization
-- prototype declaration
-- extern
+- [ ] array initialization
+- [ ] prototype declaration
+- [ ] extern
 
-- switch case
+- [ ] switch case
 
-- bit operators >> >>= << <<= & | ^  &= |= ^= ~
-- trinary operator ?:
+- [ ] bit operators >> >>= << <<= & | ^  &= |= ^= ~
+- [ ] trinary operator ?:
 
-- include
-- define value
-- ifdef
-- define macro
+- [ ] include
+- [ ] define value
+- [ ] ifdef
+- [ ] define macro
 
-- float, double, double double, short, long, long long
-- unsigned
+- [ ] float, double, double double, short, long, long long
+- [ ] unsigned
 
 
-- function declaration for > 6 args
-- function call with > 6 args
-- function call ABI alignment
+- [ ] function declaration for > 6 args
+- [ ] function call with > 6 args
+- [ ] function call ABI alignment
 
-- function with va_args
+- [ ] function with va_args
 
-- static
+- [ ] static
+
+- [ ] atom_t refactoring 2
+ - use atom_t * instead of pos
+ - rename TYPE to *
+
