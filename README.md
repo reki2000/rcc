@@ -58,10 +58,11 @@ ptr: '&' var_name
 ptr_deref: '*' prefix
 prefix_incdec: ( '++' | '--' ) var_name
 
-postfix: primary | apply_func | struct_member | postfix_array | postfix_incdec
+postfix: primary | apply_func | struct_member | postfix_array | postfix_incdec | postfix_assignment
 apply_func: func_name '(' expr? ( ',' expr )* ')'
 postfix_array: postfix '[' expr ']'
 postfix_incdec: postfix ( '++' | '--' )
+postfix_assignment: postfix ( '+= ' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' ) expr
 struct_member: postfix '.' member_name | postfix '->' member_name
 
 primary: var_name | literal | '(' expr ')'

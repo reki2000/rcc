@@ -12,7 +12,7 @@ atom_t program[10000];
 int atom_pos = 1;
 
 char *atom_name[] = {
-    "args", "int", "add", "sub", "mul", "div", "mod", 
+    "args", "int", "add", "sub", "mul", "div", "mod", "bit-and","bit-or","bit-xor",
     "var_val", "var_ref", "nop", "expr_stmt", "andthen", "global", "print", "bind",
     "==","!=","<", ">", ">=", "<=", "&&", "||", "!",
     "if", "for", "while", "dowhile", "break", "continue",
@@ -111,6 +111,7 @@ void dump_atom_tree(int pos, int indent) {
         case TYPE_EXPR_STATEMENT:
         case TYPE_PTR_DEREF:
         case TYPE_RETURN:
+        case TYPE_PRINT:
             dump_atom_tree(a->atom_pos, indent + 1);
             break;
         case TYPE_WHILE:

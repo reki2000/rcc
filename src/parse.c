@@ -218,6 +218,37 @@ int parse_postfix_incdec(int pos) {
     return pos;
 }
 
+int parse_postfix_assignment(int pos) {
+    int op = 0;
+    if (expect(T_PLUS_EQUAL)) {
+        op = TYPE_ADD;
+    } else if (expect(T_MINUS_EQUAL)) {
+        op = TYPE_SUB;
+    } else if (expect(T_ASTERISK_EQUAL)) {
+        op = TYPE_MUL;
+    } else if (expect(T_SLASH_EQUAL)) {
+        op = TYPE_DIV;
+    } else if (expect(T_PERCENT_EQUAL)) {
+        op = TYPE_MOD;
+    } else if (expect(T_AMP_EQUAL)) {
+        op = TYPE_AND;
+    } else if (expect(T_PIPE_EQUAL)) {
+        op = TYPE_OR;
+    } else if (expect(T_HAT_EQUAL)) {
+        op = TYPE_XOR;
+    }
+
+    if (!op) {
+        return pos;
+    }
+    
+    int expr_pos = parse_expr();
+    if (!pos) {
+        error_i("no expr after assignment postfix", pos);
+    }
+    return alloc_assign_op_atom(op, pos, expr_pos);
+}
+
 int parse_postfix() {
     int pos;
 
@@ -235,6 +266,7 @@ int parse_postfix() {
         pos = parse_struct_member(pos);
         pos = parse_postfix_array(pos);
         pos = parse_postfix_incdec(pos);
+        pos = parse_postfix_assignment(pos);
     }
 
     return pos;

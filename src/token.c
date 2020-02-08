@@ -295,8 +295,14 @@ void tokenize() {
             add_token(T_EQ);
         } else if (expect_str("&&")) {
             add_token(T_L_AND);
+        } else if (expect_str("&=")) {
+            add_token(T_AMP_EQUAL);
         } else if (expect_str("||")) {
             add_token(T_L_OR);
+        } else if (expect_str("|=")) {
+            add_token(T_PIPE_EQUAL);
+        } else if (expect_str("^=")) {
+            add_token(T_HAT_EQUAL);
         } else if (expect_c('&')) {
             add_token(T_AMP);
         } else if (expect_c('=')) {
@@ -309,18 +315,28 @@ void tokenize() {
             add_token(T_GE);
         } else if (expect_c('>')) {
             add_token(T_GT);
+        } else if (expect_str("*=")) {
+            add_token(T_ASTERISK_EQUAL);
         } else if (expect_c('*')) {
             add_token(T_ASTERISK);
+        } else if (expect_str("/=")) {
+            add_token(T_SLASH_EQUAL);
         } else if (expect_c('/')) {
             add_token(T_SLASH);
+        } else if (expect_str("%=")) {
+            add_token(T_PERCENT_EQUAL);
         } else if (expect_c('%')) {
             add_token(T_PERCENT);
         } else if (expect_str("++")) {
             add_token(T_INC);
+        } else if (expect_str("+=")) {
+            add_token(T_PLUS_EQUAL);
         } else if (expect_c('+')) {
             add_token(T_PLUS);
         } else if (expect_str("--")) {
             add_token(T_DEC);
+        } else if (expect_str("-=")) {
+            add_token(T_MINUS_EQUAL);
         } else if (expect_str("->")) {
             add_token(T_ALLOW);
         } else if (expect_c('-')) {

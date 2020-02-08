@@ -44,9 +44,9 @@
 
 - [x] multi-dimension array
 
-- [ ] long literal (10000L)
+- [*] operators += -= *= /= %= |= &= ^=
 
-- [ ] operators += -= *= /= %= |= &= ^=
+- [ ] long literal (10000L)
 
 - [ ] multiple expressions with comma
 - [ ] cast
