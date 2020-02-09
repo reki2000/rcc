@@ -31,15 +31,17 @@ block: '{' var_delcare* ( block_or_statement )* '}'
 block_or_statement: ( statement | block )
 
 statement: ';' | print_statement | if_statement | while_statement | for_statement | do_while_statement | expr_statement | return_statement
-if_statement: 'if' '(' expr ')' ( statement | block ( 'else' block_or_statement )? )
-for_statement: 'for' '(' expr ';' expr ';' expr ')' block_or_statement
-while_statement: 'while' '(' expr ')' block_or_statement
-do_while_statement: 'do' block 'while' '(' expr ')' ';'
+if_statement: 'if' '(' expr_sequence ')' ( statement | block ( 'else' block_or_statement )? )
+for_statement: 'for' '(' expr_sequence ';' expr_sequence ';' expr_sequence ')' block_or_statement
+while_statement: 'while' '(' expr_sequence ')' block_or_statement
+do_while_statement: 'do' block 'while' '(' expr_sequence ')' ';'
 print_statement: 'print' '(' expr ');'
-return_statement: 'return' expr ';'
-expr_statement: expr ';'
+return_statement: 'return' expr_sequence ';'
+expr_statement: expr_sequence ';'
 
-expr: value ( ( '=' expr  | postfix_assignment )*
+expr_sequence: expr ( ',' expr )*
+expr: value ( assignment | postfix_assignment )* 
+assignment: '=' expr
 postfix_assignment: ( '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' ) expr
 
 value: logical_or

@@ -518,37 +518,57 @@ int parse_postfix_assignment(int pos) {
     return alloc_assign_op_atom(op, pos, expr_pos);
 }
 
+int parse_assignment(int lval) {
+    if (expect(T_EQUAL)) {
+        int rval = parse_expr();
+        if (!rval) {
+            error("cannot bind - no rvalue");
+        }
+        if (!atom_same_type(lval, rval)) {
+            dump_atom_tree(lval, 0);
+            dump_atom_tree(rval, 0);
+            error("cannot bind - not same type");
+        }
+        lval = atom_to_lvalue(lval);
+        if (!lval) {
+            error("cannot bind - lhs cannot be a lvalue");
+        }
+        lval = alloc_binop_atom(TYPE_BIND, rval, lval);
+    }
+    return lval;
+}
 
 
 int parse_expr() {
     int lval = parse_value();
-    if (lval == 0) {
+    if (!lval) {
         return 0;
     }
 
     while (TRUE) {
-        if (expect(T_EQUAL)) {
-            int rval = parse_expr();
-            if (!rval) {
-                error("cannot bind - no rvalue");
-            }
-            if (!atom_same_type(lval, rval)) {
-                dump_atom_tree(lval, 0);
-                dump_atom_tree(rval, 0);
-                error("cannot bind - not same type");
-            }
-            lval = atom_to_lvalue(lval);
-            if (!lval) {
-                error("cannot bind - lhs cannot be a lvalue");
-            }
-            lval = alloc_binop_atom(TYPE_BIND, rval, lval);
-        } else {
-            int pos = parse_postfix_assignment(lval);
-            if (pos == lval) {
-                break;
-            }
-            lval = pos;
+        int lval_prev = lval;
+        lval = parse_assignment(lval);
+        lval = parse_postfix_assignment(lval);
+        if (lval == lval_prev) {
+            break;
         }
+    }
+
+    return lval;
+}
+
+int parse_expr_sequence() {
+    int lval = parse_expr();
+    if (!lval) {
+        return 0;
+    }
+
+    while (expect(T_COMMA)) {
+        int pos = parse_expr();
+        if (!pos) {
+            error("no expression after comma");
+        }
+        lval = alloc_binop_atom(TYPE_ANDTHEN, lval, pos);
     }
     return lval;
 }
@@ -556,7 +576,7 @@ int parse_expr() {
 int parse_expr_statement() {
     int pos;
 
-    pos = parse_expr();
+    pos = parse_expr_sequence();
     if (pos != 0 && expect(T_SEMICOLON)) {
         return alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, pos, find_type("void"));
     }
@@ -576,7 +596,7 @@ int parse_if_statement() {
         if (!expect(T_LPAREN)) {
             error("no '(' after if");
         }
-        eq_pos = parse_expr();
+        eq_pos = parse_expr_sequence();
         if (eq_pos == 0) {
             error("no expr after if");
         }
@@ -613,15 +633,15 @@ int parse_for_statement() {
         if (!expect(T_LPAREN)) {
             error("no '(' after for");
         }
-        pre_pos = parse_expr();
+        pre_pos = parse_expr_sequence();
         if (!expect(T_SEMICOLON)) {
             error("no first ';' after for");
         }
-        cond_pos = parse_expr();
+        cond_pos = parse_expr_sequence();
         if (!expect(T_SEMICOLON)) {
             error("no second ';' after for");
         }
-        post_pos = parse_expr();
+        post_pos = parse_expr_sequence();
         if (!expect(T_RPAREN)) {
             error("no ')' after for");
         }
@@ -646,7 +666,7 @@ int parse_while_statement() {
         if (!expect(T_LPAREN)) {
             error("no '(' after while");
         }
-        cond_pos = parse_expr();
+        cond_pos = parse_expr_sequence();
         if (!expect(T_RPAREN)) {
             error("no ')' after while");
         }
@@ -676,7 +696,7 @@ int parse_do_while_statement() {
         if (!expect(T_LPAREN)) {
             error("no '(' after while");
         }
-        cond_pos = parse_expr();
+        cond_pos = parse_expr_sequence();
         if (!expect(T_RPAREN)) {
             error("no ')' after while");
         }
@@ -708,7 +728,7 @@ int parse_return_statement() {
     int pos;
 
     if (expect(T_RETURN)) {
-        pos = parse_expr();
+        pos = parse_expr_sequence();
         if (pos != 0 && expect(T_SEMICOLON)) {
             int oppos = alloc_typed_pos_atom(TYPE_RETURN, pos, find_type("void"));
             return oppos;
