@@ -188,6 +188,9 @@ int alloc_var_atom(var_t *v) {
     if (v->t->array_length > 0) {
         atom_set_type(pos, add_pointer_type(v->t->ptr_to));
         return pos;
+    } else if (v->t->struct_of != 0) {
+        atom_set_type(pos, add_pointer_type(v->t));
+        return pos;
     } else {
         atom_set_type(pos, add_pointer_type(v->t));
         return alloc_deref_atom(pos);
@@ -204,10 +207,14 @@ int alloc_deref_atom(int target) {
 
 int alloc_ptr_atom(int target) {
     atom_t *a = &program[target];
-    if (a->type != TYPE_PTR_DEREF) {
-        error("cannot get pointer to non var_t atom");
+    if (a->type == TYPE_VAR_REF || a->type == TYPE_GLOBAL_VAR_REF) {
+        return target;
     }
-    return a->atom_pos;
+    if (a->type == TYPE_PTR_DEREF) {
+        return a->atom_pos;
+    }
+    error("cannot get pointer to non var_t atom");
+    return 0;
 }
 
 int alloc_postincdec_atom(int type, int target) {

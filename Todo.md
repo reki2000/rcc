@@ -47,21 +47,22 @@
 - [*] operators += -= *= /= %= |= &= ^=
 - [*] multiple expressions with comma
 
+- [ ] local variable initialization
+- [ ] global variable initialization
+- [ ] local multiple variable definition
+- [ ] global multiple variable definition
+
 - [ ] long literal (10000L)
 - [ ] hex literal (0x0000)
-
-- [ ] cast
-- [ ] break, continue
-
-- [ ] variable initialization
-
-- [ ] multiple variable definition
 
 - [ ] union
 - [ ] enum
 
 - [ ] typedef
 - [ ] sizeof
+
+- [ ] cast
+- [ ] break, continue
 
 - [ ] array initialization
 - [ ] prototype declaration
@@ -93,3 +94,4 @@
  - use atom_t * instead of pos
  - rename TYPE to *
 
+- [ ] struct assignment - memcpy(&a,&b,sizeof(a))

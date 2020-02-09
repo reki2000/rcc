@@ -24,7 +24,7 @@ struct_declare: struct_name? '{' member_decrare* '}'
 member_declare: type member_name array_type? ';'
 struct_name: IDENT
 
-var_declare: type var_name array_type? ';'
+var_declare: type var_name array_type? ( assignment )? ';'
 array_type: ( '[' int? ']' )+
 
 block: '{' var_delcare* ( block_or_statement )* '}'

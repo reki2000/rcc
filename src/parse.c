@@ -176,21 +176,7 @@ int parse_postfix_array(int pos) {
 }
 
 int parse_struct_member(int pos) {
-    if (expect(T_PERIOD)) {
-        char *name;
-        if (!expect_ident(&name)) {
-            error("invalid member name");
-        }
-        member_t *m = find_struct_member(program[pos].t, name);
-        if (!m) {
-            error_s("no member: ", name);
-        }
-        int lval = atom_to_lvalue(pos);
-        if (!lval) {
-            error("item is not struct");
-        }
-        return alloc_offset_atom(lval, m->t, m->offset);
-    } else if (expect(T_ALLOW)) {
+    if (expect(T_PERIOD) || expect(T_ALLOW)) {
         char *name;
         if (!expect_ident(&name)) {
             error("invalid member name");
@@ -218,37 +204,6 @@ int parse_postfix_incdec(int pos) {
     return pos;
 }
 
-int parse_postfix_assignment(int pos) {
-    int op = 0;
-    if (expect(T_PLUS_EQUAL)) {
-        op = TYPE_ADD;
-    } else if (expect(T_MINUS_EQUAL)) {
-        op = TYPE_SUB;
-    } else if (expect(T_ASTERISK_EQUAL)) {
-        op = TYPE_MUL;
-    } else if (expect(T_SLASH_EQUAL)) {
-        op = TYPE_DIV;
-    } else if (expect(T_PERCENT_EQUAL)) {
-        op = TYPE_MOD;
-    } else if (expect(T_AMP_EQUAL)) {
-        op = TYPE_AND;
-    } else if (expect(T_PIPE_EQUAL)) {
-        op = TYPE_OR;
-    } else if (expect(T_HAT_EQUAL)) {
-        op = TYPE_XOR;
-    }
-
-    if (!op) {
-        return pos;
-    }
-    
-    int expr_pos = parse_expr();
-    if (!pos) {
-        error_i("no expr after assignment postfix", pos);
-    }
-    return alloc_assign_op_atom(op, pos, expr_pos);
-}
-
 int parse_postfix() {
     int pos;
 
@@ -266,7 +221,6 @@ int parse_postfix() {
         pos = parse_struct_member(pos);
         pos = parse_postfix_array(pos);
         pos = parse_postfix_incdec(pos);
-        pos = parse_postfix_assignment(pos);
     }
 
     return pos;
@@ -945,14 +899,14 @@ int parse_var_declare() {
 
     t = parse_var_array_declare(t);
 
+    int pos = alloc_var_atom(add_var(ident, t));
+    pos = parse_assignment(pos);
+
     if (!expect(T_SEMICOLON)) {
-        error("parse_var_declare: no ;");
+        error("parse_var_declare: no semicolon delimiter");
     }
 
-    add_var(ident, t);
-    debug_s("parse_var_declare: parsed: ", ident);
-
-    return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+    return pos;
 }
 
 int parse_block();
