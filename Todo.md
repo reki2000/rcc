@@ -1,5 +1,7 @@
 # Todo
 
+## B.C.
+
 - [x] print integer
 - [x] assignment expression
 
@@ -47,36 +49,47 @@
 - [*] operators += -= *= /= %= |= &= ^=
 - [*] multiple expressions with comma
 
-- [ ] local variable initialization
-- [ ] global variable initialization
-- [ ] local multiple variable definition
-- [ ] global multiple variable definition
-
-- [ ] long literal (10000L)
-- [ ] hex literal (0x0000)
+- [*] local variable initialization
+- [*] global variable initialization for int
 
 - [ ] union
 - [ ] enum
 
 - [ ] typedef
+
 - [ ] sizeof
 
 - [ ] cast
+- [ ] implicit cast between char -> int, int -> char (signed)
+
 - [ ] break, continue
 
-- [ ] array initialization
-- [ ] prototype declaration
-- [ ] extern
+- [ ] function prototype declaration
+
+- [ ] extern variable
+- [ ] extern function
 
 - [ ] switch case
-
-- [ ] bit operators >> >>= << <<= & | ^  ~
 - [ ] trinary operator ?:
 
+- [ ] bit operators >> >>= << <<= & | ^  ~
+
 - [ ] include
+
+- [ ] compiler argument (-S)? (-o outfile)? {source.c)+
+
+## A.D. (self hosted)
+
 - [ ] define value
 - [ ] ifdef
 - [ ] define macro
+
+- [ ] array initialization
+- [ ] local multiple variable definition
+- [ ] global multiple variable definition
+
+- [ ] long literal (10000L)
+- [ ] hex literal (0x0000)
 
 - [ ] float, double, double double, short, long, long long
 - [ ] unsigned

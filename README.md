@@ -13,7 +13,7 @@ program: declaration* eof
 
 declaration: global_variable_declare | function
 
-global_variable_declare: type var_name array_type? ';' 
+global_variable_declare: type var_name array_type? ( '=' literal )? ';' 
 
 function: type func_name '(' var_declare? ( ',' var_declare )* ')' block
 

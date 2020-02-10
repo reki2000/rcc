@@ -3,6 +3,13 @@ typedef struct {
     int offset;
     type_t *t;
     bool is_global;
+    bool is_extern;
+    bool has_value;
+    union {
+        int int_value;
+        long long_value;
+        char *data;
+    };
 } var_t;
 
 typedef struct {

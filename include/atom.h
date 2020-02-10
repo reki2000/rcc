@@ -41,7 +41,8 @@ enum {
     TYPE_STRING,
     TYPE_OFFSET,
     TYPE_GLOBAL_VAR_VAL,
-    TYPE_GLOBAL_VAR_REF
+    TYPE_GLOBAL_VAR_REF,
+    TYPE_GLOBAL_INT,
 };
 
 extern char* atom_name[];

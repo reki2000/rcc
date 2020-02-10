@@ -852,40 +852,7 @@ type_t *parse_type_declare() {
     return t;
 }
 
-int parse_func_var_declare() {
-    char *ident;
-
-    type_t *t = parse_type_declare();
-    if (!t) {
-        return 0;
-    }
-
-    if (!expect_ident(&ident)) {
-        error("parse_var_declare: invalid name");
-    }
-    add_var(ident, t);
-    debug_s("parse_var_declare: parsed: ", ident);
-    return 1;
-}
-
-int parse_func_args() {
-    int argc = 0;
-
-    if (!parse_func_var_declare()) {
-        return 0;
-    }
-    argc++;
-
-    while (expect(T_COMMA)) {
-        if (!parse_func_var_declare()) {
-            error("Invalid argv");
-        }
-        argc++;
-    }
-    return argc;
-}
-
-int parse_var_declare() {
+var_t *parse_var_declare() {
     char *ident;
 
     type_t *t = parse_type_declare();
@@ -899,7 +866,63 @@ int parse_var_declare() {
 
     t = parse_var_array_declare(t);
 
-    int pos = alloc_var_atom(add_var(ident, t));
+    return add_var(ident, t);
+}
+
+int parse_func_args() {
+    int argc = 0;
+
+    if (!parse_var_declare()) {
+        return 0;
+    }
+    argc++;
+
+    while (expect(T_COMMA)) {
+        if (!parse_var_declare()) {
+            error("Invalid argv");
+        }
+        argc++;
+    }
+    return argc;
+}
+
+int parse_global_var_assignment(var_t *v) {
+    if (!expect(T_EQUAL)) {
+        return 0;
+    }
+
+    int num = 0;
+    if (expect_int(&num)) {
+        v->has_value = TRUE;
+        v->int_value = num;
+    }
+    return 1;
+}
+
+
+int parse_global_var_declare() {
+    var_t *v = parse_var_declare();
+    if (!v) {
+        return 0;
+    }
+
+    alloc_var_atom(v);
+    parse_global_var_assignment(v);
+
+    if (!expect(T_SEMICOLON)) {
+        error("parse_var_declare: no semicolon delimiter");
+    }
+
+    return 1;
+}
+
+int parse_local_var_declare() {
+    var_t *v = parse_var_declare();
+    if (!v) {
+        return 0;
+    }
+
+    int pos = alloc_var_atom(v);
     pos = parse_assignment(pos);
 
     if (!expect(T_SEMICOLON)) {
@@ -928,7 +951,7 @@ int parse_block() {
 
     enter_var_frame();
     for (;;) {
-        int new_pos = parse_var_declare();
+        int new_pos = parse_local_var_declare();
         if (!new_pos) {
             break;
         }
@@ -1012,7 +1035,7 @@ void parse() {
         int pos;
         pos = parse_function();
         if (pos) continue;
-        pos = parse_var_declare();
+        pos = parse_global_var_declare();
         if (pos) continue;
     }
     exit_var_frame();

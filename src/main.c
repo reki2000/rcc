@@ -59,6 +59,15 @@ void out_int(char *str1, int i, char *str2) {
     out(buf);
 }
 
+void out_int4(char *str1, char *str2, char *str3, int i, char *str4) {
+    char buf[1024];
+    buf[0] = 0;
+    strcat(buf, str1);
+    strcat(buf, str2);
+    _strcat3(buf, str3, i, str4);
+    out(buf);
+}
+
 void out_intx(char *str1, char *str2, int i, char *str3, int size) {
     char buf[1024];
     buf[0] = 0;
@@ -580,6 +589,34 @@ void compile_func(func *f) {
     out("");
 }
 
+void out_global_constant(var_t *v) {
+        out_str(".globl\t", v->name, "");
+        out(".data");
+        out_int(".align\t", 4, "");
+        out_str(".type\t", v->name, ", @object");
+        out_int4(".size\t", v->name, ", ", v->t->size, "");
+        out_label(v->name);
+        if (v->t->array_length > 0) {
+            out_int(".zero\t", v->t->size, "");
+        } else if (v->t->size <= 4) {
+            out_int(".long\t", v->int_value, "");
+        } else if (v->t->size == 8) {
+            out_int(".quad\t", v->long_value, "");
+        } else {
+            error_s("unknown size for global variable:", v->name);
+        }
+        out("");
+}
+
+void out_global_declare(var_t *v) {
+    char buf[100];
+    buf[0] = 0;
+    strcat(buf, ".comm	");
+    strcat(buf, v->name);
+    _strcat3(buf, ", ", v->t->size, "");
+    out(buf);
+}
+
 int main() {
     int pos;
     func *f;
@@ -596,15 +633,15 @@ int main() {
 
     out(".file	\"main.c\"");
     out("");
-    for (var_t *v = env[0].vars; v->name != 0; v++) {
-        char buf[100];
-        buf[0] = 0;
-        strcat(buf, ".comm	");
-        strcat(buf, v->name);
-        _strcat3(buf, ", ", v->t->size, "");
-        out(buf);
+
+    for (int i=0; i<env[0].num_vars; i++) {
+        var_t *v = &(env[0].vars[i]);
+        if (v->has_value) {
+            out_global_constant(v);
+        } else if (!v->is_extern) {
+            out_global_declare(v);
+        }
     }
-    out("");
 
     out(".section	.rodata");
     out_label(".LC0");
