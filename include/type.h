@@ -8,6 +8,7 @@ typedef struct member_t {
 
 typedef struct struct_t {
     int num_members;
+    bool is_union;
     member_t members[100];
 } struct_t;
 
@@ -29,6 +30,6 @@ extern type_t *add_array_type(type_t *, int);
 extern bool is_convertable(type_t *, type_t *);
 
 extern type_t *add_struct_type(char *name);
-extern type_t *find_struct_type(char *name);
+extern type_t *add_union_type(char *name);
 extern member_t *add_struct_member(type_t *, char *name, type_t *t);
 extern member_t *find_struct_member(type_t *, char *name);

@@ -19,7 +19,11 @@ void dump_type(type_t *t) {
     buf[0] = 0;
     strcat(buf, "type ");
     if (t->struct_of) {
+        if (t->struct_of->is_union) {
+            strcat(buf, "union ");
+        } else {
             strcat(buf, "struct ");
+        }
     }
     strcat(buf, t->name);
     _strcat3(buf, " size:", t->size, "");
@@ -82,8 +86,8 @@ type_t *find_type(char *name) {
 struct_t structs[1024];
 int structs_len = 0;
 
-type_t *add_struct_type(char *name) {
-    type_t *t = find_struct_type(name);
+type_t *add_struct_union_type(char *name, bool is_union) {
+    type_t *t = find_struct_type(name, is_union);
     if (t) {
         return t;
     }
@@ -92,16 +96,27 @@ type_t *add_struct_type(char *name) {
     }
     struct_t *s = &structs[structs_len++];
     s->num_members = 0;
+    s->is_union = is_union;
 
     t = add_type(name, 0, 0, 0);
     t->struct_of = s;
     return t;
 }
 
-type_t *find_struct_type(char *name) {
+type_t *add_union_type(char *name) {
+    return add_struct_union_type(name, TRUE);
+}
+
+type_t *add_struct_type(char *name) {
+    return add_struct_union_type(name, FALSE);
+}
+
+type_t *find_struct_type(char *name, bool is_union) {
     for (int i=0; i<types_pos; i++) {
         if (strcmp(name, types[i].name) == 0 && types[i].struct_of != 0) {
-            return &types[i];
+            if (types[i].struct_of->is_union == is_union) {
+                return &types[i];
+            }
         }
     }
     return 0;
@@ -120,11 +135,16 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t) {
     m->t = t;
 
     // todo: alignment to 4 bytes
-    m->offset = st->size;
-    debug_i("added struct member @", m->offset);
-
-    st->size += t->size;
-    debug_i("struct size: @", st->size);
+    if (s->is_union) {
+        m->offset = 0;
+        if (st->size < t->size) {
+            st->size = t->size;
+        }
+    } else {
+        m->offset = st->size;
+        debug_i("added struct member @", m->offset);
+        st->size += t->size;
+    }
 
     return m;
 }

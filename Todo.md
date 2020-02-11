@@ -52,7 +52,7 @@
 - [*] local variable initialization
 - [*] global variable initialization for int
 
-- [ ] union
+- [*] union
 - [ ] enum
 
 - [ ] typedef

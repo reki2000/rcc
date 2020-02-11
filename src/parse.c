@@ -811,24 +811,34 @@ int parse_struct_member_declare(type_t *st) {
 type_t *parse_struct_type() {
     type_t *t;
     char *type_name;
+    bool is_union;
 
-    if (!expect(T_STRUCT)) {
+    if (expect(T_STRUCT)) {
+        is_union = FALSE;
+    } else if (expect(T_UNION)) {
+        is_union = TRUE;
+    } else {
         return 0;
     }
 
     if (expect_ident(&type_name)) {
-        debug_s("struct name: ", type_name);
-        t = add_struct_type(type_name);
+        if (is_union) {
+            debug_s("union name: ", type_name);
+            t = add_union_type(type_name);
+        } else {
+            debug_s("struct name: ", type_name);
+            t = add_struct_type(type_name);
+        }
     } else {
         t = add_struct_type("---");
     }
 
     if (expect(T_LBLACE)) {
-        debug("parsing struct member...");
+        debug("parsing struct/union member...");
         while (parse_struct_member_declare(t) != 0) {
         }
         if (!expect(T_RBLACE)) {
-            error_s("struct no close } : ", type_name);
+            error_s("struct/union no close } : ", type_name);
         }
     }
 

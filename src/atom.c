@@ -68,7 +68,11 @@ void dump_atom2(atom_t *p, int indent, int pos) {
         }
 
         if (t->struct_of) {
-            strcat(buf, "struct ");
+            if (t->struct_of->is_union) {
+                strcat(buf, "union ");
+            } else {
+                strcat(buf, "struct ");
+            }
         }
         strcat(buf, t->name);
        _strcat3(buf, " size:", t_org->size, "");
