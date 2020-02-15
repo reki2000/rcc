@@ -753,6 +753,11 @@ int parse_statement() {
     return pos;
 }
 
+
+type_t *parse_type_declaration();
+type_t *parse_pointer(type_t *);
+
+
 type_t *parse_primitive_type() {
     type_t *t;
     char *type_name;
@@ -770,8 +775,6 @@ type_t *parse_primitive_type() {
     return t;
 }
 
-type_t *parse_type_declare();
-
 type_t *parse_var_array_declare(type_t *t) {
     if (!expect(T_LBRACKET)) {
         return t;
@@ -786,30 +789,6 @@ type_t *parse_var_array_declare(type_t *t) {
     }
 
     return add_array_type(parse_var_array_declare(t), length);
-}
-
-int parse_struct_member_declare(type_t *st) {
-    char *ident;
-
-    type_t *t = parse_type_declare();
-    if (!t) {
-        return 0;
-    }
-
-    if (!expect_ident(&ident)) {
-        error("parse_var_declare: invalid name");
-    }
-
-    t = parse_var_array_declare(t);
-
-    if (!expect(T_SEMICOLON)) {
-        error("parse_var_declare: no ;");
-    }
-
-    add_struct_member(st, ident, t);
-    debug_s("parse_var_declare: parsed: ", ident);
-
-    return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
 }
 
 type_t *parse_enum_type() {
@@ -861,11 +840,35 @@ type_t *parse_enum_type() {
 
 }
 
-type_t *parse_struct_type() {
-    type_t *t;
-    char *type_name;
-    bool is_union;
 
+int parse_struct_member_declare(type_t *st) {
+    char *ident;
+
+    type_t *t = parse_type_declaration();
+    if (!t) {
+        return 0;
+    }
+    t = parse_pointer(t);
+
+    if (!expect_ident(&ident)) {
+        error("parse_var_declare: invalid name");
+    }
+
+    t = parse_var_array_declare(t);
+
+    if (!expect(T_SEMICOLON)) {
+        error("parse_var_declare: no ;");
+    }
+
+    add_struct_member(st, ident, t);
+    debug_s("parse_var_declare: parsed: ", ident);
+
+    return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+}
+
+
+type_t *parse_union_or_struct_type() {
+    bool is_union;
     if (expect(T_STRUCT)) {
         is_union = FALSE;
     } else if (expect(T_UNION)) {
@@ -874,6 +877,8 @@ type_t *parse_struct_type() {
         return 0;
     }
 
+    type_t *t;
+    char *type_name;
     if (expect_ident(&type_name)) {
         if (is_union) {
             debug_s("union name: ", type_name);
@@ -898,33 +903,50 @@ type_t *parse_struct_type() {
     return t;
 }
 
-type_t *parse_type_declare() {
+type_t *parse_typedef() {
+    return 0;
+}
+
+type_t *parse_defined_type() {
+    return 0;
+}
+
+type_t *parse_type_declaration() {
     type_t *t;
 
-    t = parse_enum_type();
+    t = parse_typedef();
     if (!t) {
-        t = parse_struct_type();
+        t = parse_enum_type();
+    }
+    if (!t) {
+        t = parse_union_or_struct_type();
+    }
+    if (!t) {
+        t = parse_defined_type();
     }
     if (!t) {
         t = parse_primitive_type();
     }
-    if (!t) {
-        return 0;
-    }
+    return t;
 
+}
+
+type_t *parse_pointer(type_t *t) {
     while (expect(T_ASTERISK)) {
         t = add_pointer_type(t);
     }
     return t;
 }
 
+
 var_t *parse_var_declare() {
     char *ident;
 
-    type_t *t = parse_type_declare();
+    type_t *t = parse_type_declaration();
     if (!t) {
         return 0;
     }
+    t = parse_pointer(t);
 
     if (!expect_ident(&ident)) {
         error("parse_var_declare: invalid name");
@@ -933,23 +955,6 @@ var_t *parse_var_declare() {
     t = parse_var_array_declare(t);
 
     return add_var(ident, t);
-}
-
-int parse_func_args() {
-    int argc = 0;
-
-    if (!parse_var_declare()) {
-        return 0;
-    }
-    argc++;
-
-    while (expect(T_COMMA)) {
-        if (!parse_var_declare()) {
-            error("Invalid argv");
-        }
-        argc++;
-    }
-    return argc;
 }
 
 int parse_global_var_assignment(var_t *v) {
@@ -966,19 +971,19 @@ int parse_global_var_assignment(var_t *v) {
 }
 
 
-int parse_global_var_declare() {
-    var_t *v = parse_var_declare();
-    if (!v) {
+int parse_global_variable(type_t *t) {
+    int pos = get_token_pos();
+    t = parse_pointer(t);
+
+    char *ident;
+    if (!expect_ident(&ident)) {
+        set_token_pos(pos);
         return 0;
     }
+    t = parse_var_array_declare(t);
 
-    alloc_var_atom(v);
-    parse_global_var_assignment(v);
-
-    if (!expect(T_SEMICOLON)) {
-        error("parse_var_declare: no semicolon delimiter");
-    }
-
+    var_t *v = add_var(ident, t);
+    pos = parse_global_var_assignment(v);
     return 1;
 }
 
@@ -999,6 +1004,24 @@ int parse_local_var_declare() {
 }
 
 int parse_block();
+
+int parse_func_args() {
+    int argc = 0;
+
+    if (!parse_var_declare()) {
+        return 0;
+    }
+    argc++;
+
+    while (expect(T_COMMA)) {
+        if (!parse_var_declare()) {
+            error("Invalid argv");
+        }
+        argc++;
+    }
+    return argc;
+}
+
 
 int parse_block_or_statement() {
     int pos = parse_statement();
@@ -1051,18 +1074,16 @@ int parse_block() {
     return prev_pos;
 }
 
-int parse_function() {
+int parse_function_definition(type_t *t) {
     int pos = get_token_pos();
 
-    type_t *t = parse_type_declare();
-    if (!t) {
-        set_token_pos(pos);
-        return 0;
-    };
+    t = parse_pointer(t);
 
     char *ident;
     if (!expect_ident(&ident)) {
-        error("parse_function: invalid name");
+        debug("parse_function: not fucton def");
+        set_token_pos(pos);
+        return 0;
     }
     
     if (!expect(T_LPAREN)) {
@@ -1094,15 +1115,37 @@ int parse_function() {
     return 1;
 }
 
+int parse_global_declaration() {
+    type_t *t = parse_type_declaration();
+    if (!t) {
+        return 0;
+    }
+    if (expect(T_SEMICOLON)) {
+        return 1;
+    }
+    int pos;
+    pos = parse_function_definition(t);
+    if (pos) {
+        return pos;
+    }
+    pos = parse_global_variable(t);
+    if (pos) {
+        if (expect(T_SEMICOLON)) {
+            return pos;
+        }
+        error("no semicolon after variable declaration");
+    }
+    return 0;
+}
+
 void parse() {
 
     enter_var_frame();
     while (!expect(T_EOF)) {
         int pos;
-        pos = parse_function();
+        pos = parse_global_declaration();
         if (pos) continue;
-        pos = parse_global_var_declare();
-        if (pos) continue;
+        error("Invalid declaration");
     }
     exit_var_frame();
 }

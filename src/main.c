@@ -636,6 +636,9 @@ int main() {
 
     for (int i=0; i<env[0].num_vars; i++) {
         var_t *v = &(env[0].vars[i]);
+        if (v->is_constant) {
+            continue;
+        }
         if (v->has_value) {
             out_global_constant(v);
         } else if (!v->is_extern) {

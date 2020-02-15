@@ -174,30 +174,30 @@ bool is_convertable(type_t *to, type_t *from) {
 enum_t enums[1024];
 int enums_len = 0;
 
-enum_t *find_enum(char *name) {
-    for (int i=0; i<enums_len; i++) {
-        if (strcmp(name, enums[i].name) == 0) {
-            return &enums[i];
+type_t *find_enum_type(char *name) {
+    for (int i=0; i<types_pos; i++) {
+        if (strcmp(name, types[i].name) == 0 && types[i].enum_of != 0) {
+            return &types[i];
         }
     }
     return 0;
 }
 
 type_t *add_enum_type(char *name) {
-    enum_t *e = find_enum(name);
-    if (e) {
-        return e;
+    type_t *t = find_enum_type(name);
+    if (t) {
+        return t;
     }
 
     if (enums_len >= 1024) {
         error("too much enum definitions");
     }
 
-    e = &enums[enums_len++];
+    enum_t *e = &enums[enums_len++];
     e->next_value = 0;
     e->name = name;
 
-    type_t *t = add_type(name, 4, 0, 0);
+    t = add_type(name, 4, 0, 0);
     t->enum_of = e;
 
     return t;

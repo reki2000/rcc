@@ -9,30 +9,36 @@ run `make` and you get executed result of `test/test.c`
 
 ## Current BNF
 ```
-program: declaration* eof
+program: global_declaration* eof
 
-declaration: global_variable_declare | function
+global_declaration: type_declaration ( ';' | global_variable ';' | function_definition )
 
-global_variable_declare: type var_name array_type? ( '=' literal )? ';' 
+global_variable: pointer? var_name array_type? ( '=' literal )?
 
-function: type func_name '(' var_declare? ( ',' var_declare )* ')' block
+type_declaration: typedef | union_or_struct_type | enum_type | defined_type | primitive_type
 
-type: ( struct_type | union_type | enum_type | premitive_type ) '*'*
-premitive_type: 'int' | 'char' | 'long'
+typedef: 'typedef' type_declaration pointer? defined_type
+defined_type: IDENT
 
-enum_type: 'enum' ( enum_declare | enum_name )
+
+function_definition: pointer? func_name '(' var_declare? ( ',' var_declare )* ')' block
+
+pointer: '*'+
+primitive_type: 'int' | 'char' | 'long'
+array_type: ( '[' int? ']' )+
+
+enum_declarator: 
+enum_type: 'enum' ( enum_name? enum_declare | enum_name )
 enum_name: IDENT
-enum_declare: enum_name? '{' enum_member ( ',' enum_member )* '}'
+enum_declare: '{' enum_member ( ',' enum_member )* '}'
 enum_member: member_name ( '=' int )? 
 
-union_type: 'union' ( struct_declare | struct_name )
-struct_type: 'struct' ( struct_declare | struct_name )
-struct_declare: struct_name? '{' member_decrare* '}'
-member_declare: type member_name array_type? ';'
+union_or_struct_type: ( 'struct' | 'union' ) ( struct_name? struct_declare | struct_name )
+struct_declare: '{' struct_member_decrare* '}'
+struct_member_declare: type_declaration pointer member_name array_type? ';'
 struct_name: IDENT
 
-var_declare: type var_name array_type? ( assignment )? ';'
-array_type: ( '[' int? ']' )+
+var_declare: type_declaration pointer var_name array_type? ( assignment )? ';'
 
 block: '{' var_delcare* ( block_or_statement )* '}'
 block_or_statement: ( statement | block )
