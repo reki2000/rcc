@@ -43,6 +43,28 @@ frame_t *get_top_frame() {
     return &env[env_top];
 }
 
+var_t *add_constant_int(char *name, type_t*t, int value) {
+    var_t *v;
+    frame_t *f = &env[env_top];
+
+    if (f->num_vars >= 100) {
+        error("Too many variables");
+    }
+    v = &(f->vars[f->num_vars]);
+    f->num_vars++;
+
+    v->name = name;
+    v->t = t;
+    v->is_constant = TRUE;
+    v->is_global = (env_top == 0);
+    v->has_value = TRUE;
+    v->int_value = value;
+
+    debug_i("add_constant_int: added ", v->int_value);
+    return v;
+
+}
+
 var_t *add_var(char *name, type_t *t) {
     var_t *v;
     frame_t *f = &env[env_top];

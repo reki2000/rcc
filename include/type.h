@@ -1,4 +1,4 @@
-struct type_t;
+typedef struct type_t type_t;
 
 typedef struct member_t {
     char *name;
@@ -12,14 +12,21 @@ typedef struct struct_t {
     member_t members[100];
 } struct_t;
 
+typedef struct enum_t {
+    char *name;
+    int next_value;
+} enum_t;
+
 typedef struct type_t {
     int type_id;
     int size;
     char *name;
-    struct type_t *ptr_to;
+    type_t *ptr_to;
     struct_t *struct_of;
+    enum_t *enum_of;
     int array_length;
 } type_t;
+
 
 extern void init_types();
 extern type_t *add_type(char *name, int size, type_t *ptr_to, int array_length);
@@ -33,3 +40,5 @@ extern type_t *add_struct_type(char *name);
 extern type_t *add_union_type(char *name);
 extern member_t *add_struct_member(type_t *, char *name, type_t *t);
 extern member_t *find_struct_member(type_t *, char *name);
+
+extern type_t *add_enum_type(char *name);

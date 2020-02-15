@@ -94,7 +94,11 @@ var_t *parse_var_name() {
 int parse_var() {
     var_t *v = parse_var_name();
     if (v) {
-        return alloc_var_atom(v);
+        if (v->is_constant) {
+            return alloc_typed_int_atom(TYPE_INT, v->int_value, find_type("int"));
+        } else {
+            return alloc_var_atom(v);
+        }
     }
     return 0;
 }
@@ -808,6 +812,55 @@ int parse_struct_member_declare(type_t *st) {
     return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
 }
 
+type_t *parse_enum_type() {
+    type_t *t;
+    char *tag_name;
+
+    if (!expect(T_ENUM)) {
+        return 0;
+    }
+
+    if (expect_ident(&tag_name)) {
+        t = add_enum_type(tag_name);
+    } else {
+        t = add_enum_type("---");
+    }
+
+    if (expect(T_LBLACE)) {
+        debug("parsing enum member...");
+        for (;;) {
+            char *member_name;
+            if (!expect_ident(&member_name)) {
+                error("expected identifier");
+            }
+            int value = t->enum_of->next_value++;
+
+            if (expect(T_EQUAL)) {
+                if (!expect_int(&value)) {
+                    error_s("invalid value for enum member: ", member_name);
+                }
+                t->enum_of->next_value = value + 1;
+                debug_i("enum value assigned: ", value);
+            }
+            add_constant_int(member_name, t, value);
+
+            if (expect(T_COMMA)) {
+                if (expect(T_RBLACE)) {
+                    break;
+                }
+                continue;
+            } else if (expect(T_RBLACE)) {
+                break;
+            } else {
+                error("syntax error in enum member declaration");
+            }
+        }
+    }
+
+    return t;
+
+}
+
 type_t *parse_struct_type() {
     type_t *t;
     char *type_name;
@@ -848,7 +901,10 @@ type_t *parse_struct_type() {
 type_t *parse_type_declare() {
     type_t *t;
 
-    t = parse_struct_type();
+    t = parse_enum_type();
+    if (!t) {
+        t = parse_struct_type();
+    }
     if (!t) {
         t = parse_primitive_type();
     }

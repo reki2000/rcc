@@ -17,8 +17,14 @@ global_variable_declare: type var_name array_type? ( '=' literal )? ';'
 
 function: type func_name '(' var_declare? ( ',' var_declare )* ')' block
 
-type: ( struct_type | union_type | premitive_type ) '*'*
+type: ( struct_type | union_type | enum_type | premitive_type ) '*'*
 premitive_type: 'int' | 'char' | 'long'
+
+enum_type: 'enum' ( enum_declare | enum_name )
+enum_name: IDENT
+enum_declare: enum_name? '{' enum_member ( ',' enum_member )* '}'
+enum_member: member_name ( '=' int )? 
+
 union_type: 'union' ( struct_declare | struct_name )
 struct_type: 'struct' ( struct_declare | struct_name )
 struct_declare: struct_name? '{' member_decrare* '}'

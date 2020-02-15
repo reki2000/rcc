@@ -86,6 +86,17 @@ type_t *find_type(char *name) {
 struct_t structs[1024];
 int structs_len = 0;
 
+type_t *find_struct_type(char *name, bool is_union) {
+    for (int i=0; i<types_pos; i++) {
+        if (strcmp(name, types[i].name) == 0 && types[i].struct_of != 0) {
+            if (types[i].struct_of->is_union == is_union) {
+                return &types[i];
+            }
+        }
+    }
+    return 0;
+}
+
 type_t *add_struct_union_type(char *name, bool is_union) {
     type_t *t = find_struct_type(name, is_union);
     if (t) {
@@ -109,17 +120,6 @@ type_t *add_union_type(char *name) {
 
 type_t *add_struct_type(char *name) {
     return add_struct_union_type(name, FALSE);
-}
-
-type_t *find_struct_type(char *name, bool is_union) {
-    for (int i=0; i<types_pos; i++) {
-        if (strcmp(name, types[i].name) == 0 && types[i].struct_of != 0) {
-            if (types[i].struct_of->is_union == is_union) {
-                return &types[i];
-            }
-        }
-    }
-    return 0;
 }
 
 member_t *add_struct_member(type_t *st, char *name, type_t *t) {
@@ -168,4 +168,37 @@ bool is_convertable(type_t *to, type_t *from) {
     if (!to || !from) return FALSE;
     if (is_convertable(to->ptr_to, from->ptr_to)) return TRUE;
     return FALSE;
+}
+
+
+enum_t enums[1024];
+int enums_len = 0;
+
+enum_t *find_enum(char *name) {
+    for (int i=0; i<enums_len; i++) {
+        if (strcmp(name, enums[i].name) == 0) {
+            return &enums[i];
+        }
+    }
+    return 0;
+}
+
+type_t *add_enum_type(char *name) {
+    enum_t *e = find_enum(name);
+    if (e) {
+        return e;
+    }
+
+    if (enums_len >= 1024) {
+        error("too much enum definitions");
+    }
+
+    e = &enums[enums_len++];
+    e->next_value = 0;
+    e->name = name;
+
+    type_t *t = add_type(name, 4, 0, 0);
+    t->enum_of = e;
+
+    return t;
 }

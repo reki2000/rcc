@@ -4,6 +4,7 @@ typedef struct {
     type_t *t;
     bool is_global;
     bool is_extern;
+    bool is_constant;
     bool has_value;
     union {
         int int_value;
@@ -25,6 +26,7 @@ extern void enter_var_frame();
 extern void exit_var_frame();
 extern frame_t *get_top_frame();
 extern var_t *add_var(char *, type_t *);
+extern var_t *add_constant_int(char *, type_t *, int value);
 extern int find_var_offset(char *);
 extern var_t *find_var(char *);
 

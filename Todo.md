@@ -53,9 +53,12 @@
 - [*] global variable initialization for int
 
 - [*] union
-- [ ] enum
+- [*] enum
 
 - [ ] typedef
+- [ ] enum declaration
+- [ ] union/struct declaration
+
 
 - [ ] sizeof
 

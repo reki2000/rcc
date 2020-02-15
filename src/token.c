@@ -379,6 +379,8 @@ void tokenize() {
             add_token(T_STRUCT);
         } else if (expect_reserved_str("union")) {
             add_token(T_UNION);
+        } else if (expect_reserved_str("enum")) {
+            add_token(T_ENUM);
         } else if (expect_reserved_str("while")) {
             add_token(T_WHILE);
         } else {
