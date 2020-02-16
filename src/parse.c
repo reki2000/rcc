@@ -861,9 +861,8 @@ int parse_struct_member_declare(type_t *st) {
     }
 
     add_struct_member(st, ident, t);
-    debug_s("parse_var_declare: parsed: ", ident);
 
-    return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+    return 1;
 }
 
 
@@ -881,10 +880,8 @@ type_t *parse_union_or_struct_type() {
     char *type_name;
     if (expect_ident(&type_name)) {
         if (is_union) {
-            debug_s("union name: ", type_name);
             t = add_union_type(type_name);
         } else {
-            debug_s("struct name: ", type_name);
             t = add_struct_type(type_name);
         }
     } else {
@@ -892,7 +889,6 @@ type_t *parse_union_or_struct_type() {
     }
 
     if (expect(T_LBLACE)) {
-        debug("parsing struct/union member...");
         while (parse_struct_member_declare(t) != 0) {
         }
         if (!expect(T_RBLACE)) {
@@ -904,7 +900,25 @@ type_t *parse_union_or_struct_type() {
 }
 
 type_t *parse_typedef() {
-    return 0;
+    if (!expect(T_TYPEDEF)) {
+        return 0;
+    }
+    type_t *t = parse_type_declaration();
+    if (!t) {
+        error("invalid type declaration for typedef");
+    }
+
+    char *type_name;
+    if (!expect_ident(&type_name)) {
+        error("no type name for typedef");
+    }
+
+    type_t *defined_type = add_type(type_name, t->size, t->ptr_to, t->array_length);
+    defined_type->struct_of = t->struct_of;
+    defined_type->enum_of = t->enum_of;
+    defined_type->typedef_of = t;
+
+    return defined_type;
 }
 
 type_t *parse_defined_type() {
@@ -987,7 +1001,7 @@ int parse_global_variable(type_t *t) {
     return 1;
 }
 
-int parse_local_var_declare() {
+int parse_local_variable() {
     var_t *v = parse_var_declare();
     if (!v) {
         return 0;
@@ -1040,7 +1054,7 @@ int parse_block() {
 
     enter_var_frame();
     for (;;) {
-        int new_pos = parse_local_var_declare();
+        int new_pos = parse_local_variable();
         if (!new_pos) {
             break;
         }

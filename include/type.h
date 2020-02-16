@@ -7,8 +7,9 @@ typedef struct member_t {
 } member_t;
 
 typedef struct struct_t {
-    int num_members;
+    char *name;
     bool is_union;
+    int num_members;
     member_t members[100];
 } struct_t;
 
@@ -18,13 +19,13 @@ typedef struct enum_t {
 } enum_t;
 
 typedef struct type_t {
-    int type_id;
     int size;
     char *name;
     type_t *ptr_to;
+    int array_length;
     struct_t *struct_of;
     enum_t *enum_of;
-    int array_length;
+    type_t *typedef_of;
 } type_t;
 
 
