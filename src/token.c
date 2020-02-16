@@ -375,6 +375,8 @@ void tokenize() {
             add_token(T_PRINT);
         } else if (expect_reserved_str("return")) {
             add_token(T_RETURN);
+        } else if (expect_reserved_str("sizeof")) {
+            add_token(T_SIZEOF);
         } else if (expect_reserved_str("struct")) {
             add_token(T_STRUCT);
         } else if (expect_reserved_str("typedef")) {

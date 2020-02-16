@@ -212,7 +212,9 @@ int alloc_deref_atom(int target) {
 int alloc_ptr_atom(int target) {
     atom_t *a = &program[target];
     if (a->type == TYPE_VAR_REF || a->type == TYPE_GLOBAL_VAR_REF) {
-        return target;
+        int pos = alloc_atom(1);
+        build_pos_atom(pos, TYPE_PTR, target);
+        return pos;
     }
     if (a->type == TYPE_PTR_DEREF) {
         return a->atom_pos;

@@ -13,6 +13,10 @@
 
 int parse_expr();
 int parse_primary();
+int parse_prefix();
+int parse_unary();
+type_t *parse_type_declaration();
+type_t *parse_pointer();
 
 int parse_int() {
     int value;
@@ -247,7 +251,6 @@ int parse_prefix_incdec() {
     return alloc_assign_op_atom(op_type, pos, alloc_typed_int_atom(TYPE_INT, 1, find_type("int")));
 }
 
-int parse_prefix();
 
 int parse_ptr_deref() {
     int pos;
@@ -292,6 +295,45 @@ int parse_signed() {
     return 0;
 }
 
+int parse_sizeof() {
+    int pos = 0;
+    if (!expect(T_SIZEOF)) {
+        return 0;
+    }
+
+    int start_pos = get_token_pos();
+    if (expect(T_LPAREN)) {
+        type_t *t = parse_type_declaration();
+        if (t) {
+            t = parse_pointer(t);
+            if (!expect(T_RPAREN)) {
+                error("no () after sizeof");
+            }
+            pos = alloc_typed_int_atom(TYPE_INT, t->size, find_type("int"));
+        } else {
+            set_token_pos(start_pos);
+        }
+    }
+    if (!pos) {
+        pos = parse_unary();
+        if (pos) {
+            type_t *t = program[pos].t;
+            int size;
+            if (program[pos].type != TYPE_PTR
+                && t->ptr_to 
+                && t->ptr_to->struct_of) {
+                size = t->ptr_to->size;
+            } else {
+                size = t->size;
+            }
+            pos = alloc_typed_int_atom(TYPE_INT, size, find_type("int"));
+        } else {
+            error("invliad expr after sizeof");
+        }
+    }
+    return pos;
+}
+
 int parse_logical_not() {
     int pos;
     if (expect(T_L_NOT)) {
@@ -308,6 +350,9 @@ int parse_prefix() {
     int pos;
 
     pos = parse_postfix();
+    if (pos) return pos;
+
+    pos = parse_sizeof();
     if (pos) return pos;
 
     pos = parse_logical_not();

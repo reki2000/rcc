@@ -55,13 +55,12 @@
 - [*] union
 - [*] enum
 
-- [ ] typedef
-- [ ] enum declaration
-- [ ] union/struct declaration
+- [*] typedef
+- [*] enum declaration
+- [*] union/struct declaration
 
 
 - [ ] sizeof
-
 - [ ] cast
 - [ ] implicit cast between char -> int, int -> char (signed)
 

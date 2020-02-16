@@ -67,9 +67,10 @@ mul: unary ( ( '*' | '/' | '%' ) unary )*
 
 unary: prefix
 
-prefix: postfix | logical_not | signed | ptr | ptr_deref | prefix_incdec
+prefix: postfix | prefix_incdec | logical_not | signed | ptr | ptr_deref | sizeof
 logical_not: '!' prefix
-signed ( '+' | '-' ) prefix
+signed: ( '+' | '-' ) prefix
+sizeof: 'sizeof' ( unary | type_name )
 ptr: '&' var_name
 ptr_deref: '*' prefix
 prefix_incdec: ( '++' | '--' ) var_name

@@ -13,6 +13,7 @@ typedef enum {
     T_PLUS, T_MINUS, T_ASTERISK, T_SLASH, T_PERCENT,
     T_EQUAL,
     T_INC, T_DEC,
+    T_SIZEOF,
     T_SEMICOLON,
     T_PRINT,
     T_IF, T_ELSE,
