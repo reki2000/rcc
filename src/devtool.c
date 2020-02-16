@@ -9,46 +9,49 @@
 #include "func.h"
 #include "atom.h"
 
-void debug(char *str) {
-    char buf[1024];
-    buf[0] = 0;
-    strcat(buf, str);
+void _log(char *level, char *message) {
+    char buf[1024] = {0};
+    strcat(buf, level);
+    strcat(buf, ":");
+    strcat(buf, message);
     strcat(buf, "\n");
     _write(2, buf, strlen(buf));
+}
+
+void debug(char *str) {
+    _log("DEBUG", str);
 }
 
 void debug_i(char *str, int val) {
-    char buf[1024];
-    buf[0] = 0;
-    _strcat3(buf, str, val, "\n");
-    _write(2, buf, strlen(buf));
+    char buf[1024] = {0};
+    _strcat3(buf, str, val, "");
+    debug(buf);
 }
 
 void debug_s(char *str, char *val) {
-    char buf[1024];
-    buf[0] = 0;
+    char buf[1024] = {0};
     strcat(buf, str);
     strcat(buf, val);
-    strcat(buf, "\n");
-    _write(2, buf, strlen(buf));
+    debug(buf);
 }
 
 void error(char *str) {
-    debug(str);
+    _log("ERROR", str);
     dump_tokens();
     __exit(1);
 }
 
 void error_i(char *str, int val) {
-    debug_i(str, val);
-    dump_tokens();
-    __exit(1);
+    char buf[1024] = {0};
+    _strcat3(buf, str, val, "");
+    error(buf);
 }
 
 void error_s(char *str, char *val) {
-    debug_s(str, val);
-    dump_tokens();
-    __exit(1);
+    char buf[1024] = {0};
+    strcat(buf, str);
+    strcat(buf, val);
+    error(buf);
 }
 
 char *_slice(char *src, int count) {
