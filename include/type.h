@@ -32,10 +32,12 @@ typedef struct type_t {
 extern void init_types();
 extern type_t *add_type(char *name, int size, type_t *ptr_to, int array_length);
 extern type_t *find_type(char *name);
+extern void dump_type(char buf[], type_t *);
 
 extern type_t *add_pointer_type(type_t *);
 extern type_t *add_array_type(type_t *, int);
-extern bool is_convertable(type_t *, type_t *);
+extern bool type_is_convertable(type_t *, type_t *);
+extern bool type_is_same(type_t *, type_t *);
 
 extern type_t *add_struct_type(char *name);
 extern type_t *add_union_type(char *name);

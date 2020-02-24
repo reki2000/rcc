@@ -85,8 +85,14 @@ var_t *add_var(char *name, type_t *t) {
     v->t = t;
     v->is_global = (env_top == 0);
 
-    debug_i("add_var: frame_t @", env_top);
-    debug_i("add_var: added @", f->offset);
+    char buf[100] = {0};
+    strcat(buf, "'");
+    strcat(buf, name);
+    _strcat3(buf, "' frame[", env_top, "] ");
+    _strcat3(buf, "offset:", f->offset, " type:");
+    dump_type(buf, t);
+    debug_s("add_var:", buf);
+
     return v;
 }
 

@@ -59,8 +59,7 @@
 - [*] enum declaration
 - [*] union/struct declaration
 
-
-- [ ] sizeof
+- [*] sizeof
 - [ ] cast
 - [ ] implicit cast between char -> int, int -> char (signed)
 

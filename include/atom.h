@@ -1,6 +1,6 @@
 enum {
     TYPE_ARG = 0,
-    TYPE_INT,
+    TYPE_INTEGER,
     TYPE_ADD,
     TYPE_SUB,
     TYPE_MUL,
@@ -9,7 +9,7 @@ enum {
     TYPE_AND,
     TYPE_OR,
     TYPE_XOR,
-    TYPE_VAR_VAL, TYPE_VAR_REF,
+    TYPE_VAR_REF,
     TYPE_NOP,
     TYPE_EXPR_STATEMENT,
     TYPE_ANDTHEN,
@@ -40,9 +40,12 @@ enum {
     TYPE_POSTFIX_DEC,
     TYPE_STRING,
     TYPE_OFFSET,
-    TYPE_GLOBAL_VAR_VAL,
     TYPE_GLOBAL_VAR_REF,
     TYPE_GLOBAL_INT,
+    TYPE_RVALUE,
+    TYPE_CONVERT,
+    TYPE_MEMBER_OFFSET,
+    TYPE_ARRAY_INDEX,
 };
 
 extern char* atom_name[];
@@ -70,8 +73,8 @@ void dump_atom_tree(int, int);
 
 void build_pos_atom(int pos, int type, int value);
 
-int atom_to_lvalue(int);
-bool atom_same_type(int, int);
+int atom_to_rvalue(int);
+int atom_convert_type(int, int);
 
 int alloc_binop_atom(int type, int lpos, int rpos);
 

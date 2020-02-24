@@ -71,8 +71,8 @@ prefix: postfix | prefix_incdec | logical_not | signed | ptr | ptr_deref | sizeo
 logical_not: '!' prefix
 signed: ( '+' | '-' ) prefix
 sizeof: 'sizeof' ( unary | type_name )
-ptr: '&' var_name
-ptr_deref: '*' prefix
+ptr: '&' unary
+ptr_deref: '*' unary
 prefix_incdec: ( '++' | '--' ) var_name
 
 postfix: primary | apply_func | struct_member | postfix_array | postfix_incdec | postfix_assignment

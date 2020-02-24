@@ -21,7 +21,7 @@ type_t *parse_pointer();
 int parse_int() {
     int value;
     if (expect_int(&value)) {
-        return alloc_typed_int_atom(TYPE_INT, value, find_type("int"));
+        return alloc_typed_int_atom(TYPE_INTEGER, value, find_type("int"));
     }
     return 0;
 }
@@ -39,7 +39,7 @@ int parse_signed_int() {
             set_token_pos(start_pos);
             return 0;
         }
-        return alloc_binop_atom(TYPE_SUB, alloc_typed_int_atom(TYPE_INT, 0, find_type("int")), pos);
+        return alloc_binop_atom(TYPE_SUB, alloc_typed_int_atom(TYPE_INTEGER, 0, find_type("int")), pos);
     }
 
     return 0;
@@ -57,7 +57,7 @@ int parse_string() {
 int parse_char() {
     char value;
     if (expect_char(&value)) {
-        return alloc_typed_int_atom(TYPE_INT, value, find_type("char"));
+        return alloc_typed_int_atom(TYPE_INTEGER, value, find_type("char"));
     }
     return 0;
 }
@@ -99,7 +99,7 @@ int parse_var() {
     var_t *v = parse_var_name();
     if (v) {
         if (v->is_constant) {
-            return alloc_typed_int_atom(TYPE_INT, v->int_value, find_type("int"));
+            return alloc_typed_int_atom(TYPE_INTEGER, v->int_value, find_type("int"));
         } else {
             return alloc_var_atom(v);
         }
@@ -160,7 +160,7 @@ int parse_apply_func() {
             error("no comma between args");
         }
         arg_pos = parse_expr();
-        build_pos_atom(pos+i, TYPE_ARG, arg_pos);
+        build_pos_atom(pos+i, TYPE_ARG, atom_to_rvalue(arg_pos));
     }
 
     if (!expect(T_RPAREN)) {
@@ -184,18 +184,22 @@ int parse_postfix_array(int pos) {
 }
 
 int parse_struct_member(int pos) {
-    if (expect(T_PERIOD) || expect(T_ALLOW)) {
-        char *name;
-        if (!expect_ident(&name)) {
-            error("invalid member name");
-        }
-        member_t *m = find_struct_member(program[pos].t->ptr_to, name);
-        if (!m) {
-            error_s("no member: ", name);
-        }
-        return alloc_offset_atom(pos, m->t, m->offset);
+    if (expect(T_PERIOD)) {
+    } else if (expect(T_ALLOW)) {
+        pos = alloc_deref_atom(pos);
+    } else {
+        return pos;
     }
-    return pos;
+    char *name;
+    if (!expect_ident(&name)) {
+        error("invalid member name");
+    }
+    type_t *t = program[pos].t->ptr_to;
+    member_t *m = find_struct_member(t, name);
+    if (!m) {
+        error_s("this type doesn't has member: ", name);
+    }
+    return alloc_offset_atom(pos, m->t, m->offset);
 }
 
 int parse_postfix_incdec(int pos) {
@@ -248,7 +252,7 @@ int parse_prefix_incdec() {
     if (!pos) {
         error("Invalid expr after '++'|'--'");
     }
-    return alloc_assign_op_atom(op_type, pos, alloc_typed_int_atom(TYPE_INT, 1, find_type("int")));
+    return alloc_assign_op_atom(op_type, pos, alloc_typed_int_atom(TYPE_INTEGER, 1, find_type("int")));
 }
 
 
@@ -257,7 +261,7 @@ int parse_ptr_deref() {
     if (!expect(T_ASTERISK)) {
         return 0;
     }
-    pos = parse_prefix();
+    pos = parse_unary();
     if (pos == 0) {
         error("invalid expr after *");
     }
@@ -269,7 +273,7 @@ int parse_ptr() {
     if (!expect(T_AMP)) {
         return 0;
     }
-    pos = parse_var();
+    pos = parse_unary();
     if (pos == 0) {
         error("invalid expr after &");
     }
@@ -290,7 +294,7 @@ int parse_signed() {
         if (!pos) {
             error("Invalid '-'");
         }
-        return alloc_binop_atom(TYPE_SUB, alloc_typed_int_atom(TYPE_INT, 0, find_type("int")), pos);
+        return alloc_binop_atom(TYPE_SUB, alloc_typed_int_atom(TYPE_INTEGER, 0, find_type("int")), atom_to_rvalue(pos));
     }
     return 0;
 }
@@ -309,7 +313,7 @@ int parse_sizeof() {
             if (!expect(T_RPAREN)) {
                 error("no () after sizeof");
             }
-            pos = alloc_typed_int_atom(TYPE_INT, t->size, find_type("int"));
+            pos = alloc_typed_int_atom(TYPE_INTEGER, t->size, find_type("int"));
         } else {
             set_token_pos(start_pos);
         }
@@ -317,16 +321,9 @@ int parse_sizeof() {
     if (!pos) {
         pos = parse_unary();
         if (pos) {
-            type_t *t = program[pos].t;
-            int size;
-            if (program[pos].type != TYPE_PTR
-                && t->ptr_to 
-                && t->ptr_to->struct_of) {
-                size = t->ptr_to->size;
-            } else {
-                size = t->size;
-            }
-            pos = alloc_typed_int_atom(TYPE_INT, size, find_type("int"));
+            int rval = atom_to_rvalue(pos);
+            int size = program[rval].t->size;
+            pos = alloc_typed_int_atom(TYPE_INTEGER, size, find_type("int"));
         } else {
             error("invliad expr after sizeof");
         }
@@ -341,7 +338,7 @@ int parse_logical_not() {
         if (!pos) {
             error("Invalid '!'");
         }
-        return alloc_typed_pos_atom(TYPE_LOG_NOT, pos, find_type("int"));
+        return alloc_typed_pos_atom(TYPE_LOG_NOT, atom_to_rvalue(pos), find_type("int"));
     }
     return 0;
 }
@@ -401,7 +398,7 @@ int parse_mul() {
             return 0;
         }
 
-        lpos = alloc_binop_atom(type, lpos, rpos);
+        lpos = alloc_binop_atom(type, atom_to_rvalue(lpos), atom_to_rvalue(rpos));
     }
     return lpos;
 }
@@ -426,7 +423,7 @@ int parse_add() {
         if (rpos == 0) {
             return 0;
         }
-        lpos = alloc_binop_atom(type, lpos, rpos);
+        lpos =  alloc_binop_atom(type, atom_to_rvalue(lpos), atom_to_rvalue(rpos));
     }
     return lpos;
 }
@@ -454,7 +451,7 @@ int parse_lessgreat() {
         if (rpos == 0) {
             error("Inalid rval for lessthan");
         }
-        lpos = alloc_binop_atom(type_eq, lpos, rpos);
+        lpos = alloc_binop_atom(type_eq, atom_to_rvalue(lpos), atom_to_rvalue(rpos));
     }
     return lpos;
 }
@@ -477,7 +474,7 @@ int parse_equality() {
         if (rpos == 0) {
             error("Inalid rval for == / !=");
         }
-        lpos = alloc_binop_atom(type_eq, lpos, rpos);
+        lpos = alloc_binop_atom(type_eq, atom_to_rvalue(lpos), atom_to_rvalue(rpos));
     }
     return lpos;
 }
@@ -495,7 +492,7 @@ int parse_logical_and() {
         if (rpos == 0) {
             error("Inalid rval for &&");
         }
-        lpos = alloc_binop_atom(TYPE_LOG_AND, lpos, rpos);
+        lpos = alloc_binop_atom(TYPE_LOG_AND, atom_to_rvalue(lpos), atom_to_rvalue(rpos));
     }
     return lpos;
 }
@@ -513,7 +510,7 @@ int parse_logical_or() {
         if (rpos == 0) {
             error("Inalid rval for ||");
         }
-        lpos = alloc_binop_atom(TYPE_LOG_OR, lpos, rpos);
+        lpos = alloc_binop_atom(TYPE_LOG_OR, atom_to_rvalue(lpos), atom_to_rvalue(rpos));
     }
     return lpos;
 }
@@ -550,7 +547,7 @@ int parse_postfix_assignment(int pos) {
     if (!pos) {
         error_i("no expr after assignment postfix", pos);
     }
-    return alloc_assign_op_atom(op, pos, expr_pos);
+    return alloc_assign_op_atom(op, pos, atom_to_rvalue(expr_pos));
 }
 
 int parse_assignment(int lval) {
@@ -559,18 +556,10 @@ int parse_assignment(int lval) {
         if (!rval) {
             error("cannot bind - no rvalue");
         }
-        if (!atom_same_type(lval, rval)) {
-            dump_atom_tree(lval, 0);
-            dump_atom_tree(rval, 0);
-            error("cannot bind - not same type");
-        }
-        lval = atom_to_lvalue(lval);
-        if (!lval) {
-            error("cannot bind - lhs cannot be a lvalue");
-        }
-        lval = alloc_binop_atom(TYPE_BIND, rval, lval);
+        rval = atom_convert_type(atom_to_rvalue(lval), atom_to_rvalue(rval));
+        return alloc_binop_atom(TYPE_BIND, rval, lval);
     }
-    return lval;
+    return 0;
 }
 
 
@@ -582,7 +571,11 @@ int parse_expr() {
 
     while (TRUE) {
         int lval_prev = lval;
-        lval = parse_assignment(lval);
+        int new_lval = parse_assignment(lval);
+        if (new_lval) {
+            lval = new_lval;
+            continue;
+        }
         lval = parse_postfix_assignment(lval);
         if (lval == lval_prev) {
             break;
@@ -598,12 +591,13 @@ int parse_expr_sequence() {
         return 0;
     }
 
+    lval = atom_to_rvalue(lval);
     while (expect(T_COMMA)) {
         int pos = parse_expr();
         if (!pos) {
             error("no expression after comma");
         }
-        lval = alloc_binop_atom(TYPE_ANDTHEN, lval, pos);
+        lval = alloc_binop_atom(TYPE_ANDTHEN, lval, atom_to_rvalue(pos));
     }
     return lval;
 }
@@ -751,7 +745,7 @@ int parse_print_statement() {
         if (!expect(T_LPAREN)) return 0;
         pos = parse_expr();
         if (pos != 0 && expect(T_RPAREN) && expect(T_SEMICOLON)) {
-            int oppos = alloc_typed_pos_atom(TYPE_PRINT, pos, find_type("void"));
+            int oppos = alloc_typed_pos_atom(TYPE_PRINT, atom_to_rvalue(pos), find_type("void"));
             debug_i("parse_print_statement: parsed @", oppos);
             return oppos;
         }
@@ -1054,6 +1048,9 @@ int parse_local_variable() {
 
     int pos = alloc_var_atom(v);
     pos = parse_assignment(pos);
+    if (!pos) {
+        pos = alloc_typed_pos_atom(TYPE_NOP, 0, find_type("void"));
+    }
 
     if (!expect(T_SEMICOLON)) {
         error("parse_var_declare: no semicolon delimiter");

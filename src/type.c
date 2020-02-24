@@ -14,29 +14,36 @@ void init_types() {
     add_type("long", 8, 0, 0);
 }
 
-void dump_type(type_t *t) {
-    char buf[100] = {0};
-    strcat(buf, "type name:");
-    if (t->struct_of) {
-        if (t->struct_of->is_union) {
-            strcat(buf, "union ");
-        } else {
-            strcat(buf, "struct ");
+void dump_type(char buf[], type_t *t) {
+    type_t *t_org = t;
+
+    if (t) {
+        while (t->ptr_to) {
+            if (t->array_length > 0) {
+                _strcat3(buf, "[", t->array_length, "]");
+            } else {
+                strcat(buf, "*");
+            }
+            t = t->ptr_to;
         }
-    } else if (t->enum_of) {
-        strcat(buf, "enum ");
-    } else if (t->typedef_of) {
-        strcat(buf, "typdef: ");
-        strcat(buf, t->typedef_of->name);
+
+        if (t->struct_of) {
+            if (t->struct_of->is_union) {
+                strcat(buf, "union ");
+            } else {
+                strcat(buf, "struct ");
+            }
+            strcat(buf, t->struct_of->name);
+        } else if (t->enum_of) {
+            strcat(buf, "enum ");
+            strcat(buf, t->enum_of->name);
+        } else {
+            strcat(buf, t->name);
+        }
+       _strcat3(buf, " size:", t_org->size, "");
+    } else {
+        strcat(buf, "?");
     }
-    strcat(buf, t->name);
-    _strcat3(buf, " size:", t->size, "");
-    strcat(buf, " ptr_to:");
-    strcat(buf, (t->ptr_to == 0) ? "" : t->ptr_to->name);
-    if (t->array_length) {
-        _strcat3(buf, " [", t->array_length, "] ");
-    }
-    debug(buf);
 }
 
 type_t *add_type(char* name, int size, type_t *prt_to, int array_length) {
@@ -45,7 +52,15 @@ type_t *add_type(char* name, int size, type_t *prt_to, int array_length) {
     p->size = size;
     p->ptr_to = prt_to;
     p->array_length = array_length;
-    dump_type(p);
+    p->enum_of = 0;
+    p->struct_of = 0;
+    p->typedef_of = 0;
+
+    char buf[100] = {0};
+    strcat(buf, "added type:");
+    dump_type(buf, p);
+    debug(buf);
+
     return p;
 }
 
@@ -131,7 +146,7 @@ type_t *add_struct_type(char *name) {
 member_t *add_struct_member(type_t *st, char *name, type_t *t) {
     struct_t *s = st->struct_of;
     if (s == 0) {
-        error_s("not struct type: ", st->name);
+        error_s("adding member to non struct type: ", st->name);
     }
     if (s->num_members > 100) {
         error_s("Too many struct members: ", name);
@@ -158,7 +173,7 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t) {
 member_t *find_struct_member(type_t *t, char *name) {
     struct_t *s = t->struct_of;
     if (s == 0) {
-        error_s("not struct type: ", t->name);
+        error_s("this type is not struct: ", t->name);
     }
     for (int i=0; i<s->num_members; i++) {
         member_t *m = &(s->members[i]);
@@ -167,19 +182,6 @@ member_t *find_struct_member(type_t *t, char *name) {
         }
     }
     return 0;
-}
-
-bool is_convertable(type_t *to, type_t *from) {
-    while (to->typedef_of) {
-        to = to->typedef_of;
-    }
-    while (from->typedef_of) {
-        from = from->typedef_of;
-    }
-    if (to == from) return TRUE;
-    if (!to || !from) return FALSE;
-    if (is_convertable(to->ptr_to, from->ptr_to)) return TRUE;
-    return FALSE;
 }
 
 
@@ -216,4 +218,31 @@ type_t *add_enum_type(char *name) {
     t->enum_of = e;
 
     return t;
+}
+
+bool type_is_same(type_t *to, type_t *from) {
+    if (!to || !from) return FALSE;
+    while (to->typedef_of) {
+        to = to->typedef_of;
+    }
+    while (from->typedef_of) {
+        from = from->typedef_of;
+    }
+    if (to == from) return TRUE;
+    if (to->array_length != from->array_length) return FALSE;
+    if (to->ptr_to && from->ptr_to && type_is_same(to->ptr_to, from->ptr_to)) return TRUE;
+    return FALSE;
+}
+
+bool type_is_convertable(type_t *to, type_t *from) {
+    if (!to || !from) return FALSE;
+    while (to->typedef_of) {
+        to = to->typedef_of;
+    }
+    while (from->typedef_of) {
+        from = from->typedef_of;
+    }
+    if (to == from) return TRUE;
+    if (to->ptr_to && from->ptr_to && type_is_convertable(to->ptr_to, from->ptr_to)) return TRUE;
+    return FALSE;
 }

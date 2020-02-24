@@ -1,19 +1,12 @@
 int main() {
-    char *s;
     char buf[100];
     char *d;
-    char *p;
+    char *s;
 
-    s = "ABCDEF";
-    p = d = buf;
+    s = "ABCDEF\n";
+    d = buf;
     while(*s) {
         *d++ = *s++;
-    }
-    
-    *d = '\0';
-
-    while(*p) {
-        print(*p++);
     }
     return 0;
 }

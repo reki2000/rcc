@@ -385,15 +385,9 @@ void compile(int pos) {
         case TYPE_VAR_REF:
             emit_var_ref(p->int_value);
             break;
-        case TYPE_VAR_VAL:
-            emit_var_val(p->int_value, p->t->size);
-            break;
 
         case TYPE_GLOBAL_VAR_REF:
             emit_global_var_ref(p->ptr_value);
-            break;
-        case TYPE_GLOBAL_VAR_VAL:
-            emit_global_var_val(p->ptr_value, p->t->size);
             break;
 
         case TYPE_BIND:
@@ -402,16 +396,23 @@ void compile(int pos) {
             emit_copy(p->t->size);
             break;
         case TYPE_PTR:
-            compile(p->atom_pos);
-            break;
         case TYPE_PTR_DEREF:
             compile(p->atom_pos);
-            debug("deref:");
-            dump_atom2(p,0,0);
-            emit_deref(p->t->size);
+            break;
+        case TYPE_RVALUE:
+            compile(p->atom_pos);
+            if (p->t->array_length > 0 || p->t->struct_of) {
+                // rvalue of array / struct will be a pointer for itself
+            } else {
+                emit_deref(p->t->size);
+            }
             break;
 
-        case TYPE_INT: 
+        case TYPE_CONVERT:
+            compile(p->atom_pos);
+            break;
+
+        case TYPE_INTEGER: 
             emit_int(p->int_value, p->t->size);
             break;
 
@@ -431,9 +432,13 @@ void compile(int pos) {
         case TYPE_OR:
         case TYPE_AND:
         case TYPE_XOR:
+        case TYPE_ARRAY_INDEX:
+        case TYPE_MEMBER_OFFSET:
             compile(p->atom_pos);
             compile((p+1)->atom_pos);
             switch (p->type) {
+                case TYPE_ARRAY_INDEX:
+                case TYPE_MEMBER_OFFSET:
                 case TYPE_ADD: emit_add(p->t->size); break;
                 case TYPE_SUB: emit_sub(p->t->size); break;
                 case TYPE_DIV: emit_div(p->t->size); break;
@@ -453,16 +458,18 @@ void compile(int pos) {
             }
             break;
 
-        case TYPE_POSTFIX_DEC:
+        case TYPE_POSTFIX_DEC: {
             compile(p->atom_pos);
-            emit_postfix_add(p->t->size, (p->t->ptr_to) ? -(p->t->ptr_to->size) : -1);
+            type_t *target_t = p->t;
+            emit_postfix_add(target_t->size, (target_t->ptr_to) ? -(target_t->ptr_to->size) : -1);
             break;
-
-        case TYPE_POSTFIX_INC:
+        }
+        case TYPE_POSTFIX_INC:  {
             compile(p->atom_pos);
-            emit_postfix_add(p->t->size, (p->t->ptr_to) ? p->t->ptr_to->size : 1);
+            type_t *target_t = p->t;
+            emit_postfix_add(target_t->size, (target_t->ptr_to) ? target_t->ptr_to->size : 1);
             break;
-
+        }
         case TYPE_NOP:
             break;
 
