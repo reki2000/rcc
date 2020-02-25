@@ -660,19 +660,19 @@ int parse_for_statement() {
     int pos;
     if (expect(T_FOR)) {
         if (!expect(T_LPAREN)) {
-            error("no '(' after for");
+            error("no contition part after 'for'");
         }
         pre_pos = parse_expr_sequence();
         if (!expect(T_SEMICOLON)) {
-            error("no first ';' after for");
+            error("invalid end of the first part of 'for' conditions");
         }
         cond_pos = parse_expr_sequence();
         if (!expect(T_SEMICOLON)) {
-            error("no second ';' after for");
+            error("invalid end of the second part of 'for' conditions");
         }
         post_pos = parse_expr_sequence();
         if (!expect(T_RPAREN)) {
-            error("no ')' after for");
+            error("invalid end of 'for' conditions");
         }
         body_pos = parse_block_or_statement();
         if (body_pos != 0) {
@@ -693,11 +693,11 @@ int parse_while_statement() {
     int pos;
     if (expect(T_WHILE)) {
         if (!expect(T_LPAREN)) {
-            error("no '(' after while");
+            error("no contition part after 'while'");
         }
         cond_pos = parse_expr_sequence();
         if (!expect(T_RPAREN)) {
-            error("no ')' after while");
+            error("invalid end of 'while' condition");
         }
         body_pos = parse_block_or_statement();
         if (body_pos != 0) {
@@ -717,17 +717,17 @@ int parse_do_while_statement() {
     if (expect(T_DO)) {
         body_pos = parse_block();
         if (body_pos == 0) {
-            error("no block after do");
+            error("no block after do-while's 'do'");
         }
         if (!expect(T_WHILE)) {
-            error("no 'while' after do block");
+            error("no 'while' after do-while body");
         }
         if (!expect(T_LPAREN)) {
-            error("no '(' after while");
+            error("no condition for do-while");
         }
         cond_pos = parse_expr_sequence();
         if (!expect(T_RPAREN)) {
-            error("no ')' after while");
+            error("invalid end of do-while contidion");
         }
         pos = alloc_atom(2);
         build_pos_atom(pos, TYPE_DO_WHILE, body_pos);
@@ -746,8 +746,25 @@ int parse_print_statement() {
         pos = parse_expr();
         if (pos != 0 && expect(T_RPAREN) && expect(T_SEMICOLON)) {
             int oppos = alloc_typed_pos_atom(TYPE_PRINT, atom_to_rvalue(pos), find_type("void"));
-            debug_i("parse_print_statement: parsed @", oppos);
             return oppos;
+        }
+    }
+    return 0;
+}
+
+int parse_break_statement() {
+    if (expect(T_BREAK)) {
+        if (expect(T_SEMICOLON)) {
+            return alloc_typed_pos_atom(TYPE_BREAK, 0, find_type("void"));
+        }
+    }
+    return 0;
+}
+
+int parse_continue_statement() {
+    if (expect(T_CONTINUE)) {
+        if (expect(T_SEMICOLON)) {
+            return alloc_typed_pos_atom(TYPE_CONTINUE, 0, find_type("void"));
         }
     }
     return 0;
@@ -785,6 +802,12 @@ int parse_statement() {
     } 
     if (pos == 0) {
         pos = parse_return_statement();
+    } 
+    if (pos == 0) {
+        pos = parse_break_statement();
+    } 
+    if (pos == 0) {
+        pos = parse_continue_statement();
     } 
     if (pos == 0) {
         pos = parse_expr_statement();
@@ -1120,7 +1143,7 @@ int parse_block() {
     }
 
     if (!expect(T_RBLACE)) {
-        error("parse_block: not found '}'");
+        error("invalid block end");
     }
 
     exit_var_frame();

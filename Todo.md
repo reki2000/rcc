@@ -60,26 +60,29 @@
 - [*] union/struct declaration
 
 - [*] sizeof
-- [ ] cast
-- [ ] implicit cast between char -> int, int -> char (signed)
 
-- [ ] break, continue
+- [*] break, continue
+
+- [ ] switch case
+- [ ] trinary operator ?:
 
 - [ ] function prototype declaration
 
 - [ ] extern variable
 - [ ] extern function
 
-- [ ] switch case
-- [ ] trinary operator ?:
-
-- [ ] bit operators >> >>= << <<= & | ^  ~
-
 - [ ] include
+- [ ] inline comment
+- [ ] multiline comment
 
 - [ ] compiler argument (-S)? (-o outfile)? {source.c)+
 
 ## A.D. (self hosted)
+
+- [ ] bit operators >> >>= << <<= & | ^  ~
+
+- [ ] cast
+- [ ] implicit cast between char -> int, int -> char (signed)
 
 - [ ] define value
 - [ ] ifdef
@@ -91,6 +94,8 @@
 
 - [ ] long literal (10000L)
 - [ ] hex literal (0x0000)
+
+- [ ] goto
 
 - [ ] float, double, double double, short, long, long long
 - [ ] unsigned

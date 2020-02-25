@@ -378,6 +378,40 @@ void emit_jmp_true(int i) {
 
 int func_return_label;
 
+struct {
+    int break_label;
+    int continue_label;
+} break_labels[100];
+int break_label_top = -1;
+
+int get_break_label() {
+    if (break_label_top < 0) {
+        error("cannot emit break");
+    }
+    return break_labels[break_label_top].break_label;
+}
+int get_continue_label() {
+    if (break_label_top < 0) {
+        error("cannot emit break");
+    }
+    return break_labels[break_label_top].continue_label;
+}
+void enter_break_label(int break_label, int continue_label) {
+    if (break_label_top == 100) {
+        error("too many break label");
+    }
+    break_label_top++;
+    break_labels[break_label_top].break_label = break_label;
+    break_labels[break_label_top].continue_label = continue_label;
+}
+void exit_break_label() {
+    if (break_label_top < 0) {
+        error("cannot exit break label");
+    }
+    break_label_top--;
+}
+
+
 void compile(int pos) {
     atom_t *p = &(program[pos]);
     debug_i("compiling atom_t @", pos);
@@ -512,37 +546,56 @@ void compile(int pos) {
         case TYPE_FOR:
         {
             int l_body = new_label();
+            int l_loop = new_label();
             int l_end = new_label();
+            enter_break_label(l_end, l_loop);
+
             compile((p+2)->atom_pos);
             emit_pop();
             emit_label(l_body);
             compile((p+1)->atom_pos);
             emit_jmp_false(l_end);
+
             compile(p->atom_pos);
+
+            emit_label(l_loop);
             compile((p+3)->atom_pos);
+            emit_pop();
             emit_jmp(l_body);
             emit_label(l_end);
+
+            exit_break_label();
         }
             break;
         case TYPE_WHILE:
         {
             int l_body = new_label();
             int l_end = new_label();
+            enter_break_label(l_end, l_body);
+
             emit_label(l_body);
             compile((p+1)->atom_pos);
             emit_jmp_false(l_end);
             compile(p->atom_pos);
             emit_jmp(l_body);
             emit_label(l_end);
+
+            exit_break_label();
         }
             break;
         case TYPE_DO_WHILE:
         {
             int l_body = new_label();
+            int l_end = new_label();
+            enter_break_label(l_end, l_body);
+
             emit_label(l_body);
             compile(p->atom_pos);
             compile((p+1)->atom_pos);
             emit_jmp_true(l_body);
+            emit_label(l_end);
+
+            exit_break_label();
         }
             break;
 
@@ -550,6 +603,14 @@ void compile(int pos) {
             compile(p->atom_pos);
             emit_pop();
             emit_jmp(func_return_label);
+            break;
+        
+        case TYPE_BREAK:
+            emit_jmp(get_break_label());
+            break;
+
+        case TYPE_CONTINUE:
+            emit_jmp(get_continue_label());
             break;
 
         case TYPE_APPLY: {

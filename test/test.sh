@@ -9,6 +9,14 @@ function clean {
 function compile {
     ../bin/rekicc < $1 2>$2 > out/test.s
 }
+
+function header {
+    cat <<EOT
+extern int printf(const char*, ...);
+void print(int i) { printf("%d\n", i);}
+EOT
+}
+
 function run {
     local quiet="/dev/tty"
     if [ "$1" == "-q" ]; then

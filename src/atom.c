@@ -112,6 +112,11 @@ void dump_atom_tree(int pos, int indent) {
             dump_atom_tree((a+2)->atom_pos, indent + 1);
             dump_atom_tree((a+3)->atom_pos, indent + 1);
             break;
+        case TYPE_IF:
+            dump_atom_tree(a->atom_pos, indent + 1);
+            dump_atom_tree((a+1)->atom_pos, indent + 1);
+            dump_atom_tree((a+2)->atom_pos, indent + 1);
+            break;
     }
 }
 
