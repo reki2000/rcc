@@ -533,8 +533,21 @@ void compile(int pos) {
             compile(p->atom_pos);
             emit_log_not(p->t->size);
             break;
-        case TYPE_IF: 
-        {
+
+        case TYPE_TERNARY: {
+            int l_end = new_label();
+            int l_else = new_label();
+            compile(p->atom_pos);
+            emit_jmp_false(l_else);
+            compile((p+1)->atom_pos);
+            emit_jmp(l_end);
+            emit_label(l_else);
+            compile((p+2)->atom_pos);
+            emit_label(l_end);
+        } 
+            break;
+
+        case TYPE_IF: {
             bool has_else = ((p+2)->atom_pos != 0);
             int l_end = new_label();
             int l_else = new_label();
@@ -551,8 +564,8 @@ void compile(int pos) {
             emit_label(l_end);
         }
             break;
-        case TYPE_FOR:
-        {
+
+        case TYPE_FOR: {
             int l_body = new_label();
             int l_loop = new_label();
             int l_end = new_label();

@@ -63,8 +63,8 @@
 
 - [*] break, continue
 
-- [ ] switch case
-- [ ] trinary operator ?:
+- [*] switch case
+- [*] ternary operator ?:
 
 - [ ] function prototype declaration
 

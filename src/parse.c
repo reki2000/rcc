@@ -562,6 +562,27 @@ int parse_assignment(int lval) {
     return 0;
 }
 
+int parse_ternary(int eq_pos) {
+    if (expect(T_QUESTION)) {
+        int val1 = parse_expr();
+        if (!val1) {
+            error("invalid end of ternary operator");
+        }
+        if (!expect(T_COLON)) {
+            error("no colon for ternary operator");
+        }
+        int val2 = parse_expr();
+        if (!val2) {
+            error("nosecond value for ternary operator");
+        }
+        int pos = alloc_atom(3);
+        build_pos_atom(pos, TYPE_TERNARY, eq_pos);
+        build_pos_atom(pos+1, TYPE_ARG, val1);
+        build_pos_atom(pos+2, TYPE_ARG, val2);
+        return pos;
+    }
+    return 0;
+}
 
 int parse_expr() {
     int lval = parse_value();
@@ -571,7 +592,13 @@ int parse_expr() {
 
     while (TRUE) {
         int lval_prev = lval;
-        int new_lval = parse_assignment(lval);
+        int new_lval = parse_ternary(lval);
+        if (new_lval) {
+            lval = new_lval;
+            continue;
+        }
+
+        new_lval = parse_assignment(lval);
         if (new_lval) {
             lval = new_lval;
             continue;

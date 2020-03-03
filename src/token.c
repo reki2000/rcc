@@ -291,6 +291,8 @@ void tokenize() {
             add_token(T_NE);
         } else if (expect_c('!')) {
             add_token(T_L_NOT);
+        } else if (expect_c('?')) {
+            add_token(T_QUESTION);
         } else if (expect_str("==")) {
             add_token(T_EQ);
         } else if (expect_str("&&")) {

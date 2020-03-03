@@ -19,7 +19,7 @@ char *atom_name[] = {
     "&(ptr_of)", "*(val_of)", "func", "return", "apply",
     "n++", "n--",
     "str", ".", "->", "gval_ref", "rvalue", "convert", "struct-offset", "array-index",
-    "switch", "case", "default"
+    "switch", "case", "default", "?:"
 };
 
 int alloc_atom(int size) {
@@ -116,6 +116,7 @@ void dump_atom_tree(int pos, int indent) {
             dump_atom_tree((a+3)->atom_pos, indent + 1);
             break;
         case TYPE_IF:
+        case TYPE_TERNARY:
             dump_atom_tree(a->atom_pos, indent + 1);
             dump_atom_tree((a+1)->atom_pos, indent + 1);
             dump_atom_tree((a+2)->atom_pos, indent + 1);

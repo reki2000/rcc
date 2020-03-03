@@ -58,11 +58,13 @@ default_clause: 'default' ':' statement*
 expr_statement: expr_sequence ';'
 
 expr_sequence: expr ( ',' expr )*
-expr: value ( assignment | postfix_assignment )* 
+expr: value ( ternary | assignment | postfix_assignment )* 
+ternaly: '?' expr ':' expr
 assignment: '=' expr
 postfix_assignment: ( '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' ) expr
 
 value: logical_or
+
 logical_or: logical_and ( '||' logical_and )*
 logical_and: equality ( '&&' equality )*
 equality: lessgreat ( ( '==' | '!=' ) lessgreat )*
