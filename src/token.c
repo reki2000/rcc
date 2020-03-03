@@ -353,6 +353,8 @@ void tokenize() {
             add_token(T_LPAREN);
         } else if (expect_c(')')) {
             add_token(T_RPAREN);
+        } else if (expect_c(':')) {
+            add_token(T_COLON);
         } else if (expect_c(';')) {
             add_token(T_SEMICOLON);
         } else if (expect_c('.')) {
@@ -361,8 +363,12 @@ void tokenize() {
             add_token(T_COMMA);
         } else if (expect_reserved_str("break")) {
             add_token(T_BREAK);
+        } else if (expect_reserved_str("case")) {
+            add_token(T_CASE);
         } else if (expect_reserved_str("continue")) {
             add_token(T_CONTINUE);
+        } else if (expect_reserved_str("default")) {
+            add_token(T_DEFAULT);
         } else if (expect_reserved_str("do")) {
             add_token(T_DO);
         } else if (expect_reserved_str("else")) {
@@ -379,6 +385,8 @@ void tokenize() {
             add_token(T_SIZEOF);
         } else if (expect_reserved_str("struct")) {
             add_token(T_STRUCT);
+        } else if (expect_reserved_str("switch")) {
+            add_token(T_SWITCH);
         } else if (expect_reserved_str("typedef")) {
             add_token(T_TYPEDEF);
         } else if (expect_reserved_str("union")) {

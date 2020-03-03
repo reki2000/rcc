@@ -613,6 +613,7 @@ int parse_expr_statement() {
 }
 
 int parse_block_or_statement();
+int parse_block_or_statement_series();
 int parse_block();
 int parse_statement();
 
@@ -650,6 +651,83 @@ int parse_if_statement() {
         return pos;
     }
     return 0;
+}
+
+int parse_case_clause() {
+    if (expect(T_CASE)) {
+        int integer;
+        char ch;
+        int cond_pos;
+        if (expect_int(&integer)) {
+            cond_pos = alloc_typed_int_atom(TYPE_INTEGER, integer, find_type("int"));
+        } else if (expect_char(&ch)) {
+            cond_pos = alloc_typed_int_atom(TYPE_INTEGER, ch, find_type("char"));
+        } else {
+            error("no target value for 'case'");
+        }
+
+        if (!expect(T_COLON)) {
+            error("colon ':' is needed after case target");
+        }
+
+        int body_pos = parse_block_or_statement_series();
+        int pos = alloc_atom(2);
+        build_pos_atom(pos, TYPE_CASE, cond_pos);
+        build_pos_atom(pos+1, TYPE_ARG, body_pos);
+        return pos;
+    }
+    return 0;
+}
+
+int parse_default_clause() {
+    if (expect(T_DEFAULT)) {
+        if (!expect(T_COLON)) {
+            error("colon ':' is needed after 'default'");
+        }
+        return alloc_typed_pos_atom(TYPE_DEFAULT, parse_block_or_statement_series(), find_type("void"));
+    }
+    return 0;
+}
+
+int parse_switch_statement() {
+    if (!expect(T_SWITCH)) {
+        return 0;
+    }
+    if (!expect(T_LPAREN)) {
+        error("no target expression for 'switch'");
+    }
+    int pos = parse_expr_sequence();
+    if (!pos) {
+        error("invlid target expression for 'switch'");
+    }
+    if (!expect(T_RPAREN)) {
+        error("invalid end of expression for 'switch'");
+    }
+    if (!expect(T_LBLACE)) {
+        error("no body for 'switch'");
+    }
+    int body_pos[201];
+    int n;
+    for (n=1; n<200; n++) {
+        int pos_case = parse_case_clause();
+        if (!pos_case) {
+            break;
+        }
+        body_pos[n] = pos_case;
+    }
+    int pos_default = parse_default_clause();
+    if (pos_default) {
+        body_pos[n] = pos_default;
+    }
+    if (!expect(T_RBLACE)) {
+        error("invalid end of 'switch' body");
+    }
+    int pos2 = alloc_atom(n + 1);
+    build_pos_atom(pos2, TYPE_SWITCH, pos);
+    for (int i=1; i<=n; i++) {
+        build_pos_atom(pos2+i, TYPE_ARG, body_pos[i]);
+    }
+    return pos2;
 }
 
 int parse_for_statement() {
@@ -808,6 +886,9 @@ int parse_statement() {
     } 
     if (pos == 0) {
         pos = parse_continue_statement();
+    } 
+    if (pos == 0) {
+        pos = parse_switch_statement();
     } 
     if (pos == 0) {
         pos = parse_expr_statement();
@@ -1110,8 +1191,20 @@ int parse_block_or_statement() {
     return pos;
 }
 
+int parse_block_or_statement_series() {
+    int pos = alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+    for (;;) {
+        int new_pos = parse_block_or_statement();
+        if (!new_pos) {
+            break;
+        }
+        pos = alloc_binop_atom(TYPE_ANDTHEN, pos, new_pos);
+    }
+    return pos;
+}
+
 int parse_block() {
-    int prev_pos = 0;
+    int pos = alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
 
     if (!expect(T_LBLACE)) {
         return 0;
@@ -1123,34 +1216,17 @@ int parse_block() {
         if (!new_pos) {
             break;
         }
-        if (prev_pos) {
-            prev_pos = alloc_binop_atom(TYPE_ANDTHEN, prev_pos, new_pos);
-        } else {
-            prev_pos = new_pos;
-        }
+        pos = alloc_binop_atom(TYPE_ANDTHEN, pos, new_pos);
     }
 
-    for (;;) {
-        int new_pos = parse_block_or_statement();
-        if (!new_pos) {
-            break;
-        }
-        if (prev_pos) {
-            prev_pos = alloc_binop_atom(TYPE_ANDTHEN, prev_pos, new_pos);
-        } else {
-            prev_pos = new_pos;
-        }
-    }
+    pos = alloc_binop_atom(TYPE_ANDTHEN, pos, parse_block_or_statement_series());
 
     if (!expect(T_RBLACE)) {
         error("invalid block end");
     }
 
     exit_var_frame();
-    if (prev_pos == 0) {
-        return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
-    }
-    return prev_pos;
+    return pos;
 }
 
 int parse_function_definition(type_t *t) {

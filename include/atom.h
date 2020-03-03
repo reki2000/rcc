@@ -46,6 +46,9 @@ enum {
     TYPE_CONVERT,
     TYPE_MEMBER_OFFSET,
     TYPE_ARRAY_INDEX,
+    TYPE_SWITCH,
+    TYPE_CASE,
+    TYPE_DEFAULT
 };
 
 extern char* atom_name[];

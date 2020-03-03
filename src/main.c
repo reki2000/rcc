@@ -375,6 +375,14 @@ void emit_jmp_true(int i) {
     out_int("jnz	.L", i, "");
 }
 
+void emit_jmp_case(int i, int size) {
+    out("popq	%rax");
+    out("popq   %rcx");
+    out("pushq   %rcx");
+    out_x("subX	%Zcx, %Zax", size);
+    out_int("jz	.L", i, "");
+}
+
 
 int func_return_label;
 
@@ -626,6 +634,59 @@ void compile(int pos) {
         case TYPE_STRING:
             emit_global_ref(p->int_value);
             break;
+
+        case TYPE_SWITCH: {
+            atom_t *top_p = p;
+            int l_table = new_label();
+            int l_end = new_label();
+            enter_break_label(l_end, 0);
+            emit_jmp(l_table);
+
+            int case_label[200];
+            int case_label_index = 0;
+            for (p = top_p + 1; p->type == TYPE_ARG; p++) {
+                int label = new_label();
+                if (case_label_index >= 200) {
+                    error("too much labels");
+                }
+                case_label[case_label_index++] = label;
+                emit_label(label);
+                atom_t *case_atom = &program[p->atom_pos];
+                if (case_atom->type == TYPE_CASE) {
+                    compile((case_atom+1)->atom_pos);
+                } else if (case_atom->type == TYPE_DEFAULT) {
+                    compile(case_atom->atom_pos);
+                } else {
+                    dump_atom_tree(p->atom_pos, 0);
+                    error("invalid child under switch node");
+                }
+                compile((case_atom+1)->atom_pos);
+            }
+            emit_jmp(l_end);
+
+            // jump table
+            emit_label(l_table);
+            compile(top_p->atom_pos);
+
+            int i=0;
+            for (p = top_p + 1; p->type == TYPE_ARG; p++) {
+                atom_t *case_atom = &program[p->atom_pos];
+                if (case_atom->type == TYPE_CASE) {
+                    compile(case_atom->atom_pos);
+                    emit_jmp_case(case_label[i], p->t->size);
+                    i++;
+                } else if (case_atom->type == TYPE_DEFAULT) {
+                    compile(case_atom->atom_pos);
+                } else {
+                    dump_atom_tree(p->atom_pos, 0);
+                    error("invalid child under switch node");
+                }
+            }
+            emit_label(l_end);
+            emit_pop();
+        }
+            break;
+
 
         default:
             error("Invalid program");

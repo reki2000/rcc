@@ -18,7 +18,8 @@ char *atom_name[] = {
     "if", "for", "while", "dowhile", "break", "continue",
     "&(ptr_of)", "*(val_of)", "func", "return", "apply",
     "n++", "n--",
-    "str", ".", "->", "gval_ref", "rvalue", "convert", "struct-offset", "array-index"
+    "str", ".", "->", "gval_ref", "rvalue", "convert", "struct-offset", "array-index",
+    "switch", "case", "default"
 };
 
 int alloc_atom(int size) {
@@ -87,6 +88,7 @@ void dump_atom_tree(int pos, int indent) {
         case TYPE_BIND:
         case TYPE_ARRAY_INDEX:
         case TYPE_MEMBER_OFFSET:
+        case TYPE_CASE:
             dump_atom_tree(a->atom_pos, indent + 1);
             dump_atom_tree((a+1)->atom_pos, indent + 1);
             break;
@@ -99,6 +101,7 @@ void dump_atom_tree(int pos, int indent) {
         case TYPE_CONVERT:
         case TYPE_POSTFIX_DEC:
         case TYPE_POSTFIX_INC:
+        case TYPE_DEFAULT:
             dump_atom_tree(a->atom_pos, indent + 1);
             break;
         case TYPE_WHILE:
@@ -116,6 +119,12 @@ void dump_atom_tree(int pos, int indent) {
             dump_atom_tree(a->atom_pos, indent + 1);
             dump_atom_tree((a+1)->atom_pos, indent + 1);
             dump_atom_tree((a+2)->atom_pos, indent + 1);
+            break;
+        case TYPE_SWITCH:
+            dump_atom_tree(a->atom_pos, indent + 1);
+            for (a++; a->type == TYPE_ARG; a++) {
+                dump_atom_tree(a->atom_pos, indent + 1);
+            }
             break;
     }
 }
