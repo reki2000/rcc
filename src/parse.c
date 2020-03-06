@@ -1192,24 +1192,6 @@ int parse_local_variable() {
 
 int parse_block();
 
-int parse_func_args() {
-    int argc = 0;
-
-    if (!parse_var_declare()) {
-        return 0;
-    }
-    argc++;
-
-    while (expect(T_COMMA)) {
-        if (!parse_var_declare()) {
-            error("Invalid argv");
-        }
-        argc++;
-    }
-    return argc;
-}
-
-
 int parse_block_or_statement() {
     int pos = parse_statement();
     if (pos == 0) {
@@ -1256,6 +1238,99 @@ int parse_block() {
     return pos;
 }
 
+var_t *parse_funcion_prototype_arg() {
+    char *ident;
+
+    type_t *t = parse_type_declaration();
+    if (!t) {
+        return 0;
+    }
+    t = parse_pointer(t);
+
+    if (expect_ident(&ident)) {
+        t = parse_var_array_declare(t);
+    } else {
+        ident = "-";
+    }
+
+    return add_var(ident, t);
+}
+
+int parse_funcion_prototype_arg_seq() {
+    int argc = 0;
+
+    if (!parse_funcion_prototype_arg()) {
+        return 0;
+    }
+    argc++;
+
+    while (expect(T_COMMA)) {
+        if (!parse_funcion_prototype_arg()) {
+            error("Invalid argv");
+        }
+        argc++;
+    }
+    return argc;
+}
+
+int parse_function_prototype(type_t *t) {
+    int pos = get_token_pos();
+
+    t = parse_pointer(t);
+
+    char *ident;
+    if (!expect_ident(&ident)) {
+        debug("parse_function: not fucton def");
+        set_token_pos(pos);
+        return 0;
+    }
+    
+    if (!expect(T_LPAREN)) {
+        debug("parse_function failed: no '('");
+        set_token_pos(pos);
+        return 0;
+    }
+
+    reset_var_max_offset();
+    enter_var_frame();
+
+    parse_funcion_prototype_arg_seq();
+
+    if (!expect(T_RPAREN)) {
+        error("parse_function: no ')'");
+    }
+
+    if (!expect(T_SEMICOLON)) {
+        exit_var_frame();
+        debug("not function prototype");
+        set_token_pos(pos);
+        return 0;
+    }
+
+    frame_t *frame = get_top_frame();
+    add_function(ident, t, frame->num_vars, frame->vars);
+
+    exit_var_frame();
+    return 1;
+}
+
+int parse_func_args() {
+    int argc = 0;
+
+    if (!parse_var_declare()) {
+        return 0;
+    }
+    argc++;
+
+    while (expect(T_COMMA)) {
+        if (!parse_var_declare()) {
+            error("Invalid argv");
+        }
+        argc++;
+    }
+    return argc;
+}
+
 int parse_function_definition(type_t *t) {
     int pos = get_token_pos();
 
@@ -1291,7 +1366,7 @@ int parse_function_definition(type_t *t) {
         error_s("No body for function: ", ident);
     }
 
-    func_set_body(f, body_pos, var_max_offset());
+    func_set_body(f, frame->num_vars, frame->vars, body_pos, var_max_offset());
 
     exit_var_frame();
     return 1;
@@ -1306,6 +1381,10 @@ int parse_global_declaration() {
         return 1;
     }
     int pos;
+    pos = parse_function_prototype(t);
+    if (pos) {
+        return pos;
+    }
     pos = parse_function_definition(t);
     if (pos) {
         return pos;

@@ -54,12 +54,16 @@ func *add_function(char *name, type_t *ret_type, int argc, var_t *argv) {
         f->argc = argc;
         f->argv = argv;
     }
+    debug_s("added function: ", f->name);
     return f;
 }
 
-func *func_set_body(func *f, int pos, int max_offset) {
+func *func_set_body(func *f, int argc, var_t *argv, int pos, int max_offset) {
+    f->argc = argc;
+    f->argv = argv;
     f->body_pos = pos;
     f->max_offset = max_offset;
+    debug_s("added function body: ", f->name);
     return f;
 }
 

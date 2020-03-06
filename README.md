@@ -11,15 +11,17 @@ run `make` and you get executed result of `test/test.c`
 ```
 program: global_declaration* eof
 
-global_declaration: type_declaration ( ';' | global_variable ';' | function_definition )
-
-global_variable: pointer? var_name array_type? ( '=' literal )?
+global_declaration: type_declaration ( ';' | global_variable ';' | function_prototype ';' | function_definition )
 
 type_declaration: typedef | union_or_struct_type | enum_type | defined_type | primitive_type
 
 typedef: 'typedef' type_declaration pointer? defined_type
 defined_type: IDENT
 
+global_variable: pointer? var_name array_type? ( '=' literal )?
+
+function_prototype: pointer? func_name '(' function_prototype_arg ( ',' function_prototype_arg )* ')' ';'
+function_prototype_arg: type_declaration pointer? ( var_name array_type? )? 
 
 function_definition: pointer? func_name '(' var_declare? ( ',' var_declare )* ')' block
 
@@ -38,7 +40,7 @@ struct_declare: '{' struct_member_decrare* '}'
 struct_member_declare: type_declaration pointer member_name array_type? ';'
 struct_name: IDENT
 
-var_declare: type_declaration pointer var_name array_type? ( assignment )? ';'
+var_declare: type_declaration pointer? var_name array_type? ( assignment )? ';'
 
 block: '{' var_delcare* ( block_or_statement )* '}'
 block_or_statement: ( statement | block )
