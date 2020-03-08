@@ -63,7 +63,7 @@ bool is_digit(int ch) {
     return (ch >= '0' && ch <= '9');
 }
 
-bool expect_c(char c) {
+bool accept_char(char c) {
     skip();
     if (ch() == c) {
         next();
@@ -73,7 +73,7 @@ bool expect_c(char c) {
     return FALSE;
 }
 
-bool expect_str(char *str) {
+bool accept_string(char *str) {
     skip();
     int old_pos = src_pos;
     for (;*str != 0; str++) {
@@ -87,7 +87,7 @@ bool expect_str(char *str) {
     return TRUE;
 }
 
-bool expect_reserved_str(char *str) {
+bool accept_ident(char *str) {
     skip();
     int old_pos = src_pos;
     for (;*str != 0; str++) {
@@ -106,7 +106,25 @@ bool expect_reserved_str(char *str) {
     return FALSE;
 }
 
-bool parse_int_token(int *retval) {
+char escape(char escaped_char) {
+    char c;
+    switch (escaped_char) {
+        case 'n': c = '\n'; break;
+        case '0': c = '\0'; break;
+        case 't': c = '\t'; break;
+        case 'r': c = '\r'; break;
+        case 'a': c = '\a'; break;
+        case 'b': c = '\b'; break;
+        case 'f': c = '\f'; break;
+        case '"': c = '"'; break;
+        case '\'': c = '\''; break;
+        case '\\': c = '\\'; break;
+        default: error("Invalid letter after escape");
+    }
+    return c;
+}
+
+bool tokenize_int(int *retval) {
     int value = 0;
     int count = 0;
 
@@ -130,25 +148,7 @@ bool parse_int_token(int *retval) {
     return TRUE;
 }
 
-char escape(char escaped_char) {
-    char c;
-    switch (escaped_char) {
-        case 'n': c = '\n'; break;
-        case '0': c = '\0'; break;
-        case 't': c = '\t'; break;
-        case 'r': c = '\r'; break;
-        case 'a': c = '\a'; break;
-        case 'b': c = '\b'; break;
-        case 'f': c = '\f'; break;
-        case '"': c = '"'; break;
-        case '\'': c = '\''; break;
-        case '\\': c = '\\'; break;
-        default: error("Invalid letter after escape");
-    }
-    return c;
-}
-
-bool parse_char_token(char *retval) {
+bool tokenize_char(char *retval) {
     skip();
     if (ch() != '\'') {
         return FALSE;
@@ -168,7 +168,7 @@ bool parse_char_token(char *retval) {
     return TRUE;
 }
 
-bool parse_string_token(char **retval) {
+bool tokenize_string(char **retval) {
     char buf[1024];
     int buf_pos = 0;
     char *str;
@@ -205,7 +205,7 @@ bool parse_string_token(char **retval) {
     return TRUE;
 }
 
-bool parse_ident_token(char **retval) {
+bool tokenize_ident(char **retval) {
     bool is_first = TRUE;
     char buf[100];
     int buf_pos = 0;
@@ -291,143 +291,143 @@ void dump_tokens() {
 
 void tokenize() {
     while (!is_eof()) {
-        if (expect_str("!=")) {
+        if (accept_string("!=")) {
             add_token(T_NE);
-        } else if (expect_c('!')) {
+        } else if (accept_char('!')) {
             add_token(T_L_NOT);
-        } else if (expect_c('?')) {
+        } else if (accept_char('?')) {
             add_token(T_QUESTION);
-        } else if (expect_str("==")) {
+        } else if (accept_string("==")) {
             add_token(T_EQ);
-        } else if (expect_str("&&")) {
+        } else if (accept_string("&&")) {
             add_token(T_L_AND);
-        } else if (expect_str("&=")) {
+        } else if (accept_string("&=")) {
             add_token(T_AMP_EQUAL);
-        } else if (expect_str("||")) {
+        } else if (accept_string("||")) {
             add_token(T_L_OR);
-        } else if (expect_str("|=")) {
+        } else if (accept_string("|=")) {
             add_token(T_PIPE_EQUAL);
-        } else if (expect_str("^=")) {
+        } else if (accept_string("^=")) {
             add_token(T_HAT_EQUAL);
-        } else if (expect_c('&')) {
+        } else if (accept_char('&')) {
             add_token(T_AMP);
-        } else if (expect_c('=')) {
+        } else if (accept_char('=')) {
             add_token(T_EQUAL);
-        } else if (expect_str("<=")) {
+        } else if (accept_string("<=")) {
             add_token(T_LE);
-        } else if (expect_c('<')) {
+        } else if (accept_char('<')) {
             add_token(T_LT);
-        } else if (expect_str(">=")) {
+        } else if (accept_string(">=")) {
             add_token(T_GE);
-        } else if (expect_c('>')) {
+        } else if (accept_char('>')) {
             add_token(T_GT);
-        } else if (expect_str("*=")) {
+        } else if (accept_string("*=")) {
             add_token(T_ASTERISK_EQUAL);
-        } else if (expect_c('*')) {
+        } else if (accept_char('*')) {
             add_token(T_ASTERISK);
-        } else if (expect_str("//")) {
+        } else if (accept_string("//")) {
             debug("scanning //...");
             while (ch() != '\n') {
                 if (!next()) {
                     break;
                 }
             }
-        } else if (expect_str("/*")) {
+        } else if (accept_string("/*")) {
             debug("scanning /*...");
-            while (!expect_str("*/")) {
+            while (!accept_string("*/")) {
                 if (!next()) {
                     error("invalid eof in comment block");
                 }
             }
-        } else if (expect_str("/=")) {
+        } else if (accept_string("/=")) {
             add_token(T_SLASH_EQUAL);
-        } else if (expect_c('/')) {
+        } else if (accept_char('/')) {
             add_token(T_SLASH);
-        } else if (expect_str("%=")) {
+        } else if (accept_string("%=")) {
             add_token(T_PERCENT_EQUAL);
-        } else if (expect_c('%')) {
+        } else if (accept_char('%')) {
             add_token(T_PERCENT);
-        } else if (expect_str("++")) {
+        } else if (accept_string("++")) {
             add_token(T_INC);
-        } else if (expect_str("+=")) {
+        } else if (accept_string("+=")) {
             add_token(T_PLUS_EQUAL);
-        } else if (expect_c('+')) {
+        } else if (accept_char('+')) {
             add_token(T_PLUS);
-        } else if (expect_str("--")) {
+        } else if (accept_string("--")) {
             add_token(T_DEC);
-        } else if (expect_str("-=")) {
+        } else if (accept_string("-=")) {
             add_token(T_MINUS_EQUAL);
-        } else if (expect_str("->")) {
+        } else if (accept_string("->")) {
             add_token(T_ALLOW);
-        } else if (expect_c('-')) {
+        } else if (accept_char('-')) {
             add_token(T_MINUS);
-        } else if (expect_c('{')) {
+        } else if (accept_char('{')) {
             add_token(T_LBLACE);
-        } else if (expect_c('}')) {
+        } else if (accept_char('}')) {
             add_token(T_RBLACE);
-        } else if (expect_c('[')) {
+        } else if (accept_char('[')) {
             add_token(T_LBRACKET);
-        } else if (expect_c(']')) {
+        } else if (accept_char(']')) {
             add_token(T_RBRACKET);
-        } else if (expect_c('(')) {
+        } else if (accept_char('(')) {
             add_token(T_LPAREN);
-        } else if (expect_c(')')) {
+        } else if (accept_char(')')) {
             add_token(T_RPAREN);
-        } else if (expect_c(':')) {
+        } else if (accept_char(':')) {
             add_token(T_COLON);
-        } else if (expect_c(';')) {
+        } else if (accept_char(';')) {
             add_token(T_SEMICOLON);
-        } else if (expect_c('.')) {
+        } else if (accept_char('.')) {
             add_token(T_PERIOD);
-        } else if (expect_c(',')) {
+        } else if (accept_char(',')) {
             add_token(T_COMMA);
-        } else if (expect_reserved_str("break")) {
+        } else if (accept_ident("break")) {
             add_token(T_BREAK);
-        } else if (expect_reserved_str("case")) {
+        } else if (accept_ident("case")) {
             add_token(T_CASE);
-        } else if (expect_reserved_str("continue")) {
+        } else if (accept_ident("continue")) {
             add_token(T_CONTINUE);
-        } else if (expect_reserved_str("default")) {
+        } else if (accept_ident("default")) {
             add_token(T_DEFAULT);
-        } else if (expect_reserved_str("do")) {
+        } else if (accept_ident("do")) {
             add_token(T_DO);
-        } else if (expect_reserved_str("else")) {
+        } else if (accept_ident("else")) {
             add_token(T_ELSE);
-        } else if (expect_reserved_str("extern")) {
+        } else if (accept_ident("extern")) {
             add_token(T_EXTERN);
-        } else if (expect_reserved_str("for")) {
+        } else if (accept_ident("for")) {
             add_token(T_FOR);
-        } else if (expect_reserved_str("if")) {
+        } else if (accept_ident("if")) {
             add_token(T_IF);
-        } else if (expect_reserved_str("print")) {
+        } else if (accept_ident("print")) {
             add_token(T_PRINT);
-        } else if (expect_reserved_str("return")) {
+        } else if (accept_ident("return")) {
             add_token(T_RETURN);
-        } else if (expect_reserved_str("sizeof")) {
+        } else if (accept_ident("sizeof")) {
             add_token(T_SIZEOF);
-        } else if (expect_reserved_str("struct")) {
+        } else if (accept_ident("struct")) {
             add_token(T_STRUCT);
-        } else if (expect_reserved_str("switch")) {
+        } else if (accept_ident("switch")) {
             add_token(T_SWITCH);
-        } else if (expect_reserved_str("typedef")) {
+        } else if (accept_ident("typedef")) {
             add_token(T_TYPEDEF);
-        } else if (expect_reserved_str("union")) {
+        } else if (accept_ident("union")) {
             add_token(T_UNION);
-        } else if (expect_reserved_str("enum")) {
+        } else if (accept_ident("enum")) {
             add_token(T_ENUM);
-        } else if (expect_reserved_str("while")) {
+        } else if (accept_ident("while")) {
             add_token(T_WHILE);
         } else {
             int i;
             char c;
             char *str;
-            if (parse_int_token(&i)) {
+            if (tokenize_int(&i)) {
                 add_int_token(i);
-            } else if (parse_char_token(&c)) {
+            } else if (tokenize_char(&c)) {
                 add_char_token(c);
-            } else if (parse_string_token(&str)) {
+            } else if (tokenize_string(&str)) {
                 add_string_token(str);
-            } else if (parse_ident_token(&str)) {
+            } else if (tokenize_ident(&str)) {
                 add_ident_token(str);
             } else {
                 char buf[100];
@@ -502,6 +502,6 @@ bool is_eot() {
 }
 
 void init() {
-    src_len = _read(0, src, 1024);
+    src_len = _read(0, src, 1024 * 1024);
 }
 
