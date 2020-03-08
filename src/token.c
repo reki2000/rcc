@@ -30,13 +30,17 @@ int ch() {
     return src[src_pos];
 }
 
-void next() {
+bool next() {
     if (ch() == '\n') {
         src_column = 1;
         src_line++;
     }
+    if (is_eof()) {
+        return FALSE;
+    }
     src_pos++;
     src_column++;
+    return TRUE;
 }
 
 void skip() {
@@ -286,7 +290,7 @@ void dump_tokens() {
 }
 
 void tokenize() {
-    while (ch() != -1) {
+    while (!is_eof()) {
         if (expect_str("!=")) {
             add_token(T_NE);
         } else if (expect_c('!')) {
@@ -321,6 +325,20 @@ void tokenize() {
             add_token(T_ASTERISK_EQUAL);
         } else if (expect_c('*')) {
             add_token(T_ASTERISK);
+        } else if (expect_str("//")) {
+            debug("scanning //...");
+            while (ch() != '\n') {
+                if (!next()) {
+                    break;
+                }
+            }
+        } else if (expect_str("/*")) {
+            debug("scanning /*...");
+            while (!expect_str("*/")) {
+                if (!next()) {
+                    error("invalid eof in comment block");
+                }
+            }
         } else if (expect_str("/=")) {
             add_token(T_SLASH_EQUAL);
         } else if (expect_c('/')) {

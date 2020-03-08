@@ -78,9 +78,10 @@
 
 - [*] extern function
 
-- [ ] include
 - [ ] inline comment
 - [ ] multiline comment
+
+- [ ] include
 
 - [ ] compiler argument (-S)? (-o outfile)? {source.c)+
 
