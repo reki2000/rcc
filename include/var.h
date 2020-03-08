@@ -3,7 +3,7 @@ typedef struct {
     int offset;
     type_t *t;
     bool is_global;
-    bool is_extern;
+    bool is_external;
     bool is_constant;
     bool has_value;
     union {
@@ -29,6 +29,8 @@ extern var_t *add_var(char *, type_t *);
 extern var_t *add_constant_int(char *, type_t *, int value);
 extern int find_var_offset(char *);
 extern var_t *find_var(char *);
+extern var_t *find_var_in_current_frame(char *name);
+
 
 extern void reset_var_max_offset();
 extern int var_max_offset();

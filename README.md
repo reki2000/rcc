@@ -11,8 +11,9 @@ run `make` and you get executed result of `test/test.c`
 ```
 program: global_declaration* eof
 
-global_declaration: type_declaration ( ';' | global_variable ';' | function_prototype ';' | function_definition )
+global_declaration: storage_class? type_declaration ( ';' | global_variable ';' | function_prototype ';' | function_definition )
 
+storage_class: 'extern'
 type_declaration: typedef | union_or_struct_type | enum_type | defined_type | primitive_type
 
 typedef: 'typedef' type_declaration pointer? defined_type

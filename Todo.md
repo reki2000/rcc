@@ -66,9 +66,16 @@
 - [*] switch case
 - [*] ternary operator ?:
 
-- [ ] function prototype declaration
+- [*] function prototype declaration
 
-- [ ] extern variable
+- [ ] extern variable 
+  - w/ extern
+   - w/ init : .data, @global, WARN: 'initialized and declared 'extern'
+   - w/o init : no declaration, only reference in code, duplicate OK
+  - w/o extern : 
+   - w/ init : .data, @global, duplicate OK, duplicate init NG
+   - w/o init : .comm, not @global, duplicate OK
+
 - [ ] extern function
 
 - [ ] include

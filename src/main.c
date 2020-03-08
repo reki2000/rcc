@@ -783,7 +783,7 @@ int main() {
         }
         if (v->has_value) {
             out_global_constant(v);
-        } else if (!v->is_extern) {
+        } else if (!v->is_external) {
             out_global_declare(v);
         }
     }

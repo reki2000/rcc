@@ -375,6 +375,8 @@ void tokenize() {
             add_token(T_DO);
         } else if (expect_reserved_str("else")) {
             add_token(T_ELSE);
+        } else if (expect_reserved_str("extern")) {
+            add_token(T_EXTERN);
         } else if (expect_reserved_str("for")) {
             add_token(T_FOR);
         } else if (expect_reserved_str("if")) {

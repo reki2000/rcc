@@ -1138,7 +1138,18 @@ var_t *parse_var_declare() {
 
     t = parse_var_array_declare(t);
 
-    return add_var(ident, t);
+    var_t *v = find_var_in_current_frame(ident);
+    if (v) {
+        if (!type_is_same(v->t, t)) {
+            error_s("variable is already declared with different type:", v->name);
+        } else {
+            error_s("variable is already declared:", v->name);
+        }
+    } else {
+        v = add_var(ident, t);
+    }
+
+    return v;
 }
 
 int parse_global_var_assignment(var_t *v) {
@@ -1148,6 +1159,9 @@ int parse_global_var_assignment(var_t *v) {
 
     int num = 0;
     if (expect_int(&num)) {
+        if (v->is_external) {
+            debug_s("variable is initialized but delcared 'extern':", v->name);
+        }
         v->has_value = TRUE;
         v->int_value = num;
     }
@@ -1155,7 +1169,7 @@ int parse_global_var_assignment(var_t *v) {
 }
 
 
-int parse_global_variable(type_t *t) {
+int parse_global_variable(type_t *t, bool is_external) {
     int pos = get_token_pos();
     t = parse_pointer(t);
 
@@ -1166,7 +1180,17 @@ int parse_global_variable(type_t *t) {
     }
     t = parse_var_array_declare(t);
 
-    var_t *v = add_var(ident, t);
+    var_t *v = find_var_in_current_frame(ident);
+    if (v) {
+        if (!type_is_same(v->t, t)) {
+            error_s("variable is already declared with different type:", v->name);
+        } else if (!v->is_external && !is_external) {
+            error_s("non-external variable is already declared:", v->name);
+        }
+    } else {
+        v = add_var(ident, t);
+    }
+    v->is_external = is_external;
     pos = parse_global_var_assignment(v);
     return 1;
 }
@@ -1373,6 +1397,10 @@ int parse_function_definition(type_t *t) {
 }
 
 int parse_global_declaration() {
+    bool is_external = 0;
+    if (expect(T_EXTERN)) {
+        is_external = 1;
+    }
     type_t *t = parse_type_declaration();
     if (!t) {
         return 0;
@@ -1389,7 +1417,7 @@ int parse_global_declaration() {
     if (pos) {
         return pos;
     }
-    pos = parse_global_variable(t);
+    pos = parse_global_variable(t, is_external);
     if (pos) {
         if (expect(T_SEMICOLON)) {
             return pos;

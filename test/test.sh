@@ -43,7 +43,7 @@ function check {
         check_result $1
     fi \
         || echo "ERROR: result not matched"
-    echo "end : $1 ------------------"
+    echo "end"
 }
 
 set -e

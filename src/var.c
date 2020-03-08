@@ -105,6 +105,19 @@ int find_var_offset(char *name) {
     return 0;
 }
 
+var_t *find_var_in_current_frame(char *name) {
+    if (env_top < 0) {
+        error("cannot find variable in frame < 0");
+    }
+    var_t *var_ptr;
+    for (var_ptr = env[env_top].vars; var_ptr->name != 0; var_ptr++) {
+        if (strcmp(name, var_ptr->name) == 0) {
+            return var_ptr;
+        }
+    }
+    return 0;
+}
+
 var_t *find_var(char *name) {
     int env_pos;
     for (env_pos = env_top; env_pos >= 0; env_pos--) {
