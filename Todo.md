@@ -68,7 +68,7 @@
 
 - [*] function prototype declaration
 
-- [ ] extern variable 
+- [*] extern variable 
   - w/ extern
    - w/ init : .data, @global, WARN: 'initialized and declared 'extern'
    - w/o init : no declaration, only reference in code, duplicate OK
@@ -76,7 +76,7 @@
    - w/ init : .data, @global, duplicate OK, duplicate init NG
    - w/o init : .comm, not @global, duplicate OK
 
-- [ ] extern function
+- [*] extern function
 
 - [ ] include
 - [ ] inline comment

@@ -5,10 +5,11 @@ typedef struct {
     var_t *argv;
     int body_pos;
     int max_offset;
+    bool is_external;
 } func;
 
 extern func functions[];
 
 func *find_func_name(char *name);
-extern func *add_function(char *, type_t *, int, var_t *);
+extern func *add_function(char *, type_t *, bool, int, var_t *);
 extern func *func_set_body(func *, int, var_t *, int, int);

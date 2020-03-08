@@ -708,6 +708,9 @@ void compile(int pos) {
 }
 
 void compile_func(func *f) {
+    if (!f->body_pos) {
+        return;
+    }
     func_return_label = new_label();
 
     out_str(".globl	", f->name, "");

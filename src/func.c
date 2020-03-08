@@ -42,7 +42,7 @@ func *find_function(char *name, type_t *ret_type, int argc, var_t *argv) {
     return 0;
 }
 
-func *add_function(char *name, type_t *ret_type, int argc, var_t *argv) {
+func *add_function(char *name, type_t *ret_type, bool is_external, int argc, var_t *argv) {
     if (function_len >= 1000) {
         error("Too many functions");
     }
@@ -53,6 +53,7 @@ func *add_function(char *name, type_t *ret_type, int argc, var_t *argv) {
         f->ret_type = ret_type;
         f->argc = argc;
         f->argv = argv;
+        f->is_external = is_external;
     }
     debug_s("added function: ", f->name);
     return f;

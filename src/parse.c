@@ -1297,7 +1297,7 @@ int parse_funcion_prototype_arg_seq() {
     return argc;
 }
 
-int parse_function_prototype(type_t *t) {
+int parse_function_prototype(type_t *t, bool is_external) {
     int pos = get_token_pos();
 
     t = parse_pointer(t);
@@ -1332,7 +1332,7 @@ int parse_function_prototype(type_t *t) {
     }
 
     frame_t *frame = get_top_frame();
-    add_function(ident, t, frame->num_vars, frame->vars);
+    add_function(ident, t, is_external, frame->num_vars, frame->vars);
 
     exit_var_frame();
     return 1;
@@ -1362,7 +1362,7 @@ int parse_function_definition(type_t *t) {
 
     char *ident;
     if (!expect_ident(&ident)) {
-        debug("parse_function: not fucton def");
+        debug("parse_function: not fuctionn definition");
         set_token_pos(pos);
         return 0;
     }
@@ -1383,7 +1383,7 @@ int parse_function_definition(type_t *t) {
     }
 
     frame_t *frame = get_top_frame();
-    func *f = add_function(ident, t, frame->num_vars, frame->vars);
+    func *f = add_function(ident, t, FALSE, frame->num_vars, frame->vars);
 
     int body_pos = parse_block();
     if (!body_pos) {
@@ -1409,7 +1409,7 @@ int parse_global_declaration() {
         return 1;
     }
     int pos;
-    pos = parse_function_prototype(t);
+    pos = parse_function_prototype(t, is_external);
     if (pos) {
         return pos;
     }
