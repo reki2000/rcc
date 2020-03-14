@@ -7,7 +7,7 @@ function clean {
 }
 
 function compile {
-    ../bin/rekicc $1 2>$2 > out/test.s
+    ../bin/rekicc -S -I$(dirname $1)/include $1 2>$2 > out/test.s
 }
 
 function header {

@@ -9,11 +9,14 @@ src_t *src;
 src_t src_files[100];
 int src_file_len = 0;
 
-src_t *get_current_file() {
-    if (src_file_len <= 0) {
-        return 0;
+char *include_dirs[100];
+int include_dirs_len = 0;
+
+void add_include_dir(char *dir) {
+    if (include_dirs_len >= 100) {
+        error("too much include directories");
     }
-    return &src_files[src_file_len - 1];
+    include_dirs[include_dirs_len++] = dir;
 }
 
 void dirname(char *out, char*path) {
@@ -29,6 +32,29 @@ void dirname(char *out, char*path) {
     }
     out[last_delimiter_index] = 0;
     return;
+}
+
+src_t *get_current_file() {
+    if (src_file_len <= 0) {
+        return 0;
+    }
+    return &src_files[src_file_len - 1];
+}
+
+int open_include_file(char *filename) {
+    int i;
+    for (i=0; i<include_dirs_len; i++) {
+        char path[200] = {0};
+        strcat(path, include_dirs[i]);
+        strcat(path, "/");
+        strcat(path, filename);
+        int fd = open(path, 0);
+        if (fd >= 0) {
+            return fd;
+        }
+        debug_s("include file not found at:", path);
+    };
+    return -1;
 }
 
 bool enter_file(char *filename) {
@@ -49,16 +75,19 @@ bool enter_file(char *filename) {
     s->prev_column = 1;
     s->prev_pos = 0;
 
-    char path[100] = {0};
-    if (src_file_len > 0) {
-        dirname(path, src_files[0].filename);
-        strcat(path, "/");
-    }
-    strcat(path, filename);
+    int fd;
 
-    int fd = open(path, 0);
+    if (src_file_len == 0) {
+        char *buf = _calloc(1, 100);
+        dirname(buf, filename);
+        add_include_dir(buf);
+        fd = open(filename, 0);
+    } else {
+        fd = open_include_file(filename);
+    }
+
     if (fd == -1) {
-        error_s("cannot open include file: ", path);
+        error_s("cannot open include file: ", filename);
     }
     if (!s->body) {
         s->body = _calloc(1, 1024 * 1024);
@@ -66,7 +95,7 @@ bool enter_file(char *filename) {
     s->len = _read(fd, s->body, 1024*1024);
     if (close(fd)) {
         debug_i("closing fd:", fd);
-        error_s("error on closing file: ", path);
+        error_s("error on closing file: ", filename);
     }
 
     src_file_len++;

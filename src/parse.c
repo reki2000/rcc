@@ -1428,6 +1428,7 @@ int parse_global_declaration() {
 }
 
 void parse() {
+    init_types();
 
     enter_var_frame();
     while (!expect(T_EOF)) {
