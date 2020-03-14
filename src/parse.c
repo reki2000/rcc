@@ -551,14 +551,18 @@ int parse_postfix_assignment(int pos) {
     return alloc_assign_op_atom(op, pos, atom_to_rvalue(expr_pos));
 }
 
+int parse_variable_initializer(int lval) {
+    int rval = parse_expr();
+    if (!rval) {
+        error("cannot bind - no rvalue");
+    }
+    rval = atom_convert_type(atom_to_rvalue(lval), atom_to_rvalue(rval));
+    return alloc_binop_atom(TYPE_BIND, rval, lval);
+}
+
 int parse_assignment(int lval) {
     if (expect(T_EQUAL)) {
-        int rval = parse_expr();
-        if (!rval) {
-            error("cannot bind - no rvalue");
-        }
-        rval = atom_convert_type(atom_to_rvalue(lval), atom_to_rvalue(rval));
-        return alloc_binop_atom(TYPE_BIND, rval, lval);
+        return parse_variable_initializer(lval);
     }
     return 0;
 }
@@ -1199,6 +1203,40 @@ int parse_global_variable(type_t *t, bool is_external) {
     return 1;
 }
 
+int parse_array_initializer(int array, int array_length) {
+    if (!expect(T_LBLACE)) {
+        return 0;
+    }
+    int index;
+    int pos = 0;
+
+    for (index = 0; index < array_length; index++) {
+        debug_i("parsing array initializer at index:", index);
+        int lval = alloc_index_atom(array, alloc_typed_int_atom(TYPE_INTEGER, index, find_type("int")));
+        int assign = parse_variable_initializer(lval);
+        if (assign) {
+            if (!pos) {
+                pos = assign;
+            } else {
+                pos = alloc_binop_atom(TYPE_ANDTHEN, pos, assign);
+            }
+        }
+        if (!expect(T_COMMA)) {
+            break;
+        }
+    }
+    if (!pos) {
+        error("emptry array initializer");
+    }
+    if (expect(T_COMMA)) {
+        error("too many array initializer elements");
+    }
+    if (!expect(T_RBLACE)) {
+        error("Invalid end of array initializer");
+    }
+    return pos;
+}
+
 int parse_local_variable() {
     var_t *v = parse_var_declare();
     if (!v) {
@@ -1206,8 +1244,15 @@ int parse_local_variable() {
     }
 
     int pos = alloc_var_atom(v);
-    pos = parse_assignment(pos);
-    if (!pos) {
+    dump_atom(pos,0);
+
+    if (expect(T_EQUAL)) {
+        if (v->t->array_length > 0) {
+            pos = parse_array_initializer(pos, v->t->array_length);
+        } else {
+            pos = parse_variable_initializer(pos);
+        }
+    } else {
         pos = alloc_typed_pos_atom(TYPE_NOP, 0, find_type("void"));
     }
 

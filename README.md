@@ -1,11 +1,13 @@
 # rekicc
 ## What"s this ?
 
-This is an experimental tiny C language compiler inspired by [9cc](https://github.com/rui314/9cc). Will grow toward enabing self-compile.
+This is an experimental tiny subset of C language compiler inspired by [9cc](https://github.com/rui314/9cc). Will grow toward enabing self-compile.
 
-## Usage
+## Compile and test
 
-run `make` and you get executed result of `test/test.c`
+```
+make clean && make && test/test.sh
+```
 
 ## Current BNF
 ```
@@ -41,7 +43,7 @@ struct_declare: '{' struct_member_decrare* '}'
 struct_member_declare: type_declaration pointer member_name array_type? ';'
 struct_name: IDENT
 
-var_declare: type_declaration pointer? var_name array_type? ( assignment )? ';'
+var_declare: type_declaration pointer? var_name array_type? local_variable_initializer? ';'
 
 block: '{' block_or_statement* '}'
 block_or_statement: ( statement | block )
@@ -64,6 +66,8 @@ expr_sequence: expr ( ',' expr )*
 expr: value ( ternary | assignment | postfix_assignment )* 
 ternaly: '?' expr ':' expr
 assignment: '=' expr
+local_variable_initializer: '=' ( array_initializer | expr )
+array_initializer: '{' expr ( ',' expr )* '}'
 postfix_assignment: ( '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' ) expr
 
 value: logical_or

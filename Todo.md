@@ -87,13 +87,15 @@
 
 - [*] refactor : remove _read, _write etc.
 
-- [ ] allow variable declaration in middle of block
-- [ ] array initialization
+- [*] allow variable declaration in middle of block
+- [*] array initialization
 
 - [ ] const classifier (just ignoring)
 
 
 ## A.D. (self hosted)
+- [ ] array initializer for non-sized array declaration
+
 - [ ] refactor : remove printi statement, replace with `void printi(int i) { printf("%d\n",i); }`
 
 - [ ] compiler options (-o outfile)? {source.c)+

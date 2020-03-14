@@ -12,7 +12,7 @@
 void _log(char *level, char *message) {
     char buf[1024] = {0};
     strcat(buf, level);
-    strcat(buf, ":");
+    strcat(buf, ": ");
     strcat(buf, message);
     strcat(buf, "\n");
     write(2, buf, strlen(buf));
