@@ -1,8 +1,9 @@
-extern int _read(int, void *, int);
-extern int _write(int, void *, int);
-extern int __exit(int);
-extern void *_calloc(int, int);
-extern void *_malloc(int);
+extern void exit(int);
 
 extern int open(char *, int);
 extern int close(int);
+extern int read(int, char *, int);
+extern int write(int, char *, int);
+
+extern void *calloc(long, long);
+extern void *malloc(long);

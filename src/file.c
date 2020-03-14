@@ -78,7 +78,7 @@ bool enter_file(char *filename) {
     int fd;
 
     if (src_file_len == 0) {
-        char *buf = _calloc(1, 100);
+        char *buf = calloc(1, 100);
         dirname(buf, filename);
         add_include_dir(buf);
         fd = open(filename, 0);
@@ -90,9 +90,9 @@ bool enter_file(char *filename) {
         error_s("cannot open include file: ", filename);
     }
     if (!s->body) {
-        s->body = _calloc(1, 1024 * 1024);
+        s->body = calloc(1, 1024 * 1024);
     }
-    s->len = _read(fd, s->body, 1024*1024);
+    s->len = read(fd, s->body, 1024*1024);
     if (close(fd)) {
         debug_i("closing fd:", fd);
         error_s("error on closing file: ", filename);

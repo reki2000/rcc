@@ -15,15 +15,15 @@
 
 void out_label(char *str) {
     int len = strlen(str);
-    _write(1, str, len);
-    _write(1, ":\n", 2);
+    write(1, str, len);
+    write(1, ":\n", 2);
 }
 
 void out(char *str) {
     int len = strlen(str);
-    _write(1, "\t", 1);
-    _write(1, str, len);
-    _write(1, "\n", 1);
+    write(1, "\t", 1);
+    write(1, str, len);
+    write(1, "\n", 1);
 }
 
 void out_x(char *fmt, int size) {

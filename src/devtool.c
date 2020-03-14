@@ -15,7 +15,7 @@ void _log(char *level, char *message) {
     strcat(buf, ":");
     strcat(buf, message);
     strcat(buf, "\n");
-    _write(2, buf, strlen(buf));
+    write(2, buf, strlen(buf));
 }
 
 void debug(char *str) {
@@ -38,7 +38,7 @@ void debug_s(char *str, char *val) {
 void error(char *str) {
     _log("ERROR", str);
     dump_tokens();
-    __exit(1);
+    exit(1);
 }
 
 void error_i(char *str, int val) {
@@ -55,7 +55,7 @@ void error_s(char *str, char *val) {
 }
 
 char *_slice(char *src, int count) {
-    char *ret = _malloc(count + 1);
+    char *ret = malloc(count + 1);
     char *d = ret;
     for (;count>0;count--) {
         if (*src == 0) {

@@ -58,7 +58,7 @@ void dump_atom2(atom_t *p, int indent, int pos) {
     dump_type(buf, p->t);
 
     strcat(buf, "\n");
-    _write(2, buf, strlen(buf));
+    debug_s("", buf);
 }
 
 void dump_atom_all() {

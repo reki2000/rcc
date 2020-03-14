@@ -18,7 +18,7 @@ void enter_var_frame() {
     if (env_top >= 100) {
         error("Too many frames");
     }
-    env[env_top].vars = _calloc(sizeof(var_t), 100);
+    env[env_top].vars = calloc(sizeof(var_t), 100);
     env[env_top].offset = env[env_top - 1].offset;
     env[env_top].num_vars = 0;
 }
@@ -139,14 +139,14 @@ void dump_env() {
         buf[0] = 0;
         _strcat3(buf, "env[", pos, "] ");
         _strcat3(buf, "vars:", env[pos].num_vars, "");
-        _strcat3(buf, " offset:", env[pos].offset, "\n");
-        _write(2, buf, strlen(buf));
+        _strcat3(buf, " offset:", env[pos].offset, "");
+        debug_s("", buf);
         for (var_ptr = env[pos].vars; var_ptr->name != 0; var_ptr++) {
             char buf[100];
             buf[0] = 0;
             strcat(buf, var_ptr->name);
             _strcat3(buf, "=", var_ptr->offset, "\n");
-            _write(2, buf, strlen(buf));
+            debug_s("", buf);
         }
     }
 }

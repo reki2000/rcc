@@ -163,7 +163,7 @@ bool tokenize_string(char **retval) {
         next();
     }
 
-    str = _malloc(buf_pos + 1);
+    str = malloc(buf_pos + 1);
     for (i=0; i<buf_pos; i++) {
         str[i] = buf[i];
     }
@@ -195,7 +195,7 @@ bool tokenize_ident(char **retval) {
         return FALSE;
     }
 
-    str = _malloc(buf_pos + 1);
+    str = malloc(buf_pos + 1);
     for (i=0; i<buf_pos; i++) {
         str[i] = buf[i];
     }

@@ -78,14 +78,22 @@
 
 - [*] extern function
 
-- [ ] inline comment
-- [ ] multiline comment
+- [*] inline comment
+- [*] multiline comment
 
-- [ ] include
+- [*] include
 
-- [ ] compiler argument (-S)? (-o outfile)? {source.c)+
+- [*] compiler options (-S)? 
+
+- [*] refactor : remove _read, _write etc.
+- [ ] refactor : remove printi statement, replace with `void printi(int i) { printf("%d\n",i); }`
+
+- [ ] const classifier (just ignoring)
+
 
 ## A.D. (self hosted)
+
+- [ ] compiler options (-o outfile)? {source.c)+
 
 - [ ] bit operators >> >>= << <<= & | ^  ~
 
