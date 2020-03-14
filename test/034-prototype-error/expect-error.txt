@@ -1,0 +1,1 @@
+ERROR: function is already declared but types are not matched: add2
