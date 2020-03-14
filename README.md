@@ -43,10 +43,10 @@ struct_name: IDENT
 
 var_declare: type_declaration pointer? var_name array_type? ( assignment )? ';'
 
-block: '{' var_delcare* ( block_or_statement )* '}'
+block: '{' block_or_statement* '}'
 block_or_statement: ( statement | block )
 
-statement: ';' | print_statement | if_statement | while_statement | for_statement | do_while_statement | expr_statement | return_statement | break_statement | continue_statement | switch_statement
+statement: ';' | var_declare | print_statement | if_statement | while_statement | for_statement | do_while_statement | expr_statement | return_statement | break_statement | continue_statement | switch_statement
 if_statement: 'if' '(' expr_sequence ')' ( statement | block ( 'else' block_or_statement )? )
 for_statement: 'for' '(' expr_sequence ';' expr_sequence ';' expr_sequence ')' block_or_statement
 while_statement: 'while' '(' expr_sequence ')' block_or_statement

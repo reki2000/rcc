@@ -17,6 +17,7 @@ int parse_prefix();
 int parse_unary();
 type_t *parse_type_declaration();
 type_t *parse_pointer();
+int parse_local_variable();
 
 int parse_int() {
     int value;
@@ -892,7 +893,10 @@ int parse_statement() {
     if (expect(T_SEMICOLON)) {
         return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
     } 
-    int pos = parse_print_statement();
+    int pos = parse_local_variable();
+    if (pos == 0) {
+        pos = parse_print_statement();
+    }
     if (pos == 0) {
         pos = parse_if_statement();
     } 
@@ -1244,13 +1248,6 @@ int parse_block() {
     }
 
     enter_var_frame();
-    for (;;) {
-        int new_pos = parse_local_variable();
-        if (!new_pos) {
-            break;
-        }
-        pos = alloc_binop_atom(TYPE_ANDTHEN, pos, new_pos);
-    }
 
     pos = alloc_binop_atom(TYPE_ANDTHEN, pos, parse_block_or_statement_series());
 

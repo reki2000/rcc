@@ -86,12 +86,15 @@
 - [*] compiler options (-S)? 
 
 - [*] refactor : remove _read, _write etc.
-- [ ] refactor : remove printi statement, replace with `void printi(int i) { printf("%d\n",i); }`
+
+- [ ] allow variable declaration in middle of block
+- [ ] array initialization
 
 - [ ] const classifier (just ignoring)
 
 
 ## A.D. (self hosted)
+- [ ] refactor : remove printi statement, replace with `void printi(int i) { printf("%d\n",i); }`
 
 - [ ] compiler options (-o outfile)? {source.c)+
 
@@ -104,7 +107,6 @@
 - [ ] ifdef
 - [ ] define macro
 
-- [ ] array initialization
 - [ ] local multiple variable definition
 - [ ] global multiple variable definition
 
