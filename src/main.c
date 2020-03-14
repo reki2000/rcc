@@ -762,19 +762,23 @@ void out_global_declare(var_t *v) {
     out(buf);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     int pos;
     func *f;
 
-    init();
-    tokenize();
+    if (argc < 2) {
+        error("no file name");
+    }
 
     init_types();
+
+    tokenize_file(argv[1]);
 
     pos = parse();
     if (pos == 0) {
         error("Invalid source code");
     }
+
 
     out(".file	\"main.c\"");
     out("");
@@ -809,9 +813,11 @@ int main() {
 
     f = &functions[0];
     while (f->name != 0) {
-        debug_s(f->name, " --------------------- ");
-        dump_atom_tree(f->body_pos, 0);
-        compile_func(f);
+        if (!f->is_external) {
+            debug_s(f->name, " --------------------- ");
+            dump_atom_tree(f->body_pos, 0);
+            compile_func(f);
+        }
         f++;
     }
 }

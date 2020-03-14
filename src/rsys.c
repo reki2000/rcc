@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+extern int errno;
+
 int _read(int fd, void *buf, int len) {
     return read(fd, buf, len);
 }

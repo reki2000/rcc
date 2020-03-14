@@ -3,3 +3,6 @@ extern int _write(int, void *, int);
 extern int __exit(int);
 extern void *_calloc(int, int);
 extern void *_malloc(int);
+
+extern int open(char *, int);
+extern int close(int);

@@ -38,6 +38,7 @@ typedef struct {
         char char_value;
         long long_value;
     };
+    int src_id;
     int src_line;
     int src_column;
     int src_pos;
@@ -49,10 +50,9 @@ extern bool expect_char(char *value);
 extern bool expect_ident(char **value);
 extern bool expect_string(char **value);
 
-extern void tokenize();
+extern void tokenize_file(char *);
 extern int get_token_pos();
 extern void set_token_pos(int pos);
 extern bool is_eot();
-extern void init();
 
 extern void dump_tokens();

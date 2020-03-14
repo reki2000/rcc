@@ -2,46 +2,13 @@
 #include <rstring.h>
 #include <devtool.h>
 #include <types.h>
+#include <file.h>
 #include <token.h>
 #include <gstr.h>
 
 token tokens[1024 * 128];
 int token_pos = 0;
 int token_len = 0;
-
-char src[1024 * 1024];
-int src_pos = 0;
-int src_len = 0;
-int src_line = 1;
-int src_column = 1;
-
-int prev_src_line = 1;
-int prev_src_column = 1;
-int prev_src_pos = 0;
-
-bool is_eof() {
-    return src_pos >= src_len;
-}
-
-int ch() {
-    if (is_eof()) {
-        return -1;
-    }
-    return src[src_pos];
-}
-
-bool next() {
-    if (ch() == '\n') {
-        src_column = 1;
-        src_line++;
-    }
-    if (is_eof()) {
-        return FALSE;
-    }
-    src_pos++;
-    src_column++;
-    return TRUE;
-}
 
 void skip() {
     int c;
@@ -75,10 +42,10 @@ bool accept_char(char c) {
 
 bool accept_string(char *str) {
     skip();
-    int old_pos = src_pos;
+    int old_pos = src->pos;
     for (;*str != 0; str++) {
         if (ch() != *str) {
-            src_pos = old_pos;
+            src->pos = old_pos;
             return FALSE;
         }
         next();
@@ -89,10 +56,10 @@ bool accept_string(char *str) {
 
 bool accept_ident(char *str) {
     skip();
-    int old_pos = src_pos;
+    int old_pos = src->pos;
     for (;*str != 0; str++) {
         if (ch() != *str) {
-            src_pos = old_pos;
+            src->pos = old_pos;
             return FALSE;
         }
         next();
@@ -102,7 +69,7 @@ bool accept_ident(char *str) {
         skip();
         return TRUE;
     }
-    src_pos = old_pos;
+    src->pos = old_pos;
     return FALSE;
 }
 
@@ -237,18 +204,23 @@ bool tokenize_ident(char **retval) {
     return TRUE;
 }
 
+void set_src_pos() {
+    src->prev_column = src->column;
+    src->prev_pos = src->pos;
+    src->prev_line = src->line;
+}
+
 void add_token(token_id id) {
     if (token_len >= 1024 * 128) {
         error("Too much tokens");
     }
     tokens[token_len].id = id;
-    tokens[token_len].src_line = prev_src_line;
-    tokens[token_len].src_column = prev_src_column;
-    tokens[token_len].src_pos = prev_src_pos;
-    prev_src_column = src_column;
-    prev_src_pos = src_pos;
-    prev_src_line = src_line;
+    tokens[token_len].src_id = src->id;
+    tokens[token_len].src_line = src->prev_line;
+    tokens[token_len].src_column = src->prev_column;
+    tokens[token_len].src_pos = src->prev_pos;
 
+    set_src_pos();
     token_len++;
 }
 
@@ -275,13 +247,14 @@ void add_ident_token(char *s) {
 void dump_tokens() {
     int i;
     for (i=0; i<token_len; i++) {
-        char buf[100];
-        buf[0] = 0;
+        char buf[100] = {0};
+        token *t = &tokens[i];
         strcat(buf, (i == token_pos - 1) ? "*" : " ");
-        _strcat3(buf, "id:", tokens[i].id, "");
-        _strcat3(buf, "(col:", tokens[i].src_column, ",");
-        _strcat3(buf, "lin:", tokens[i].src_line, ") ");
-        strcat(buf, _slice(&src[tokens[i].src_pos], 10));
+        _strcat3(buf, "id:", t->id, "");
+        _strcat3(buf, "(#", t->src_id, ",");
+        _strcat3(buf, "col:", t->src_column, ",");
+        _strcat3(buf, "lin:", t->src_line, ") ");
+        strcat(buf, dump_file(t->src_id, t->src_pos));
         for (char *s = buf; *s != 0; s++) {
             if (*s == '\n') *s = ' ';
         }
@@ -289,9 +262,43 @@ void dump_tokens() {
     }
 }
 
+void tokenize();
+
+void include() {
+    if (accept_char('\"')) {
+        char filename[100];
+        int i=0;
+        while (ch() != '\"') {
+            if (i>=100) {
+                error("too long file name");
+            }
+            filename[i++] = ch();
+            next();
+        }
+        next();
+
+        enter_file(filename);
+        tokenize();
+        exit_file();
+    } else {
+        error("no file name for #include");
+    }
+}
+
+void preprocess() {
+    if (accept_ident("include")) {
+        include();
+    } else {
+        error("unknown directive");
+    }
+    set_src_pos();
+}
+
 void tokenize() {
     while (!is_eof()) {
-        if (accept_string("!=")) {
+        if (accept_char('#')) {
+            preprocess();
+        } else if (accept_string("!=")) {
             add_token(T_NE);
         } else if (accept_char('!')) {
             add_token(T_L_NOT);
@@ -332,6 +339,7 @@ void tokenize() {
                     break;
                 }
             }
+            set_src_pos();
         } else if (accept_string("/*")) {
             debug("scanning /*...");
             while (!accept_string("*/")) {
@@ -339,6 +347,7 @@ void tokenize() {
                     error("invalid eof in comment block");
                 }
             }
+            set_src_pos();
         } else if (accept_string("/=")) {
             add_token(T_SLASH_EQUAL);
         } else if (accept_char('/')) {
@@ -433,16 +442,22 @@ void tokenize() {
                 char buf[100];
                 buf[0] = 0;
                 strcat(buf, "Invalid token: \n");
-                strcat(buf, _slice(&src[(src_pos > 20) ? src_pos - 20 : 0], 20));
+                strcat(buf, _slice(&(src->body[(src->pos > 20) ? src->pos - 20 : 0]), 20));
                 strcat(buf, " --> ");
-                strcat(buf, _slice(&src[src_pos], 20));
+                strcat(buf, _slice(&(src->body[src->pos]), 20));
                 // dump_tokens();
 
                 error(buf);
             }
         }
     }
+}
+
+void tokenize_file(char *filename) {
+    enter_file(filename);
+    tokenize();
     add_token(T_EOF);
+    exit_file();
 }
 
 bool expect(token_id id) {
@@ -500,8 +515,3 @@ void set_token_pos(int pos) {
 bool is_eot() {
     return (token_pos >= token_len);
 }
-
-void init() {
-    src_len = _read(0, src, 1024 * 1024);
-}
-

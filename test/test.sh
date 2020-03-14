@@ -7,7 +7,7 @@ function clean {
 }
 
 function compile {
-    ../bin/rekicc < $1 2>$2 > out/test.s
+    ../bin/rekicc $1 2>$2 > out/test.s
 }
 
 function header {
@@ -20,8 +20,8 @@ EOT
 function run {
     echo "test: $1 ------------------"
     clean
-
-    compile $1 out/debug.log || :
+    compile $1 out/debug.log
+    true
 }
 
 function check_result {
