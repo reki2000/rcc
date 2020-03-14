@@ -3,11 +3,7 @@
 #include "rstring.h"
 #include "types.h"
 
-#include "type.h"
 #include "token.h"
-#include "var.h"
-#include "func.h"
-#include "atom.h"
 
 void _log(char *level, char *message) {
     char buf[1024] = {0};
@@ -37,6 +33,7 @@ void debug_s(char *str, char *val) {
 
 void error(char *str) {
     _log("ERROR", str);
+    _log("","");
     dump_tokens();
     exit(1);
 }

@@ -246,7 +246,15 @@ void add_ident_token(char *s) {
 
 void dump_tokens() {
     int i;
-    for (i=0; i<token_len; i++) {
+    int start = token_pos - 10;
+    if (start < 0) {
+        start = 0;
+    }
+    int end = token_pos + 10;
+    if (end > token_len) {
+        end = token_len;
+    }
+    for (i=start; i<end; i++) {
         char buf[100] = {0};
         token *t = &tokens[i];
         strcat(buf, (i == token_pos - 1) ? "*" : " ");
@@ -275,6 +283,7 @@ void include() {
             filename[i++] = ch();
             next();
         }
+        filename[i] = '\0';
         next();
 
         enter_file(filename);
