@@ -5,17 +5,40 @@
 
 #include "token.h"
 
-void _log(char *level, char *message) {
+typedef enum {
+    WARN,
+    ERROR,
+    DEBUG,
+    INFO,
+    NONE
+} level_e;
+
+char *color_red = "\e[31m";
+char *color_green = "\e[32m";
+char *color_yellow = "\e[33m";
+char *color_blue = "\e[34m";
+char *color_magenta = "\e[35m";
+char *color_cyan = "\e[36m";
+char *color_white = "\e[37m";
+
+void _log(level_e level, char *message) {
+    char *color_str[5] = {color_red, color_red, "", color_yellow, ""};
+    char *level_str[5] = {"WARN ", "ERROR", "DEBUG", "INFO ", ""};
+
     char buf[1024] = {0};
-    strcat(buf, level);
+    strcat(buf, color_str[level]);
+    strcat(buf, level_str[level]);
     strcat(buf, ": ");
     strcat(buf, message);
     strcat(buf, "\n");
+    if (color_str[level] != color_white) {
+        strcat(buf, color_white);
+    }
     write(2, buf, strlen(buf));
 }
 
 void debug(char *str) {
-    _log("DEBUG", str);
+    _log(DEBUG, str);
 }
 
 void debug_i(char *str, int val) {
@@ -32,8 +55,8 @@ void debug_s(char *str, char *val) {
 }
 
 void error(char *str) {
-    _log("ERROR", str);
-    _log("","");
+    _log(ERROR, str);
+    _log(NONE, "");
     dump_tokens();
     exit(1);
 }
@@ -49,6 +72,23 @@ void error_s(char *str, char *val) {
     strcat(buf, str);
     strcat(buf, val);
     error(buf);
+}
+
+void warning(char *str) {
+    _log(WARN, str);
+}
+
+void warning_i(char *str, int val) {
+    char buf[1024] = {0};
+    _strcat3(buf, str, val, "");
+    warning(buf);
+}
+
+void warning_s(char *str, char *val) {
+    char buf[1024] = {0};
+    strcat(buf, str);
+    strcat(buf, val);
+    warning(buf);
 }
 
 char *_slice(char *src, int count) {

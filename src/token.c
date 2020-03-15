@@ -89,6 +89,7 @@ char escape(char escaped_char) {
         case 'r': c = '\r'; break;
         case 'a': c = '\a'; break;
         case 'b': c = '\b'; break;
+        case 'e': c = '\e'; break;
         case 'f': c = '\f'; break;
         case '"': c = '"'; break;
         case '\'': c = '\''; break;
