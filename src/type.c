@@ -234,14 +234,17 @@ type_t *add_enum_type(char *name) {
     return t;
 }
 
+type_t *type_unalias(type_t *t) {
+    while (t->typedef_of) {
+        t = t->typedef_of;
+    }
+    return t;
+}
+
 bool type_is_same(type_t *to, type_t *from) {
     if (!to || !from) return FALSE;
-    while (to->typedef_of) {
-        to = to->typedef_of;
-    }
-    while (from->typedef_of) {
-        from = from->typedef_of;
-    }
+    to = type_unalias(to);
+    from = type_unalias(from);
     if (to == from) return TRUE;
     if (to->array_length != from->array_length) return FALSE;
     if (to->ptr_to && from->ptr_to && type_is_same(to->ptr_to, from->ptr_to)) return TRUE;
@@ -250,12 +253,8 @@ bool type_is_same(type_t *to, type_t *from) {
 
 bool type_is_convertable(type_t *to, type_t *from) {
     if (!to || !from) return FALSE;
-    while (to->typedef_of) {
-        to = to->typedef_of;
-    }
-    while (from->typedef_of) {
-        from = from->typedef_of;
-    }
+    to = type_unalias(to);
+    from = type_unalias(from);
     if (to == from) return TRUE;
     if (to->ptr_to && from->ptr_to && type_is_convertable(to->ptr_to, from->ptr_to)) return TRUE;
     return FALSE;

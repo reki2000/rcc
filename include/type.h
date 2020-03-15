@@ -40,6 +40,7 @@ extern type_t *add_pointer_type(type_t *);
 extern type_t *add_array_type(type_t *, int);
 extern bool type_is_convertable(type_t *, type_t *);
 extern bool type_is_same(type_t *, type_t *);
+extern type_t *type_unalias(type_t *);
 
 extern type_t *add_struct_type(char *, bool);
 extern type_t *add_union_type(char *, bool);

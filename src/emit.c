@@ -124,6 +124,7 @@ void emit_string(char* str) {
             case '\f': *d++='\\'; *d = 'f'; break;
             case '\a': *d++='\\'; *d = 'a'; break;
             case '\b': *d++='\\'; *d = 'b'; break;
+            case '\e': *d++='\\'; *d = 'e'; break;
             case '\"': *d++='\\'; *d = '"'; break;
             case '\'': *d++='\\'; *d = '\''; break;
             case '\\': *d++='\\'; *d = '\\'; break;
@@ -702,6 +703,7 @@ void compile(int pos) {
 
 
         default:
+            dump_atom(pos, 0);
             error("Invalid program");
     }
     debug_i("compiled @", pos);
