@@ -20,4 +20,4 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 clean:
-	$(RM) bin/* out/* test/out/* core test/core
+	$(RM) $(PROG) $(OBJDIR)/* test/out/* core test/core

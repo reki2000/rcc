@@ -90,8 +90,12 @@
 - [*] allow variable declaration in middle of block
 - [*] array initialization
 
-- [ ] const classifier (just ignoring)
 
+## New Era
+
+- [*] const classifier (just ignoring)
+
+- [ ] anonymous union in struct
 
 ## A.D. (self hosted)
 - [ ] array initializer for non-sized array declaration

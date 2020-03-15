@@ -10,6 +10,12 @@ token tokens[1024 * 128];
 int token_pos = 0;
 int token_len = 0;
 
+void set_src_pos() {
+    src->prev_column = src->column;
+    src->prev_pos = src->pos;
+    src->prev_line = src->line;
+}
+
 void skip() {
     int c;
     for (;;) {
@@ -19,6 +25,7 @@ void skip() {
         }
         next();
     }
+    set_src_pos();
 }
 
 bool is_alpha(int ch) {
@@ -202,12 +209,6 @@ bool tokenize_ident(char **retval) {
     str[i] = 0;
     *retval = str;
     return TRUE;
-}
-
-void set_src_pos() {
-    src->prev_column = src->column;
-    src->prev_pos = src->pos;
-    src->prev_line = src->line;
 }
 
 void add_token(token_id id) {
@@ -403,6 +404,8 @@ void tokenize() {
             add_token(T_BREAK);
         } else if (accept_ident("case")) {
             add_token(T_CASE);
+        } else if (accept_ident("const")) {
+            add_token(T_CONST);
         } else if (accept_ident("continue")) {
             add_token(T_CONTINUE);
         } else if (accept_ident("default")) {

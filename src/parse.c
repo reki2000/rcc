@@ -1013,9 +1013,7 @@ type_t *parse_enum_type() {
             }
         }
     }
-
     return t;
-
 }
 
 
@@ -1029,17 +1027,28 @@ int parse_struct_member_declare(type_t *st) {
     t = parse_pointer(t);
 
     if (!expect_ident(&ident)) {
-        error("parse_var_declare: invalid name");
+        if (t->struct_of) {
+            struct_t *u = t->struct_of;
+            if (u->is_union && u->is_anonymous) {
+                if (!expect(T_SEMICOLON)) {
+                    error("parse_var_declare: no ;");
+                }
+                copy_union_member_to_struct(st, t);
+            } else {
+                error("parse_var_declare: no variable name after union declaration");
+            }
+        } else {
+            error("parse_var_declare: invalid name");
+        }
+    } else {
+        t = parse_var_array_declare(t);
+
+        if (!expect(T_SEMICOLON)) {
+            error("parse_var_declare: no ;");
+        }
+
+        add_struct_member(st, ident, t, st->struct_of->is_union);
     }
-
-    t = parse_var_array_declare(t);
-
-    if (!expect(T_SEMICOLON)) {
-        error("parse_var_declare: no ;");
-    }
-
-    add_struct_member(st, ident, t);
-
     return 1;
 }
 
@@ -1056,14 +1065,15 @@ type_t *parse_union_or_struct_type() {
 
     type_t *t;
     char *type_name;
-    if (expect_ident(&type_name)) {
-        if (is_union) {
-            t = add_union_type(type_name);
-        } else {
-            t = add_struct_type(type_name);
-        }
+    bool is_anonymous = FALSE;
+    if (!expect_ident(&type_name)) {
+        type_name = "";
+        is_anonymous = TRUE;
+    }
+    if (is_union) {
+        t = add_union_type(type_name, is_anonymous);
     } else {
-        t = add_struct_type("---");
+        t = add_struct_type(type_name, is_anonymous);
     }
 
     if (expect(T_LBLACE)) {
@@ -1133,6 +1143,8 @@ type_t *parse_pointer(type_t *t) {
 
 var_t *parse_var_declare() {
     char *ident;
+
+    expect(T_CONST);
 
     type_t *t = parse_type_declaration();
     if (!t) {
@@ -1306,6 +1318,8 @@ int parse_block() {
 
 var_t *parse_funcion_prototype_arg() {
     char *ident;
+
+    expect(T_CONST);
 
     type_t *t = parse_type_declaration();
     if (!t) {

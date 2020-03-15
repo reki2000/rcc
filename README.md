@@ -16,6 +16,9 @@ program: global_declaration* eof
 global_declaration: storage_class? type_declaration ( ';' | global_variable ';' | function_prototype ';' | function_definition )
 
 storage_class: 'extern'
+
+const_class: 'const'
+
 type_declaration: typedef | union_or_struct_type | enum_type | defined_type | primitive_type
 
 typedef: 'typedef' type_declaration pointer? defined_type
@@ -24,7 +27,7 @@ defined_type: IDENT
 global_variable: pointer? var_name array_type? ( '=' literal )?
 
 function_prototype: pointer? func_name '(' function_prototype_arg ( ',' function_prototype_arg )* ')' ';'
-function_prototype_arg: type_declaration pointer? ( var_name array_type? )? 
+function_prototype_arg: const_class? type_declaration pointer? ( var_name array_type? )? 
 
 function_definition: pointer? func_name '(' var_declare? ( ',' var_declare )* ')' block
 
@@ -39,11 +42,12 @@ enum_declare: '{' enum_member ( ',' enum_member )* '}'
 enum_member: member_name ( '=' int )? 
 
 union_or_struct_type: ( 'struct' | 'union' ) ( struct_name? struct_declare | struct_name )
-struct_declare: '{' struct_member_decrare* '}'
+struct_declare: '{' (union_in_struct | struct_member_decrare)* '}'
+union_in_struct: 'union' '{' struct_member_decrare* '}' ';'
 struct_member_declare: type_declaration pointer member_name array_type? ';'
 struct_name: IDENT
 
-var_declare: type_declaration pointer? var_name array_type? local_variable_initializer? ';'
+var_declare: const_class? type_declaration pointer? var_name array_type? local_variable_initializer? ';'
 
 block: '{' block_or_statement* '}'
 block_or_statement: ( statement | block )
