@@ -1178,13 +1178,19 @@ int parse_global_var_assignment(var_t *v) {
     }
 
     int num = 0;
+    char *str = 0;
     if (expect_int(&num)) {
         if (v->is_external) {
             debug_s("variable is initialized but delcared 'extern':", v->name);
         }
-        v->has_value = TRUE;
         v->int_value = num;
+    } else if (expect_string(&str)) {
+        int index = add_global_string(str);
+        v->int_value = index;
+    } else {
+        error_s("invalid initializer for global variable: ", v->name);
     }
+    v->has_value = TRUE;
     return 1;
 }
 

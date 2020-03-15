@@ -347,15 +347,13 @@ void emit_print() {
 }
 
 void emit_label(int i) {
-    char buf[100];
-    buf[0] = 0;
+    char buf[100] = {0};
     _strcat3(buf, ".L", i, "");
     out_label(buf);
 }
 
 void emit_global_label(int i) {
-    char buf[100];
-    buf[0] = 0;
+    char buf[100] = {0};
     _strcat3(buf, ".G", i, "");
     out_label(buf);
 }
@@ -391,6 +389,7 @@ struct {
     int break_label;
     int continue_label;
 } break_labels[100];
+
 int break_label_top = -1;
 
 int get_break_label() {
@@ -737,22 +736,24 @@ void compile_func(func *f) {
 }
 
 void out_global_constant(var_t *v) {
-        out_str(".globl\t", v->name, "");
-        out(".data");
-        out_int(".align\t", 4, "");
-        out_str(".type\t", v->name, ", @object");
-        out_int4(".size\t", v->name, ", ", v->t->size, "");
-        out_label(v->name);
-        if (v->t->array_length > 0) {
-            out_int(".zero\t", v->t->size, "");
-        } else if (v->t->size <= 4) {
-            out_int(".long\t", v->int_value, "");
-        } else if (v->t->size == 8) {
-            out_int(".quad\t", v->long_value, "");
-        } else {
-            error_s("unknown size for global variable:", v->name);
-        }
-        out("");
+    out_str(".globl\t", v->name, "");
+    out(".data");
+    out_int(".align\t", 4, "");
+    out_str(".type\t", v->name, ", @object");
+    out_int4(".size\t", v->name, ", ", v->t->size, "");
+    out_label(v->name);
+    if (v->t->ptr_to == find_type("char")) {
+        out_int(".quad\t.G", v->int_value, "");
+    } else if (v->t->array_length > 0) {
+        out_int(".zero\t", v->t->size, "");
+    } else if (v->t->size <= 4) {
+        out_int(".long\t", v->int_value, "");
+    } else if (v->t->size == 8) {
+        out_int(".quad\t", v->long_value, "");
+    } else {
+        error_s("unknown size for global variable:", v->name);
+    }
+    out("");
 }
 
 void out_global_declare(var_t *v) {

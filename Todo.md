@@ -94,8 +94,12 @@
 ## New Era
 
 - [*] const classifier (just ignoring)
-
-- [ ] anonymous union in struct
+- [*] anonymous union in struct
+- [*] implicit cast for char -> int/long, int -> char/long, long- > char/int
+- [*] implicit but warned cast for void* -> any pointers
+- [*] add warning level for logging
+- [ ] global variable initializer for string literals
+- [ ] empty statement for 'for'
 
 ## A.D. (self hosted)
 - [ ] array initializer for non-sized array declaration
@@ -107,7 +111,8 @@
 - [ ] bit operators >> >>= << <<= & | ^  ~
 
 - [ ] cast
-- [ ] implicit cast between char -> int, int -> char (signed)
+- [ ] signed char/int/long
+- [ ] unsigned char/int/long
 
 - [ ] define value
 - [ ] ifdef
@@ -122,8 +127,6 @@
 - [ ] goto
 
 - [ ] float, double, double double, short, long, long long
-- [ ] unsigned
-
 
 - [ ] function declaration for > 6 args
 - [ ] function call with > 6 args
