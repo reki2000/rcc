@@ -13,17 +13,25 @@
 
 #include "parse.h"
 
+void _write(char *s) {
+    write(1, s, strlen(s));
+}
+
+void out_comment(char *str) {
+    _write("# ");
+    _write(str);
+    _write("\n");
+}
+
 void out_label(char *str) {
-    int len = strlen(str);
-    write(1, str, len);
-    write(1, ":\n", 2);
+    _write(str);
+    _write(":\n");
 }
 
 void out(char *str) {
-    int len = strlen(str);
-    write(1, "\t", 1);
-    write(1, str, len);
-    write(1, "\n", 1);
+    _write("\t");
+    _write(str);
+    _write("\n");
 }
 
 void out_x(char *fmt, int size) {
@@ -422,7 +430,12 @@ void exit_break_label() {
 
 void compile(int pos) {
     atom_t *p = &(program[pos]);
-    debug_i("compiling atom_t @", pos);
+
+    char ast_text[1000] = {0};
+    dump_atom3(ast_text, p, 0, pos);
+    debug_s("compiling atom_t: ", ast_text);
+
+    out_comment(ast_text);
     switch (p->type) {
         case TYPE_VAR_REF:
             emit_var_ref(p->int_value);
@@ -703,7 +716,7 @@ void compile(int pos) {
             dump_atom(pos, 0);
             error("Invalid program");
     }
-    debug_i("compiled @", pos);
+    debug_s("compiled ", ast_text);
 }
 
 void compile_func(func *f) {

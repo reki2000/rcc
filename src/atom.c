@@ -32,13 +32,7 @@ int alloc_atom(int size) {
     return current;
 }
 
-void dump_atom(int pos, int indent) {
-    dump_atom2(&program[pos], indent, pos);
-}
-void dump_atom2(atom_t *p, int indent, int pos) {
-    char buf[1024];
-    buf[0] = 0;
-
+void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
     for (int i=0; i<indent; i++) {
         strcat(buf, " ");
     }
@@ -56,7 +50,14 @@ void dump_atom2(atom_t *p, int indent, int pos) {
 
     strcat(buf, " t:");
     dump_type(buf, p->t);
+}
 
+void dump_atom(int pos, int indent) {
+    dump_atom2(&program[pos], indent, pos);
+}
+void dump_atom2(atom_t *p, int indent, int pos) {
+    char buf[1024] = {0};
+    dump_atom3(buf, p, indent, pos);
     debug_s("", buf);
 }
 

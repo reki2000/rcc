@@ -72,6 +72,7 @@ int alloc_atom(int size);
 
 void dump_atom(int pos, int);
 void dump_atom2(atom_t *a, int, int);
+void dump_atom3(char *, atom_t *a, int, int);
 void dump_atom_all();
 void dump_atom_tree(int, int);
 
