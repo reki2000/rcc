@@ -762,6 +762,14 @@ int parse_switch_statement() {
     return pos2;
 }
 
+int wrap_expr_sequence(int pos) {
+    if (!pos) {
+        return alloc_nop_atom();
+    } else {
+        return  alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, pos, find_type("void"));
+    }
+}
+
 int parse_for_statement() {
     int pre_pos;
     int cond_pos;
@@ -772,15 +780,18 @@ int parse_for_statement() {
         if (!expect(T_LPAREN)) {
             error("no contition part after 'for'");
         }
-        pre_pos = parse_expr_sequence();
+        pre_pos = wrap_expr_sequence(parse_expr_sequence());
         if (!expect(T_SEMICOLON)) {
             error("invalid end of the first part of 'for' conditions");
         }
         cond_pos = parse_expr_sequence();
+        if (!cond_pos) {
+            cond_pos = alloc_typed_int_atom(TYPE_INTEGER, 1, find_type("int")); // TRUE
+        }   
         if (!expect(T_SEMICOLON)) {
             error("invalid end of the second part of 'for' conditions");
         }
-        post_pos = parse_expr_sequence();
+        post_pos = wrap_expr_sequence(parse_expr_sequence());
         if (!expect(T_RPAREN)) {
             error("invalid end of 'for' conditions");
         }
@@ -895,7 +906,7 @@ int parse_return_statement() {
 
 int parse_statement() {
     if (expect(T_SEMICOLON)) {
-        return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+        return alloc_nop_atom();
     } 
     int pos = parse_local_variable();
     if (pos == 0) {
@@ -1271,7 +1282,7 @@ int parse_local_variable() {
             pos = parse_variable_initializer(pos);
         }
     } else {
-        pos = alloc_typed_pos_atom(TYPE_NOP, 0, find_type("void"));
+        pos = alloc_nop_atom();
     }
 
     if (!expect(T_SEMICOLON)) {
@@ -1292,7 +1303,7 @@ int parse_block_or_statement() {
 }
 
 int parse_block_or_statement_series() {
-    int pos = alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+    int pos = alloc_nop_atom();
     for (;;) {
         int new_pos = parse_block_or_statement();
         if (!new_pos) {
@@ -1304,7 +1315,7 @@ int parse_block_or_statement_series() {
 }
 
 int parse_block() {
-    int pos = alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+    int pos = alloc_nop_atom();
 
     if (!expect(T_LBLACE)) {
         return 0;

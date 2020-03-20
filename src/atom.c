@@ -317,5 +317,14 @@ int atom_convert_type(int p1, int p2) {
     dump_atom_tree(p1, 0);
     dump_atom_tree(p2, 0);
     error("not compatible type");
+    return 0;
 }
 
+int NOP_ATOM = 0;
+
+int alloc_nop_atom() {
+    if (!NOP_ATOM) {
+        NOP_ATOM = alloc_typed_pos_atom(TYPE_NOP, 0, find_type("void"));
+    }
+    return NOP_ATOM;
+}

@@ -93,4 +93,4 @@ int alloc_ptr_atom(int);
 int alloc_func_atom(func *);
 int alloc_offset_atom(int, type_t *, int);
 int alloc_index_atom(int, int);
-
+int alloc_nop_atom();

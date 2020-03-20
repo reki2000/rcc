@@ -572,7 +572,6 @@ void compile(int pos) {
             enter_break_label(l_end, l_loop);
 
             compile((p+2)->atom_pos);
-            emit_pop();
             emit_label(l_body);
             compile((p+1)->atom_pos);
             emit_jmp_false(l_end);
@@ -581,7 +580,6 @@ void compile(int pos) {
 
             emit_label(l_loop);
             compile((p+3)->atom_pos);
-            emit_pop();
             emit_jmp(l_body);
             emit_label(l_end);
 
