@@ -9,6 +9,9 @@ src_t *src;
 src_t src_files[100];
 int src_file_len = 0;
 
+char *file_body[100];
+int file_body_len = 0;
+
 char *include_dirs[100];
 int include_dirs_len = 0;
 
@@ -65,7 +68,12 @@ bool enter_file(char *filename) {
     src_t *s = &src_files[src_file_len];
 
     s->filename = filename;
-    s->id = src_file_len;
+
+    file_body[file_body_len] = calloc(1, 1024 * 1024);
+    s->id = file_body_len;
+    s->body = file_body[file_body_len];
+    file_body_len++;
+
     s->pos = 0;
     s->len = 0;
     s->line = 1;
@@ -89,9 +97,6 @@ bool enter_file(char *filename) {
     if (fd == -1) {
         error_s("cannot open include file: ", filename);
     }
-    if (!s->body) {
-        s->body = calloc(1, 1024 * 1024);
-    }
     s->len = read(fd, s->body, 1024*1024);
     if (close(fd)) {
         debug_i("closing fd:", fd);
@@ -114,7 +119,7 @@ bool exit_file() {
 }
 
 char *dump_file(int id, int pos) {
-    return _slice(&src_files[id].body[pos], 10);
+    return _slice(&file_body[id][pos], 10);
 }
 
 bool is_eof() {

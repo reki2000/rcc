@@ -10,6 +10,12 @@ token tokens[1024 * 128];
 int token_pos = 0;
 int token_len = 0;
 
+void set_src_pos() {
+    src->prev_column = src->column;
+    src->prev_pos = src->pos;
+    src->prev_line = src->line;
+}
+
 void skip() {
     int c;
     for (;;) {
@@ -19,6 +25,7 @@ void skip() {
         }
         next();
     }
+    set_src_pos();
 }
 
 bool is_alpha(int ch) {
@@ -82,6 +89,7 @@ char escape(char escaped_char) {
         case 'r': c = '\r'; break;
         case 'a': c = '\a'; break;
         case 'b': c = '\b'; break;
+        case 'e': c = '\e'; break;
         case 'f': c = '\f'; break;
         case '"': c = '"'; break;
         case '\'': c = '\''; break;
@@ -204,12 +212,6 @@ bool tokenize_ident(char **retval) {
     return TRUE;
 }
 
-void set_src_pos() {
-    src->prev_column = src->column;
-    src->prev_pos = src->pos;
-    src->prev_line = src->line;
-}
-
 void add_token(token_id id) {
     if (token_len >= 1024 * 128) {
         error("Too much tokens");
@@ -246,7 +248,15 @@ void add_ident_token(char *s) {
 
 void dump_tokens() {
     int i;
-    for (i=0; i<token_len; i++) {
+    int start = token_pos - 10;
+    if (start < 0) {
+        start = 0;
+    }
+    int end = token_pos + 10;
+    if (end > token_len) {
+        end = token_len;
+    }
+    for (i=start; i<end; i++) {
         char buf[100] = {0};
         token *t = &tokens[i];
         strcat(buf, (i == token_pos - 1) ? "*" : " ");
@@ -275,6 +285,7 @@ void include() {
             filename[i++] = ch();
             next();
         }
+        filename[i] = '\0';
         next();
 
         enter_file(filename);
@@ -394,6 +405,8 @@ void tokenize() {
             add_token(T_BREAK);
         } else if (accept_ident("case")) {
             add_token(T_CASE);
+        } else if (accept_ident("const")) {
+            add_token(T_CONST);
         } else if (accept_ident("continue")) {
             add_token(T_CONTINUE);
         } else if (accept_ident("default")) {

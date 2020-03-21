@@ -1,11 +1,12 @@
 #
 
 CC = gcc
-CFLAGS = -g -Wall -Wextra -I./include
+CFLAGS = -g -Wall -Wextra 
+INCLUDE = -I../include
 RM = rm -f
 
-PROG      = bin/rekicc
-SRCDIR    = ./src
+PROG      = ../bin/rekicc2
+SRCDIR    = ../src
 SOURCES   = $(wildcard $(SRCDIR)/*.c)
 OBJDIR    = ./out
 OBJECTS   = $(addprefix $(OBJDIR)/, $(notdir $(SOURCES:.c=.o)))
@@ -16,8 +17,8 @@ $(PROG): $(OBJECTS)
 	$(CC) -o $(PROG) $(OBJECTS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	mkdir -p $(OBJDIR)
-	$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
+	../bin/rekicc -S $(INCLUDE) $< > $(OBJDIR)/asm.s
+	$(CC) $(CFLAGS) -o $@ -c $(OBJDIR)/asm.s
 
 clean:
-	$(RM) $(PROG) $(OBJDIR)/* test/out/* core test/core
+	$(RM) $(PROG) $(OBJDIR)/* core

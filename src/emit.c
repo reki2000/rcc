@@ -13,17 +13,25 @@
 
 #include "parse.h"
 
+void _write(char *s) {
+    write(1, s, strlen(s));
+}
+
+void out_comment(char *str) {
+    _write("# ");
+    _write(str);
+    _write("\n");
+}
+
 void out_label(char *str) {
-    int len = strlen(str);
-    write(1, str, len);
-    write(1, ":\n", 2);
+    _write(str);
+    _write(":\n");
 }
 
 void out(char *str) {
-    int len = strlen(str);
-    write(1, "\t", 1);
-    write(1, str, len);
-    write(1, "\n", 1);
+    _write("\t");
+    _write(str);
+    _write("\n");
 }
 
 void out_x(char *fmt, int size) {
@@ -37,13 +45,26 @@ void out_x(char *fmt, int size) {
     while (*fmt) {
         switch (*fmt) {
             case 'X':
-                *d = (size == 8) ? 'q' : (size == 4)? 'l' : 'X';
+                *d = (size == 8) ? 'q' : (size == 4)? 'l' : 'b';
                 break;
             case 'Z':
-                *d = (size == 8) ? 'r' : (size == 4)? 'e' : 'Z';
+                *d = (size == 8) ? 'r' : (size == 4)? 'e' : 'B';
                 break;
             default:
                 *d = *fmt;
+        }
+        if (*d == 'B') {
+            char c1 = *(fmt+1);
+            char c2 = *(fmt+2);
+            if ((c1 == 'd' || c1 == 's') && c2 == 'i') {
+                *d = c1; *(d+1) = 'i'; *(d+2) = 'l'; // '%Zdi' -> '%dil' for Zdi, Zsi
+            } else if ((c1 == 'a' || c1 == 'b' || c1 == 'c' || c1 == 'd') && c2 == 'x') {
+                *d = c1; *(d+1) = 'l'; *(d+2) = ' '; // '%Zax' -> '%al ' for Zax, Zbx, Zcx, Zdx
+            } else {
+                error_s("unknown register name: ", fmt);
+            }
+            fmt += 2;
+            d += 2;
         }
         fmt++;
         d++;
@@ -124,6 +145,7 @@ void emit_string(char* str) {
             case '\f': *d++='\\'; *d = 'f'; break;
             case '\a': *d++='\\'; *d = 'a'; break;
             case '\b': *d++='\\'; *d = 'b'; break;
+            case '\e': *d++='\\'; *d = 'e'; break;
             case '\"': *d++='\\'; *d = '"'; break;
             case '\'': *d++='\\'; *d = '\''; break;
             case '\\': *d++='\\'; *d = '\\'; break;
@@ -346,15 +368,13 @@ void emit_print() {
 }
 
 void emit_label(int i) {
-    char buf[100];
-    buf[0] = 0;
+    char buf[100] = {0};
     _strcat3(buf, ".L", i, "");
     out_label(buf);
 }
 
 void emit_global_label(int i) {
-    char buf[100];
-    buf[0] = 0;
+    char buf[100] = {0};
     _strcat3(buf, ".G", i, "");
     out_label(buf);
 }
@@ -390,6 +410,7 @@ struct {
     int break_label;
     int continue_label;
 } break_labels[100];
+
 int break_label_top = -1;
 
 int get_break_label() {
@@ -422,7 +443,11 @@ void exit_break_label() {
 
 void compile(int pos) {
     atom_t *p = &(program[pos]);
-    debug_i("compiling atom_t @", pos);
+
+    char ast_text[1000] = {0};
+    dump_atom3(ast_text, p, 0, pos);
+    debug_s("compiling atom_t: ", ast_text);
+
     switch (p->type) {
         case TYPE_VAR_REF:
             emit_var_ref(p->int_value);
@@ -572,7 +597,6 @@ void compile(int pos) {
             enter_break_label(l_end, l_loop);
 
             compile((p+2)->atom_pos);
-            emit_pop();
             emit_label(l_body);
             compile((p+1)->atom_pos);
             emit_jmp_false(l_end);
@@ -581,7 +605,6 @@ void compile(int pos) {
 
             emit_label(l_loop);
             compile((p+3)->atom_pos);
-            emit_pop();
             emit_jmp(l_body);
             emit_label(l_end);
 
@@ -702,9 +725,11 @@ void compile(int pos) {
 
 
         default:
+            dump_atom(pos, 0);
             error("Invalid program");
     }
-    debug_i("compiled @", pos);
+    out_comment(ast_text);
+    debug_s("compiled ", ast_text);
 }
 
 void compile_func(func *f) {
@@ -735,22 +760,24 @@ void compile_func(func *f) {
 }
 
 void out_global_constant(var_t *v) {
-        out_str(".globl\t", v->name, "");
-        out(".data");
-        out_int(".align\t", 4, "");
-        out_str(".type\t", v->name, ", @object");
-        out_int4(".size\t", v->name, ", ", v->t->size, "");
-        out_label(v->name);
-        if (v->t->array_length > 0) {
-            out_int(".zero\t", v->t->size, "");
-        } else if (v->t->size <= 4) {
-            out_int(".long\t", v->int_value, "");
-        } else if (v->t->size == 8) {
-            out_int(".quad\t", v->long_value, "");
-        } else {
-            error_s("unknown size for global variable:", v->name);
-        }
-        out("");
+    out_str(".globl\t", v->name, "");
+    out(".data");
+    out_int(".align\t", 4, "");
+    out_str(".type\t", v->name, ", @object");
+    out_int4(".size\t", v->name, ", ", v->t->size, "");
+    out_label(v->name);
+    if (v->t->ptr_to == find_type("char")) {
+        out_int(".quad\t.G", v->int_value, "");
+    } else if (v->t->array_length > 0) {
+        out_int(".zero\t", v->t->size, "");
+    } else if (v->t->size <= 4) {
+        out_int(".long\t", v->int_value, "");
+    } else if (v->t->size == 8) {
+        out_int(".quad\t", v->long_value, "");
+    } else {
+        error_s("unknown size for global variable:", v->name);
+    }
+    out("");
 }
 
 void out_global_declare(var_t *v) {

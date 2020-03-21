@@ -32,7 +32,7 @@ function check_result {
 }
 
 function check_error {
-    grep 'ERROR' out/debug.log > out/error.txt
+    grep 'ERROR' out/debug.log | sed 's/\x1b\[[0-9;]*m//g' > out/error.txt
     diff -B $1 out/error.txt
 }
 

@@ -762,6 +762,14 @@ int parse_switch_statement() {
     return pos2;
 }
 
+int wrap_expr_sequence(int pos) {
+    if (!pos) {
+        return alloc_nop_atom();
+    } else {
+        return  alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, pos, find_type("void"));
+    }
+}
+
 int parse_for_statement() {
     int pre_pos;
     int cond_pos;
@@ -772,15 +780,18 @@ int parse_for_statement() {
         if (!expect(T_LPAREN)) {
             error("no contition part after 'for'");
         }
-        pre_pos = parse_expr_sequence();
+        pre_pos = wrap_expr_sequence(parse_expr_sequence());
         if (!expect(T_SEMICOLON)) {
             error("invalid end of the first part of 'for' conditions");
         }
         cond_pos = parse_expr_sequence();
+        if (!cond_pos) {
+            cond_pos = alloc_typed_int_atom(TYPE_INTEGER, 1, find_type("int")); // TRUE
+        }   
         if (!expect(T_SEMICOLON)) {
             error("invalid end of the second part of 'for' conditions");
         }
-        post_pos = parse_expr_sequence();
+        post_pos = wrap_expr_sequence(parse_expr_sequence());
         if (!expect(T_RPAREN)) {
             error("invalid end of 'for' conditions");
         }
@@ -895,7 +906,7 @@ int parse_return_statement() {
 
 int parse_statement() {
     if (expect(T_SEMICOLON)) {
-        return alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+        return alloc_nop_atom();
     } 
     int pos = parse_local_variable();
     if (pos == 0) {
@@ -1013,9 +1024,7 @@ type_t *parse_enum_type() {
             }
         }
     }
-
     return t;
-
 }
 
 
@@ -1029,17 +1038,28 @@ int parse_struct_member_declare(type_t *st) {
     t = parse_pointer(t);
 
     if (!expect_ident(&ident)) {
-        error("parse_var_declare: invalid name");
+        if (t->struct_of) {
+            struct_t *u = t->struct_of;
+            if (u->is_union && u->is_anonymous) {
+                if (!expect(T_SEMICOLON)) {
+                    error("parse_var_declare: no ;");
+                }
+                copy_union_member_to_struct(st, t);
+            } else {
+                error("parse_var_declare: no variable name after union declaration");
+            }
+        } else {
+            error("parse_var_declare: invalid name");
+        }
+    } else {
+        t = parse_var_array_declare(t);
+
+        if (!expect(T_SEMICOLON)) {
+            error("parse_var_declare: no ;");
+        }
+
+        add_struct_member(st, ident, t, st->struct_of->is_union);
     }
-
-    t = parse_var_array_declare(t);
-
-    if (!expect(T_SEMICOLON)) {
-        error("parse_var_declare: no ;");
-    }
-
-    add_struct_member(st, ident, t);
-
     return 1;
 }
 
@@ -1056,14 +1076,15 @@ type_t *parse_union_or_struct_type() {
 
     type_t *t;
     char *type_name;
-    if (expect_ident(&type_name)) {
-        if (is_union) {
-            t = add_union_type(type_name);
-        } else {
-            t = add_struct_type(type_name);
-        }
+    bool is_anonymous = FALSE;
+    if (!expect_ident(&type_name)) {
+        type_name = "";
+        is_anonymous = TRUE;
+    }
+    if (is_union) {
+        t = add_union_type(type_name, is_anonymous);
     } else {
-        t = add_struct_type("---");
+        t = add_struct_type(type_name, is_anonymous);
     }
 
     if (expect(T_LBLACE)) {
@@ -1134,6 +1155,8 @@ type_t *parse_pointer(type_t *t) {
 var_t *parse_var_declare() {
     char *ident;
 
+    expect(T_CONST);
+
     type_t *t = parse_type_declaration();
     if (!t) {
         return 0;
@@ -1166,13 +1189,19 @@ int parse_global_var_assignment(var_t *v) {
     }
 
     int num = 0;
+    char *str = 0;
     if (expect_int(&num)) {
         if (v->is_external) {
             debug_s("variable is initialized but delcared 'extern':", v->name);
         }
-        v->has_value = TRUE;
         v->int_value = num;
+    } else if (expect_string(&str)) {
+        int index = add_global_string(str);
+        v->int_value = index;
+    } else {
+        error_s("invalid initializer for global variable: ", v->name);
     }
+    v->has_value = TRUE;
     return 1;
 }
 
@@ -1253,7 +1282,7 @@ int parse_local_variable() {
             pos = parse_variable_initializer(pos);
         }
     } else {
-        pos = alloc_typed_pos_atom(TYPE_NOP, 0, find_type("void"));
+        pos = alloc_nop_atom();
     }
 
     if (!expect(T_SEMICOLON)) {
@@ -1274,7 +1303,7 @@ int parse_block_or_statement() {
 }
 
 int parse_block_or_statement_series() {
-    int pos = alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+    int pos = alloc_nop_atom();
     for (;;) {
         int new_pos = parse_block_or_statement();
         if (!new_pos) {
@@ -1286,7 +1315,7 @@ int parse_block_or_statement_series() {
 }
 
 int parse_block() {
-    int pos = alloc_typed_int_atom(TYPE_NOP, 0, find_type("void"));
+    int pos = alloc_nop_atom();
 
     if (!expect(T_LBLACE)) {
         return 0;
@@ -1306,6 +1335,8 @@ int parse_block() {
 
 var_t *parse_funcion_prototype_arg() {
     char *ident;
+
+    expect(T_CONST);
 
     type_t *t = parse_type_declaration();
     if (!t) {

@@ -72,6 +72,7 @@ int alloc_atom(int size);
 
 void dump_atom(int pos, int);
 void dump_atom2(atom_t *a, int, int);
+void dump_atom3(char *, atom_t *a, int, int);
 void dump_atom_all();
 void dump_atom_tree(int, int);
 
@@ -93,4 +94,4 @@ int alloc_ptr_atom(int);
 int alloc_func_atom(func *);
 int alloc_offset_atom(int, type_t *, int);
 int alloc_index_atom(int, int);
-
+int alloc_nop_atom();

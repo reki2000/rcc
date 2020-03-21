@@ -32,13 +32,7 @@ int alloc_atom(int size) {
     return current;
 }
 
-void dump_atom(int pos, int indent) {
-    dump_atom2(&program[pos], indent, pos);
-}
-void dump_atom2(atom_t *p, int indent, int pos) {
-    char buf[1024];
-    buf[0] = 0;
-
+void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
     for (int i=0; i<indent; i++) {
         strcat(buf, " ");
     }
@@ -56,7 +50,14 @@ void dump_atom2(atom_t *p, int indent, int pos) {
 
     strcat(buf, " t:");
     dump_type(buf, p->t);
+}
 
+void dump_atom(int pos, int indent) {
+    dump_atom2(&program[pos], indent, pos);
+}
+void dump_atom2(atom_t *p, int indent, int pos) {
+    char buf[1024] = {0};
+    dump_atom3(buf, p, indent, pos);
     debug_s("", buf);
 }
 
@@ -294,14 +295,37 @@ int alloc_assign_op_atom(int type, int lval, int rval) {
 }
 
 int atom_convert_type(int p1, int p2) {
-    if (type_is_same(program[p1].t, program[p2].t)) {
+    type_t *t1 = type_unalias(program[p1].t);
+    type_t *t2 = type_unalias(program[p2].t);
+
+    if (type_is_same(t1, t2)) {
         return p2;
     }
-    if (!type_is_convertable(program[p1].t, program[p2].t)) {
-        dump_atom_tree(p1, 0);
-        dump_atom_tree(p2, 0);
-        error("not compatible type");
+    if (type_is_convertable(t1, t2)) {
+        return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
-    return alloc_typed_pos_atom(TYPE_CONVERT, p2, program[p1].t);
+    if (!t1->ptr_to && !t1->struct_of && !t1->enum_of && !t2->ptr_to && !t2->struct_of && !t2->enum_of) {
+        return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
+    }
+    if (t1->ptr_to && t2->ptr_to && t2->ptr_to == find_type("void")) {
+        char buf[100] = {0};
+        dump_type(buf, t2);
+        strcat(buf, " -> ");
+        dump_type(buf, t1);
+        warning_s("implicit pointer conversion: ", buf);
+        return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
+    }
+    dump_atom_tree(p1, 0);
+    dump_atom_tree(p2, 0);
+    error("not compatible type");
+    return 0;
 }
 
+int NOP_ATOM = 0;
+
+int alloc_nop_atom() {
+    if (!NOP_ATOM) {
+        NOP_ATOM = alloc_typed_pos_atom(TYPE_NOP, 0, find_type("void"));
+    }
+    return NOP_ATOM;
+}

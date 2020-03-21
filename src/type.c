@@ -108,8 +108,10 @@ type_t *find_struct_type(char *name, bool is_union) {
     for (int i=0; i<types_pos; i++) {
         type_t *t = &types[i];
         if (t->struct_of && t->typedef_of == 0) {
-            if (strcmp(name, t->struct_of->name) == 0 
-                && t->struct_of->is_union == is_union) {
+            struct_t *s = t->struct_of;
+            if (!s->is_anonymous 
+                &&strcmp(name, s->name) == 0 
+                && s->is_union == is_union) {
                 return &types[i];
             }
         }
@@ -117,33 +119,44 @@ type_t *find_struct_type(char *name, bool is_union) {
     return 0;
 }
 
-type_t *add_struct_union_type(char *name, bool is_union) {
-    type_t *t = find_struct_type(name, is_union);
-    if (t) {
-        return t;
+type_t *add_struct_union_type(char *name, bool is_union, bool is_anonymous) {
+    type_t *t = 0;
+    if (!is_anonymous) {
+        t = find_struct_type(name, is_union);
+        if (t) {
+            return t;
+        }
     }
     if (structs_len > 1024) {
         error_s("Too many structs:", name);
     }
     struct_t *s = &structs[structs_len++];
-    s->name = name;
+    s->name = is_anonymous? "annonymous" : name;
     s->num_members = 0;
     s->is_union = is_union;
+    s->is_anonymous = is_anonymous;
 
     t = add_type("$s", 0, 0, 0);
     t->struct_of = s;
     return t;
 }
 
-type_t *add_union_type(char *name) {
-    return add_struct_union_type(name, TRUE);
+type_t *add_union_type(char *name, bool is_anonymous) {
+    return add_struct_union_type(name, TRUE, is_anonymous);
 }
 
-type_t *add_struct_type(char *name) {
-    return add_struct_union_type(name, FALSE);
+type_t *add_struct_type(char *name, bool is_anonymous) {
+    return add_struct_union_type(name, FALSE, is_anonymous);
 }
 
-member_t *add_struct_member(type_t *st, char *name, type_t *t) {
+void copy_union_member_to_struct(type_t *st, type_t *ut) {
+    for (int i=0; i<ut->struct_of->num_members; i++) {
+        member_t *m = &(ut->struct_of->members[i]);
+        add_struct_member(st, m->name, m->t, TRUE);
+    }
+}
+
+member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
     struct_t *s = st->struct_of;
     if (s == 0) {
         error_s("adding member to non struct type: ", st->name);
@@ -156,15 +169,16 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t) {
     m->t = t;
 
     // todo: alignment to 4 bytes
-    if (s->is_union) {
-        m->offset = 0;
-        if (st->size < t->size) {
-            st->size = t->size;
+    if (is_union) {
+        m->offset = s->next_offset;
+        if (t->size > st->size - s->next_offset) {
+            st->size = s->next_offset + t->size;
         }
     } else {
         m->offset = st->size;
         debug_i("added struct member @", m->offset);
         st->size += t->size;
+        s->next_offset += t->size;
     }
 
     return m;
@@ -220,14 +234,17 @@ type_t *add_enum_type(char *name) {
     return t;
 }
 
+type_t *type_unalias(type_t *t) {
+    while (t->typedef_of) {
+        t = t->typedef_of;
+    }
+    return t;
+}
+
 bool type_is_same(type_t *to, type_t *from) {
     if (!to || !from) return FALSE;
-    while (to->typedef_of) {
-        to = to->typedef_of;
-    }
-    while (from->typedef_of) {
-        from = from->typedef_of;
-    }
+    to = type_unalias(to);
+    from = type_unalias(from);
     if (to == from) return TRUE;
     if (to->array_length != from->array_length) return FALSE;
     if (to->ptr_to && from->ptr_to && type_is_same(to->ptr_to, from->ptr_to)) return TRUE;
@@ -236,12 +253,8 @@ bool type_is_same(type_t *to, type_t *from) {
 
 bool type_is_convertable(type_t *to, type_t *from) {
     if (!to || !from) return FALSE;
-    while (to->typedef_of) {
-        to = to->typedef_of;
-    }
-    while (from->typedef_of) {
-        from = from->typedef_of;
-    }
+    to = type_unalias(to);
+    from = type_unalias(from);
     if (to == from) return TRUE;
     if (to->ptr_to && from->ptr_to && type_is_convertable(to->ptr_to, from->ptr_to)) return TRUE;
     return FALSE;
