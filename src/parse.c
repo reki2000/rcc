@@ -1151,6 +1151,37 @@ type_t *parse_pointer(type_t *t) {
     return t;
 }
 
+var_t *add_var_with_check(type_t *t, char *name) {
+    var_t *v = find_var_in_current_frame(name);
+    if (!v) {
+        return add_var(name, t);
+    }
+
+    if (type_is_same(v->t, t)) {
+        if (v->has_value) {
+            error_s("variable is already initialized:", v->name);
+        }
+        return v;
+    }
+
+    if (v->t->ptr_to && !type_is_same(v->t->ptr_to, t->ptr_to)) {
+        char buf[1000] = {0};
+        strcat(buf, "variable is already declared with different type: ");
+        strcat(buf, v->name);
+        strcat(buf, " ");
+        dump_type(buf, t);
+        strcat(buf, " previously ");
+        dump_type(buf, v->t);
+        error(buf);
+    }
+
+    if (v->t->array_length == 0 && t->array_length > 0) {
+        v->t = t; // declaring 'a[100]' can overwrite 'a[]' or '*a'
+        return v;
+    }
+    error_s("variable is already declared with different size: ", v->name);
+    return 0;
+}
 
 var_t *parse_var_declare() {
     char *ident;
@@ -1169,18 +1200,7 @@ var_t *parse_var_declare() {
 
     t = parse_var_array_declare(t);
 
-    var_t *v = find_var_in_current_frame(ident);
-    if (v) {
-        if (!type_is_same(v->t, t)) {
-            error_s("variable is already declared with different type:", v->name);
-        } else {
-            error_s("variable is already declared:", v->name);
-        }
-    } else {
-        v = add_var(ident, t);
-    }
-
-    return v;
+    return add_var_with_check(t, ident);
 }
 
 int parse_global_var_assignment(var_t *v) {
@@ -1217,16 +1237,7 @@ int parse_global_variable(type_t *t, bool is_external) {
     }
     t = parse_var_array_declare(t);
 
-    var_t *v = find_var_in_current_frame(ident);
-    if (v) {
-        if (!type_is_same(v->t, t)) {
-            error_s("variable is already declared with different type:", v->name);
-        } else if (!v->is_external && !is_external) {
-            error_s("non-external variable is already declared:", v->name);
-        }
-    } else {
-        v = add_var(ident, t);
-    }
+    var_t *v = add_var_with_check(t, ident);
     v->is_external = is_external;
     pos = parse_global_var_assignment(v);
     return 1;
