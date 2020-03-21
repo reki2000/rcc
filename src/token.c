@@ -72,7 +72,7 @@ bool accept_ident(char *str) {
         next();
     }
     int c = ch();
-    if (!is_alpha(c) && !is_digit(c)) {
+    if (!is_alpha(c) && !is_digit(c) && c != '_') {
         skip();
         return TRUE;
     }
@@ -184,26 +184,26 @@ bool tokenize_ident(char **retval) {
     bool is_first = TRUE;
     char buf[100];
     int buf_pos = 0;
-    char *str;
     int i;
 
     skip();
     for (;;) {
         int c;
         c = ch();
-        if (!is_alpha(c) && c != '_' && (is_first || !is_digit(c))) {
+        if (is_alpha(c) || c == '_' || (!is_first && (is_digit(c) || c == '_'))) {
+            buf[buf_pos++] = c;
+            next();
+            is_first = FALSE;
+        } else {
             break;
         }
-        buf[buf_pos++] = c;
-        next();
-        is_first = FALSE;
     }
 
     if (buf_pos == 0) {
         return FALSE;
     }
 
-    str = malloc(buf_pos + 1);
+    char *str = malloc(buf_pos + 1);
     for (i=0; i<buf_pos; i++) {
         str[i] = buf[i];
     }
