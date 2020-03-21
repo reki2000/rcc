@@ -45,13 +45,26 @@ void out_x(char *fmt, int size) {
     while (*fmt) {
         switch (*fmt) {
             case 'X':
-                *d = (size == 8) ? 'q' : (size == 4)? 'l' : 'X';
+                *d = (size == 8) ? 'q' : (size == 4)? 'l' : 'b';
                 break;
             case 'Z':
-                *d = (size == 8) ? 'r' : (size == 4)? 'e' : 'Z';
+                *d = (size == 8) ? 'r' : (size == 4)? 'e' : 'B';
                 break;
             default:
                 *d = *fmt;
+        }
+        if (*d == 'B') {
+            char c1 = *(fmt+1);
+            char c2 = *(fmt+2);
+            if ((c1 == 'd' || c1 == 's') && c2 == 'i') {
+                *d = c1; *(d+1) = 'i'; *(d+2) = 'l'; // '%Zdi' -> '%dil' for Zdi, Zsi
+            } else if ((c1 == 'a' || c1 == 'b' || c1 == 'c' || c1 == 'd') && c2 == 'x') {
+                *d = c1; *(d+1) = 'l'; *(d+2) = ' '; // '%Zax' -> '%al ' for Zax, Zbx, Zcx, Zdx
+            } else {
+                error_s("unknown register name: ", fmt);
+            }
+            fmt += 2;
+            d += 2;
         }
         fmt++;
         d++;
@@ -435,7 +448,6 @@ void compile(int pos) {
     dump_atom3(ast_text, p, 0, pos);
     debug_s("compiling atom_t: ", ast_text);
 
-    out_comment(ast_text);
     switch (p->type) {
         case TYPE_VAR_REF:
             emit_var_ref(p->int_value);
@@ -716,6 +728,7 @@ void compile(int pos) {
             dump_atom(pos, 0);
             error("Invalid program");
     }
+    out_comment(ast_text);
     debug_s("compiled ", ast_text);
 }
 
