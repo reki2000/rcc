@@ -63,11 +63,8 @@ int parse_char() {
     return 0;
 }
 
-int parse_literal() {
+int parse_int_literal() {
     int pos;
-
-    pos = parse_string();
-    if (pos) return pos;
 
     pos = parse_char();
     if (pos) return pos;
@@ -79,6 +76,82 @@ int parse_literal() {
     if (pos) return pos;
 
     return 0;
+}
+
+bool expect_int_expr(int *v);
+
+int expect_int_factor(int *v) {
+    if (expect(T_LPAREN)) {
+        int v2;
+        if (!expect_int_expr(&v2)) {
+            return FALSE;
+        }
+        if (!expect(T_RPAREN)) {
+            error("invalid end of constant expression");
+        }
+        *v = v2;
+        return;
+    }
+    return expect_int(v);
+}
+
+bool expect_int_term(int *v) {
+    if (!expect_int_factor(v)) {
+        return FALSE;
+    }
+
+    for (;;) {
+        if (!expect(T_ASTERISK)) {
+            break;
+        }
+        int v2;
+        if (!expect_int_factor(&v2)) {
+            return FALSE;
+        }
+        *v *= v2;
+    }
+    return TRUE;
+}
+
+bool expect_int_expr(int *v) {
+    if (!expect_int_term(v)) {
+        return FALSE;
+    }
+
+    for (;;) {
+        bool is_plus = TRUE;
+        if (expect(T_MINUS)) {
+            is_plus = FALSE;
+        } else if (!expect(T_PLUS)) {
+            break;
+        }
+        int v2;
+        if (!expect_int_term(&v2)) {
+            return FALSE;
+        }
+        if (is_plus) {
+            *v += v2;
+        } else {
+            *v -= v2;
+        }
+    }
+    return TRUE;
+}
+
+int parse_literal() {
+    int pos;
+
+    pos = parse_string();
+    if (pos) return pos;
+
+    int p = get_token_pos();
+    pos = parse_int_literal();
+    if (!pos) {
+        set_token_pos(p);
+        return 0;
+    }
+
+    return pos;
 }
 
 var_t *parse_var_name() {
@@ -970,7 +1043,7 @@ type_t *parse_var_array_declare(type_t *t) {
     }
 
     int length = 0;
-    expect_int(&length);
+    expect_int_expr(&length);
     debug_i("array length:", length);
 
     if (!expect(T_RBRACKET)) {
