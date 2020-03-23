@@ -759,6 +759,24 @@ void compile_func(func *f) {
     out("");
 }
 
+int out_global_constant_by_type(type_t *pt, int value) {
+    int filled_size = 0;
+    if (pt == find_type("char")) {
+        out_int(".byte\t", value, "");
+        filled_size += 1;
+    } else if (pt == find_type("int")) {
+        out_int(".long\t", value, "");
+        filled_size += 4;
+    } else if (pt == find_type("long")) {
+        out_int(".quad\t", value, "");
+        filled_size += 4;
+    } else if (pt == add_pointer_type(find_type("char"))) {
+        out_int(".quad\t.G", value, "");
+        filled_size += 8;
+    }
+    return filled_size;
+}
+
 void out_global_constant(var_t *v) {
     out_str(".globl\t", v->name, "");
     out(".data");
@@ -766,16 +784,23 @@ void out_global_constant(var_t *v) {
     out_str(".type\t", v->name, ", @object");
     out_int4(".size\t", v->name, ", ", v->t->size, "");
     out_label(v->name);
-    if (v->t->ptr_to == find_type("char")) {
-        out_int(".quad\t.G", v->int_value, "");
-    } else if (v->t->array_length > 0) {
-        out_int(".zero\t", v->t->size, "");
-    } else if (v->t->size <= 4) {
-        out_int(".long\t", v->int_value, "");
-    } else if (v->t->size == 8) {
-        out_int(".quad\t", v->long_value, "");
+    if (v->t->array_length > 0) {
+        int filled_size = 0;
+        int pos = v->int_value;
+        int len = get_global_array_length(pos);
+        type_t *pt = v->t->ptr_to;
+        for (int index = 0; index < len; index++) {
+            int value = get_global_array(pos, index);
+            filled_size += out_global_constant_by_type(pt, value);
+        }
+        if (v->t->size > filled_size) {
+            out_int(".zero\t", v->t->size - filled_size, "");
+        }
     } else {
-        error_s("unknown size for global variable:", v->name);
+        int filled_size = out_global_constant_by_type(v->t, v->int_value);
+        if (!filled_size) {
+            error_s("unknown size for global variable:", v->name);
+        }
     }
     out("");
 }

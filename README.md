@@ -24,7 +24,8 @@ type_declaration: typedef | union_or_struct_type | enum_type | defined_type | pr
 typedef: 'typedef' type_declaration pointer? defined_type
 defined_type: IDENT
 
-global_variable: pointer? var_name array_type? ( '=' literal )?
+global_variable: pointer? var_name array_type? ( '=' ( global_array_initializer | literal ) )?
+global_array_initializer: '{' literal+ '}'
 
 function_prototype: pointer? func_name '(' function_prototype_arg ( ',' function_prototype_arg )* ')' ';'
 function_prototype_arg: const_class? type_declaration pointer? ( var_name array_type? )? 
@@ -102,7 +103,12 @@ struct_member: postfix '.' member_name | postfix '->' member_name
 
 primary: var_name | literal | '(' expr ')'
 
-literal: int_literal | global_string
+literal: int_literal_expr | global_string
+
+int_literal_expr: int_literal_term ( ('+' | '-') int_literal_term )*
+int_literal_term: int_literal_factor ( '*' int_literal_factor )*
+int_literal_factor : '(' int_literal_expr ')' | int_literal 
+
 int_literal: signed_int | int | char
 global_string: '"' escaped_string '"'
 signed_int: ( '+' | '-' ) int

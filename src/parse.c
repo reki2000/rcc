@@ -1203,26 +1203,55 @@ var_t *parse_var_declare() {
     return add_var_with_check(t, ident);
 }
 
-int parse_global_var_assignment(var_t *v) {
-    if (!expect(T_EQUAL)) {
+int parse_global_var_initializer() {
+    int num = 0;
+    if (expect_int(&num)) {
+        return num;
+    }
+
+    char ch = 0;
+    if (expect_char(&ch)) {
+        return ch;
+    }
+
+    char *str = 0;
+    if (expect_string(&str)) {
+        return add_global_string(str);
+    }
+
+    error("invalid initializer for global variable");
+    return 0;
+}
+
+int parse_global_var_array_initializer(var_t *v, int array_length) {
+    if (!expect(T_LBLACE)) {
         return 0;
     }
 
-    int num = 0;
-    char *str = 0;
-    if (expect_int(&num)) {
-        if (v->is_external) {
-            debug_s("variable is initialized but delcared 'extern':", v->name);
+    int index;
+    int pos = alloc_global_array();
+    for (index = 0; array_length == 0 || index < array_length; index++) {
+        debug_i("parsing array initializer at index:", index);
+        int val = parse_global_var_initializer();
+        add_global_array(pos, val);
+        if (!expect(T_COMMA)) {
+            break;
         }
-        v->int_value = num;
-    } else if (expect_string(&str)) {
-        int index = add_global_string(str);
-        v->int_value = index;
-    } else {
-        error_s("invalid initializer for global variable: ", v->name);
     }
-    v->has_value = TRUE;
-    return 1;
+    if (!get_global_array_length(pos)) {
+        error("empty array initializer");
+    }
+    if (array_length > 0 && expect(T_COMMA)) {
+        error("too many array initializer elements");
+    }
+    if (array_length == 0) {
+        type_t *t = add_array_type(v->t->ptr_to, get_global_array_length(pos));
+        v->t = t;
+    }
+    if (!expect(T_RBLACE)) {
+        error("Invalid end of array initializer");
+    }
+    return pos;
 }
 
 
@@ -1239,8 +1268,20 @@ int parse_global_variable(type_t *t, bool is_external) {
 
     var_t *v = add_var_with_check(t, ident);
     v->is_external = is_external;
-    pos = parse_global_var_assignment(v);
-    return 1;
+
+    if (expect(T_EQUAL)) {
+        if (v->is_external) {
+            debug_s("variable is initialized but delcared 'extern':", v->name);
+        }
+        if (v->t->array_length > 0) {
+            v->int_value = parse_global_var_array_initializer(v, v->t->array_length);
+        } else {
+            v->int_value = parse_global_var_initializer(v);
+        }
+        v->has_value = TRUE;
+    }
+
+    return pos;
 }
 
 int parse_array_initializer(int array, int array_length) {
