@@ -7,11 +7,11 @@ type_t types[1024];
 int types_pos = 0;
 
 void init_types() {
-    add_type("$*", 8, 0, 0);    // for pointer
-    add_type("void", 0, 0, 0);
-    add_type("int", 4, 0, 0);
-    add_type("char", 1, 0, 0);
-    add_type("long", 8, 0, 0);
+    add_type("$*", 8, 0, -1);    // for pointer
+    add_type("void", 0, 0, -1);
+    add_type("int", 4, 0, -1);
+    add_type("char", 1, 0, -1);
+    add_type("long", 8, 0, -1);
 }
 
 void dump_type(char buf[], type_t *t) {
@@ -19,7 +19,7 @@ void dump_type(char buf[], type_t *t) {
 
     if (t) {
         while (t->ptr_to) {
-            if (t->array_length > 0) {
+            if (t->array_length >= 0) {
                 _strcat3(buf, "[", t->array_length, "]");
             } else {
                 strcat(buf, "*");
@@ -75,10 +75,10 @@ type_t *find_pointer(type_t *ptr_to, int array_length) {
 }
 
 type_t *add_pointer_type(type_t *t) {
-    type_t *p = find_pointer(t, 0);
+    type_t *p = find_pointer(t, -1);
     if (!p) {
         int size = 8;
-        p = add_type("", size, t, 0);
+        p = add_type("", size, t, -1);
     }
     return p;
 }
@@ -136,7 +136,7 @@ type_t *add_struct_union_type(char *name, bool is_union, bool is_anonymous) {
     s->is_union = is_union;
     s->is_anonymous = is_anonymous;
 
-    t = add_type("$s", 0, 0, 0);
+    t = add_type("$s", 0, 0, -1);
     t->struct_of = s;
     return t;
 }
@@ -228,7 +228,7 @@ type_t *add_enum_type(char *name) {
     e->next_value = 0;
     e->name = name;
 
-    t = add_type("$e", 4, 0, 0);
+    t = add_type("$e", 4, 0, -1);
     t->enum_of = e;
 
     return t;
