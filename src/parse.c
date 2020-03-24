@@ -80,7 +80,7 @@ int parse_int_literal() {
 
 bool expect_int_expr(int *v);
 
-int expect_int_factor(int *v) {
+bool expect_int_factor(int *v) {
     if (expect(T_LPAREN)) {
         int v2;
         if (!expect_int_expr(&v2)) {
@@ -90,7 +90,7 @@ int expect_int_factor(int *v) {
             error("invalid end of constant expression");
         }
         *v = v2;
-        return;
+        return TRUE;
     }
     return expect_int(v);
 }
@@ -1044,8 +1044,6 @@ type_t *parse_var_array_declare(type_t *t) {
 
     int length = 0;
     expect_int_expr(&length);
-    debug_i("array length:", length);
-
     if (!expect(T_RBRACKET)) {
         error("array declarator doesn't have closing ]");
     }
@@ -1248,7 +1246,7 @@ var_t *add_var_with_check(type_t *t, char *name) {
         error(buf);
     }
 
-    if (v->t->array_length == 0 && t->array_length > 0) {
+    if (v->t->array_length < 0 && t->array_length >= 0) {
         v->t = t; // declaring 'a[100]' can overwrite 'a[]' or '*a'
         return v;
     }
@@ -1318,7 +1316,7 @@ int parse_global_var_array_initializer(var_t *v, int array_length) {
         error("too many array initializer elements");
     }
     if (array_length == 0) {
-        type_t *t = add_array_type(v->t->ptr_to, get_global_array_length(pos));
+        type_t *t = add_array_type(v->t->ptr_to, index + 1);
         v->t = t;
     }
     if (!expect(T_RBLACE)) {
@@ -1346,7 +1344,7 @@ int parse_global_variable(type_t *t, bool is_external) {
         if (v->is_external) {
             debug_s("variable is initialized but delcared 'extern':", v->name);
         }
-        if (v->t->array_length > 0) {
+        if (v->t->array_length >= 0) {
             v->int_value = parse_global_var_array_initializer(v, v->t->array_length);
         } else {
             v->int_value = parse_global_var_initializer(v);
@@ -1357,14 +1355,14 @@ int parse_global_variable(type_t *t, bool is_external) {
     return pos;
 }
 
-int parse_array_initializer(int array, int array_length) {
+int parse_array_initializer(var_t *v, int array, int array_length) {
     if (!expect(T_LBLACE)) {
         return 0;
     }
     int index;
     int pos = 0;
 
-    for (index = 0; index < array_length; index++) {
+    for (index = 0; array_length == 0 || index < array_length; index++) {
         debug_i("parsing array initializer at index:", index);
         int lval = alloc_index_atom(array, alloc_typed_int_atom(TYPE_INTEGER, index, find_type("int")));
         int assign = parse_variable_initializer(lval);
@@ -1382,9 +1380,43 @@ int parse_array_initializer(int array, int array_length) {
     if (!pos) {
         error("emptry array initializer");
     }
-    if (expect(T_COMMA)) {
+    if (array_length > 0 && expect(T_COMMA)) {
         error("too many array initializer elements");
     }
+    if (array_length == 0) {
+        int old_offset = v->offset;
+
+        type_t *t = add_array_type(v->t->ptr_to, index + 1);
+        debug_i("realloc var with size: ", index + 1);
+        var_realloc(v, t);
+        int new_offset = v->offset;
+
+        // hacky - traversing AST to update offset of base array variable
+        atom_t *a = &program[pos];
+        while (a) {
+            atom_t *bind_atom;
+            if (a->type == TYPE_ANDTHEN) {
+                bind_atom = &program[(a+1)->int_value];
+                a = &program[(a)->int_value];
+            } else {
+                bind_atom = a;
+                a = 0; // exit loop
+            }
+            if (bind_atom->type == TYPE_BIND) {
+                atom_t *array_index_atom = &program[(bind_atom+1)->int_value];
+                if (array_index_atom->type == TYPE_ARRAY_INDEX) {
+                    atom_t *var_ref_atom = &program[(array_index_atom)->int_value];
+                    if (var_ref_atom->type == TYPE_VAR_REF && var_ref_atom->int_value == old_offset) {
+                        var_ref_atom->int_value = new_offset;
+                        var_ref_atom->t = t;
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+    }
+
     if (!expect(T_RBLACE)) {
         error("Invalid end of array initializer");
     }
@@ -1401,8 +1433,8 @@ int parse_local_variable() {
     dump_atom(pos,0);
 
     if (expect(T_EQUAL)) {
-        if (v->t->array_length > 0) {
-            pos = parse_array_initializer(pos, v->t->array_length);
+        if (v->t->array_length >= 0) {
+            pos = parse_array_initializer(v, pos, v->t->array_length);
         } else {
             pos = parse_variable_initializer(pos);
         }

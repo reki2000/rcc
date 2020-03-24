@@ -30,6 +30,7 @@ extern var_t *add_constant_int(char *, type_t *, int value);
 extern int find_var_offset(char *);
 extern var_t *find_var(char *);
 extern var_t *find_var_in_current_frame(char *name);
+extern void var_realloc(var_t *v, type_t *t);
 
 
 extern void reset_var_max_offset();

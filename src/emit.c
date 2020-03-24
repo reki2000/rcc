@@ -468,7 +468,7 @@ void compile(int pos) {
             break;
         case TYPE_RVALUE:
             compile(p->atom_pos);
-            if (p->t->array_length > 0 || p->t->struct_of) {
+            if (p->t->array_length >= 0 || p->t->struct_of) {
                 // rvalue of array / struct will be a pointer for itself
             } else {
                 emit_deref(p->t->size);
@@ -784,7 +784,7 @@ void out_global_constant(var_t *v) {
     out_str(".type\t", v->name, ", @object");
     out_int4(".size\t", v->name, ", ", v->t->size, "");
     out_label(v->name);
-    if (v->t->array_length > 0) {
+    if (v->t->array_length >= 0) {
         int filled_size = 0;
         int pos = v->int_value;
         int len = get_global_array_length(pos);

@@ -65,6 +65,21 @@ var_t *add_constant_int(char *name, type_t*t, int value) {
 
 }
 
+void var_realloc(var_t *v, type_t *t) {
+    if (v->t->size != 0) {
+        error_s("cannot realloc variable: ", v->name);
+    }
+
+    frame_t *f = &env[env_top];
+
+    f->offset += align(t->size, 4);
+    if (f->offset > max_offset) {
+        max_offset = f->offset;
+    }
+    v->offset = f->offset;
+    v->t = t;
+}
+
 var_t *add_var(char *name, type_t *t) {
     var_t *v;
     frame_t *f = &env[env_top];
@@ -75,15 +90,20 @@ var_t *add_var(char *name, type_t *t) {
     v = &(f->vars[f->num_vars]);
     f->num_vars++;
 
-    f->offset += align(t->size, 4);
-    if (f->offset > max_offset) {
-        max_offset = f->offset;
+    if (env_top == 0) {
+        v->offset = 0;
+        v->is_global = TRUE;
+    } else {
+        f->offset += align(t->size, 4);
+        if (f->offset > max_offset) {
+            max_offset = f->offset;
+        }
+        v->offset = f->offset;
+        v->is_global = FALSE;
     }
 
     v->name = name;
-    v->offset = f->offset;
     v->t = t;
-    v->is_global = (env_top == 0);
 
     char buf[100] = {0};
     strcat(buf, "'");

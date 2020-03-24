@@ -243,7 +243,7 @@ int alloc_func_atom(func *f) {
 int alloc_index_atom(int base_pos, int index_pos) {
     int pos = base_pos;
     type_t *t = atom_type(pos);
-    if (t->ptr_to->array_length > 0) {
+    if (t->ptr_to->array_length >= 0) {
         t = add_pointer_type(t->ptr_to->ptr_to);
     } else {
         dump_atom_tree(base_pos, 0);
