@@ -1042,7 +1042,7 @@ type_t *parse_var_array_declare(type_t *t) {
         return t;
     }
 
-    int length = -1;
+    int length = 0;
     expect_int_expr(&length);
     if (!expect(T_RBRACKET)) {
         error("array declarator doesn't have closing ]");
@@ -1246,7 +1246,7 @@ var_t *add_var_with_check(type_t *t, char *name) {
         error(buf);
     }
 
-    if (v->t->array_length < 0 && t->array_length >= 0) {
+    if (v->t->array_length <= 0 && t->array_length >= 0) {
         v->t = t; // declaring 'a[100]' can overwrite 'a[]' or '*a'
         return v;
     }
@@ -1343,7 +1343,7 @@ int parse_global_variable(type_t *t, bool is_external) {
 
     if (expect(T_EQUAL)) {
         if (v->is_external) {
-            debug_s("variable is initialized but delcared 'extern':", v->name);
+            debug_s("variable is initialized but delcared as 'extern':", v->name);
         }
         if (v->t->array_length >= 0) {
             v->int_value = parse_global_var_array_initializer(v, v->t->array_length);
@@ -1431,7 +1431,7 @@ int parse_local_variable() {
     }
 
     int pos = alloc_var_atom(v);
-    dump_atom(pos,0);
+    // dump_atom(pos,0);
 
     if (expect(T_EQUAL)) {
         if (v->t->array_length >= 0) {
