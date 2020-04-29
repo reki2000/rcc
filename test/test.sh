@@ -6,51 +6,68 @@ function clean {
     rm out/* 2>/dev/null
 }
 
+function fatal {
+    echo -n "ERROR: "
+    echo "$1"
+    if [ -n "$2" ]; then
+        cat $2
+    fi
+    exit 1
+}
+
 function compile {
-    ../bin/rekicc -S -I$(dirname $1)/include $1 2>$2 > out/test.s
+    $CC -S -I$(dirname $1)/include $1 2>$DEBUG_LOG > $DEBUG_ASM
 }
 
-function header {
-    cat <<EOT
-extern int printf(const char*, ...);
-void print(int i) { printf("%d\n", i);}
-EOT
-}
-
-function run {
-    echo "test: $1 ------------------"
-    clean
-    compile $1 out/debug.log
-    true
+function check_diff {
+    diff -B $1 $2 || fatal "result not matched"
 }
 
 function check_result {
-    gcc -o out/test.out out/test.s \
-        && ( out/test.out > out/result.txt; echo $? >> out/result.txt ) \
-        || ( echo "ERROR"; cat out/debug.log; false )
-    diff -B $1 out/result.txt
+    if [ ! -f $1 ]; then
+      fatal "no result file"
+    fi
+
+    $LD -fPIC -o $DEBUG_BIN $DEBUG_ASM \
+        || fatal " cannot build test program"
+
+    local result_file=out/result.txt
+    $DEBUG_BIN > $result_file
+    echo $? >> $result_file
+
+    check_diff $1 $result_file
 }
 
 function check_error {
-    grep 'ERROR' out/debug.log | sed 's/\x1b\[[0-9;]*m//g' > out/error.txt
-    diff -B $1 out/error.txt
+    if [ ! -f $1 ]; then
+      echo "unexpected compiler error"
+      exit 1
+    fi
+
+    local err_file=out/error.txt
+    grep 'ERROR' $DEBUG_LOG | sed 's/\x1b\[[0-9;]*m//g' > $err_file
+    check_diff $1 $err_file
 }
 
-function check {
-    if [ -f $2 ]; then
-        check_error $2
-    else
-        check_result $1
-    fi \
-        || echo "ERROR: result not matched"
-    echo "end"
+function run {
+    local t=$1
+    echo "test: $t ------------------"
+    clean
+    compile $t/test.c && check_result $t/expect.txt || check_error $t/expect-error.txt
+    echo "success"
 }
 
 set -e
 
+CC=../bin/rekicc
+LD=cc
+DEBUG_LOG=out/debug.log
+DEBUG_BIN=out/test.out
+DEBUG_ASM=out/test.s
+
 function all {
     for t in 0*; do
-        run $t/test.c && check $t/expect.txt $t/expect-error.txt || exit
+        run $t
     done
 }
 
@@ -58,7 +75,6 @@ if [ -z "$1" ]; then
     all
 else
     for t in ${1}*; do
-        run $t/test.c && check $t/expect.txt $t/expect-error.txt || exit
+        run $t
     done
 fi
-
