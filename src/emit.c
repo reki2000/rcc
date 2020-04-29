@@ -160,7 +160,7 @@ void emit_string(char* str) {
 }
 
 void emit_global_ref(int i) {
-    out_int("lea	.G", i, ", %rax");
+    out_int("leaq	.G", i, "(%rip), %rax");
     out("pushq	%rax");
 }
 
@@ -206,6 +206,12 @@ void emit_pop_argv(int no) {
 void emit_call(char *name) {
     out("movb $0, %al");
     out_str("call	", name, "");
+    out("pushq	%rax");
+}
+
+void emit_plt_call(char *name) {
+    out("movb $0, %al");
+    out_str("call	", name, "@PLT");
     out("pushq	%rax");
 }
 
@@ -361,10 +367,10 @@ void emit_log_not(int size) {
 void emit_print() {
     out("popq	%rax");
 	out("movl	%eax, %esi");
-	out("movl	$.LC0, %edi");
+	out("leaq	.LC0(%rip), %rdi");
 	out("movl	$0, %eax");
-	out("call	printf");
-	out("nop");
+	out("call	printf@PLT");
+	out("movl	$0, %eax");
 }
 
 void emit_label(int i) {
@@ -663,7 +669,11 @@ void compile(int pos) {
                 compile((p+i+1)->atom_pos);
                 emit_pop_argv(i);
             }
-            emit_call(f->name);
+            if (f->is_external) {
+                emit_plt_call(f->name);
+            } else {
+                emit_call(f->name);
+            }
         }
             break;
         
@@ -830,6 +840,7 @@ void emit() {
         }
     }
 
+    out(".text");
     out(".section	.rodata");
     out_label(".LC0");
     out(".string	\"%d\\n\"");
