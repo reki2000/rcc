@@ -22,5 +22,5 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 clean:
 	$(RM) $(PROG) $(OBJDIR)/* test/out/* core test/core
 
-stage2: $(PROG)
+stage2: clean $(PROG)
 	cd stage2 && make

@@ -122,6 +122,17 @@ char *dump_file(int id, int pos) {
     return _slice(&file_body[id][pos], 10);
 }
 
+src_t *file_info(int id) {
+    return &src_files[id];
+}
+
+void dump_src() {
+    char buf[1000] = {0};
+    src_t *s = file_info(0);
+    strcat(buf, s->filename);
+    debug_s("files:\n", buf);
+}
+
 bool is_eof() {
     return src->pos >= src->len;
 }

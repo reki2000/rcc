@@ -17,6 +17,8 @@ extern src_t *src;
 bool enter_file(char *);
 bool exit_file();
 char *dump_file();
+src_t *file_info(int id);
+void dump_src();
 
 int ch();
 bool next();

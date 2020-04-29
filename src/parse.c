@@ -1042,7 +1042,7 @@ type_t *parse_var_array_declare(type_t *t) {
         return t;
     }
 
-    int length = 0;
+    int length = -1;
     expect_int_expr(&length);
     if (!expect(T_RBRACKET)) {
         error("array declarator doesn't have closing ]");
@@ -1250,7 +1250,8 @@ var_t *add_var_with_check(type_t *t, char *name) {
         v->t = t; // declaring 'a[100]' can overwrite 'a[]' or '*a'
         return v;
     }
-    error_s("variable is already declared with different size: ", v->name);
+    debug_i("", v->t->array_length);
+    error_i("variable is already declared with different size: ", t->array_length);
     return 0;
 }
 
