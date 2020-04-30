@@ -3,7 +3,7 @@
 cd $(dirname $BASH_SOURCE)
 
 function clean {
-    rm out/* 2>/dev/null
+    rm -f out/* 2>/dev/null
 }
 
 function fatal {
@@ -40,8 +40,7 @@ function check_result {
 
 function check_error {
     if [ ! -f $1 ]; then
-      echo "unexpected compiler error"
-      exit 1
+      fatal "unexpected compiler error" $DEBUG_LOG
     fi
 
     local err_file=out/error.txt

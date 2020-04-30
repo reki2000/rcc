@@ -1255,9 +1255,7 @@ var_t *add_var_with_check(type_t *t, char *name) {
     return 0;
 }
 
-var_t *parse_var_declare() {
-    char *ident;
-
+type_t *parse_var_declare_typepart() {
     expect(T_CONST);
 
     type_t *t = parse_type_declaration();
@@ -1265,6 +1263,17 @@ var_t *parse_var_declare() {
         return 0;
     }
     t = parse_pointer(t);
+
+    return t;
+}
+
+var_t *parse_func_arg_declare() {
+    char *ident;
+
+    type_t *t = parse_var_declare_typepart();
+    if (!t) {
+        return 0;
+    }
 
     if (!expect_ident(&ident)) {
         error("parse_var_declare: invalid name");
@@ -1424,11 +1433,15 @@ int parse_array_initializer(var_t *v, int array, int array_length) {
     return pos;
 }
 
-int parse_local_variable() {
-    var_t *v = parse_var_declare();
-    if (!v) {
-        return 0;
+int parse_local_variable_identifier(type_t *t) {
+    char *ident;
+    if (!expect_ident(&ident)) {
+        error("parse_var_declare: invalid name");
     }
+
+    t = parse_var_array_declare(t);
+
+    var_t *v = add_var_with_check(t, ident);
 
     int pos = alloc_var_atom(v);
     // dump_atom(pos,0);
@@ -1441,6 +1454,22 @@ int parse_local_variable() {
         }
     } else {
         pos = alloc_nop_atom();
+    }
+    return pos;
+}
+
+int parse_local_variable() {
+
+    type_t *t = parse_var_declare_typepart();
+    if (!t) {
+        return 0;
+    }
+
+    int pos = parse_local_variable_identifier(t);
+
+    while (expect(T_COMMA)) {
+        int pos2 = parse_local_variable_identifier(t);
+        pos = alloc_binop_atom(TYPE_ANDTHEN, pos, pos2);
     }
 
     if (!expect(T_SEMICOLON)) {
@@ -1572,13 +1601,13 @@ int parse_function_prototype(type_t *t, bool is_external) {
 int parse_func_args() {
     int argc = 0;
 
-    if (!parse_var_declare()) {
+    if (!parse_func_arg_declare()) {
         return 0;
     }
     argc++;
 
     while (expect(T_COMMA)) {
-        if (!parse_var_declare()) {
+        if (!parse_func_arg_declare()) {
             error("Invalid argv");
         }
         argc++;
