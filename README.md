@@ -58,7 +58,7 @@ statement: ';' | var_declare | print_statement | if_statement | while_statement 
 
 do_while_statement | expr_statement | return_statement | break_statement | continue_statement | switch_statement
 if_statement: 'if' '(' expr_sequence ')' ( statement | block ( 'else' block_or_statement )? )
-for_statement: 'for' '(' expr_sequence ';' expr_sequence ';' expr_sequence ')' block_or_statement
+for_statement: 'for' '(' (var_declare | expr_statement) expr_sequence ';' expr_sequence ')' block_or_statement
 while_statement: 'while' '(' expr_sequence ')' block_or_statement
 do_while_statement: 'do' block 'while' '(' expr_sequence ')' ';'
 print_statement: 'print' '(' expr ');'

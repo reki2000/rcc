@@ -17,7 +17,7 @@ int parse_prefix();
 int parse_unary();
 type_t *parse_type_declaration();
 type_t *parse_pointer();
-int parse_local_variable();
+int parse_local_variable_declaration();
 
 int parse_int() {
     int value;
@@ -849,36 +849,49 @@ int parse_for_statement() {
     int post_pos;
     int body_pos;
     int pos;
-    if (expect(T_FOR)) {
-        if (!expect(T_LPAREN)) {
-            error("no contition part after 'for'");
-        }
-        pre_pos = wrap_expr_sequence(parse_expr_sequence());
-        if (!expect(T_SEMICOLON)) {
+    if (!expect(T_FOR)) {
+        return 0;
+    }
+    if (!expect(T_LPAREN)) {
+        error("no contition part after 'for'");
+    }
+
+    enter_var_frame();
+
+    pre_pos = parse_local_variable_declaration();
+    if (!pre_pos) {
+        pre_pos = parse_expr_statement();
+    }
+    if (!pre_pos) {
+        if (expect(T_SEMICOLON)) {
+            pre_pos = alloc_nop_atom();
+        } else {
             error("invalid end of the first part of 'for' conditions");
         }
-        cond_pos = parse_expr_sequence();
-        if (!cond_pos) {
-            cond_pos = alloc_typed_int_atom(TYPE_INTEGER, 1, find_type("int")); // TRUE
-        }   
-        if (!expect(T_SEMICOLON)) {
-            error("invalid end of the second part of 'for' conditions");
-        }
-        post_pos = wrap_expr_sequence(parse_expr_sequence());
-        if (!expect(T_RPAREN)) {
-            error("invalid end of 'for' conditions");
-        }
-        body_pos = parse_block_or_statement();
-        if (body_pos != 0) {
-            pos = alloc_atom(4);
-            build_pos_atom(pos, TYPE_FOR, body_pos);
-            build_pos_atom(pos+1, TYPE_ARG, cond_pos);
-            build_pos_atom(pos+2, TYPE_ARG, pre_pos);
-            build_pos_atom(pos+3, TYPE_ARG, post_pos);
-            return pos;
-        }
     }
-    return 0;
+    cond_pos = parse_expr_sequence();
+    if (!cond_pos) {
+        cond_pos = alloc_typed_int_atom(TYPE_INTEGER, 1, find_type("int")); // TRUE
+    }   
+    if (!expect(T_SEMICOLON)) {
+        error("invalid end of the second part of 'for' conditions");
+    }
+    post_pos = wrap_expr_sequence(parse_expr_sequence());
+    if (!expect(T_RPAREN)) {
+        error("invalid end of 'for' conditions");
+    }
+    body_pos = parse_block_or_statement();
+    exit_var_frame();
+    if (!body_pos) {
+        return 0;
+    }
+
+    pos = alloc_atom(4);
+    build_pos_atom(pos, TYPE_FOR, body_pos);
+    build_pos_atom(pos+1, TYPE_ARG, cond_pos);
+    build_pos_atom(pos+2, TYPE_ARG, pre_pos);
+    build_pos_atom(pos+3, TYPE_ARG, post_pos);
+    return pos;
 }
 
 int parse_while_statement() {
@@ -981,7 +994,7 @@ int parse_statement() {
     if (expect(T_SEMICOLON)) {
         return alloc_nop_atom();
     } 
-    int pos = parse_local_variable();
+    int pos = parse_local_variable_declaration();
     if (pos == 0) {
         pos = parse_print_statement();
     }
@@ -1026,11 +1039,11 @@ type_t *parse_primitive_type() {
     int pos = get_token_pos();
 
     if (!expect_ident(&type_name)) {
-        debug("parse_var_declare: not ident");
+        debug("parse_primitive_type: not ident");
         return 0;
     }
     if (0 == (t = find_type(type_name))) {
-        debug_s("parse_var_declare: not type name: ", type_name);
+        debug_s("parse_primitive_type: not type name: ", type_name);
         set_token_pos(pos);
         return 0;
     };
@@ -1255,7 +1268,7 @@ var_t *add_var_with_check(type_t *t, char *name) {
     return 0;
 }
 
-type_t *parse_var_declare_typepart() {
+type_t *parse_local_variable_typepart() {
     expect(T_CONST);
 
     type_t *t = parse_type_declaration();
@@ -1270,7 +1283,7 @@ type_t *parse_var_declare_typepart() {
 var_t *parse_func_arg_declare() {
     char *ident;
 
-    type_t *t = parse_var_declare_typepart();
+    type_t *t = parse_local_variable_typepart();
     if (!t) {
         return 0;
     }
@@ -1458,9 +1471,9 @@ int parse_local_variable_identifier(type_t *t) {
     return pos;
 }
 
-int parse_local_variable() {
+int parse_local_variable_declaration() {
 
-    type_t *t = parse_var_declare_typepart();
+    type_t *t = parse_local_variable_typepart();
     if (!t) {
         return 0;
     }

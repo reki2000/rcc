@@ -98,11 +98,13 @@
 - [*] implicit cast for char -> int/long, int -> char/long, long- > char/int
 - [*] implicit but warned cast for void* -> any pointers
 - [*] add warning level for logging
+- [*] local multiple variable definition
+- [*] array initializer for non-sized array declaration
+- [*] variable declaration in the first clause of 'for'
 - [ ] global variable initializer for string literals
 - [ ] empty statement for 'for'
 
 ## A.D. (self hosted)
-- [ ] array initializer for non-sized array declaration
 
 - [ ] refactor : remove printi statement, replace with `void printi(int i) { printf("%d\n",i); }`
 
@@ -118,7 +120,6 @@
 - [ ] ifdef
 - [ ] define macro
 
-- [ ] local multiple variable definition
 - [ ] global multiple variable definition
 
 - [ ] long literal (10000L)
