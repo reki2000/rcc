@@ -40,7 +40,8 @@ enum_declarator:
 enum_type: 'enum' ( enum_name? enum_declare | enum_name )
 enum_name: IDENT
 enum_declare: '{' enum_member ( ',' enum_member )* '}'
-enum_member: member_name ( '=' int )? 
+enum_member: enum_member_name ( '=' int_literal_expr )? 
+enum_member_name: IDENT
 
 union_or_struct_type: ( 'struct' | 'union' ) ( struct_name? struct_declare | struct_name )
 struct_declare: '{' (union_in_struct | struct_member_decrare)* '}'
@@ -114,7 +115,7 @@ int_literal_expr: int_literal_term ( ('+' | '-') int_literal_term )*
 int_literal_term: int_literal_factor ( '*' int_literal_factor )*
 int_literal_factor : '(' int_literal_expr ')' | int_literal 
 
-int_literal: signed_int | int | char
+int_literal: signed_int | int | char | enum_member_name
 global_string: '"' escaped_string '"'
 signed_int: ( '+' | '-' ) int
 char: ''' ( ANY | escaped_char ) '''

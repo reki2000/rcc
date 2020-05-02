@@ -62,7 +62,6 @@ var_t *add_constant_int(char *name, type_t*t, int value) {
 
     debug_i("add_constant_int: added ", v->int_value);
     return v;
-
 }
 
 void var_realloc(var_t *v, type_t *t) {

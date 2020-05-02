@@ -63,6 +63,18 @@ int parse_char() {
     return 0;
 }
 
+int parse_enum_member() {
+    char *ident;
+    if (expect_ident(&ident)) {
+        var_t *v = find_var(ident);
+        if (v && v->t->enum_of && v->is_constant) {
+            int pos = alloc_typed_int_atom(TYPE_INTEGER, v->int_value, find_type("int"));
+            return pos;
+        }
+    }
+    return 0;
+}
+
 int parse_int_literal() {
     int pos;
 
@@ -73,6 +85,9 @@ int parse_int_literal() {
     if (pos) return pos;
 
     pos = parse_signed_int();
+    if (pos) return pos;
+
+    pos = parse_enum_member();
     if (pos) return pos;
 
     return 0;
@@ -760,14 +775,8 @@ int parse_if_statement() {
 
 int parse_case_clause() {
     if (expect(T_CASE)) {
-        int integer;
-        char ch;
-        int cond_pos;
-        if (expect_int(&integer)) {
-            cond_pos = alloc_typed_int_atom(TYPE_INTEGER, integer, find_type("int"));
-        } else if (expect_char(&ch)) {
-            cond_pos = alloc_typed_int_atom(TYPE_INTEGER, ch, find_type("char"));
-        } else {
+        int cond_pos = parse_int_literal();
+        if (!cond_pos) {
             error("no target value for 'case'");
         }
 
