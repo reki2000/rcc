@@ -92,7 +92,9 @@ mul: unary ( ( '*' | '/' | '%' ) unary )*
 
 unary: prefix
 
-prefix: postfix | prefix_incdec | logical_not | signed | ptr | ptr_deref | sizeof
+prefix: postfix | cast | prefix_incdec | logical_not | signed | ptr | ptr_deref | sizeof
+
+cast : '(' type_declaration pointer? ')'
 logical_not: '!' prefix
 signed: ( '+' | '-' ) prefix
 sizeof: 'sizeof' ( unary | type_name )

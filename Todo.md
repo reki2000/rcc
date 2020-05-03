@@ -101,8 +101,9 @@
 - [*] local multiple variable definition
 - [*] array initializer for non-sized array declaration
 - [*] variable declaration in the first clause of 'for'
-- [ ] global variable initializer for string literals
-- [ ] empty statement for 'for'
+- [*] cast
+- [*] global variable initializer for string literals
+- [*] empty statement for 'for'
 
 ## A.D. (self hosted)
 
@@ -112,7 +113,6 @@
 
 - [ ] bit operators >> >>= << <<= & | ^  ~
 
-- [ ] cast
 - [ ] signed char/int/long
 - [ ] unsigned char/int/long
 

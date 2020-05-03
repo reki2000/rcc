@@ -432,8 +432,36 @@ int parse_logical_not() {
     return 0;
 }
 
+int parse_cast() {
+    int pos = get_token_pos();
+    if (!expect(T_LPAREN)) {
+        return 0;
+    }
+
+    type_t *t = parse_type_declaration();
+    if (!t) {
+        set_token_pos(pos);
+        return 0;
+    }
+
+    t = parse_pointer(t);
+
+    if (!expect(T_RPAREN)) {
+        error("invalid end of cast");
+    }
+
+    pos = parse_primary();
+    if (!pos) {
+        error("invalid cast");
+    }
+    return alloc_typed_pos_atom(TYPE_CAST, atom_to_rvalue(pos), t);
+}
+
 int parse_prefix() {
     int pos;
+
+    pos = parse_cast();
+    if (pos) return pos;
 
     pos = parse_postfix();
     if (pos) return pos;

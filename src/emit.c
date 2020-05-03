@@ -259,6 +259,36 @@ void emit_pop() {
     out("");
 }
 
+void emit_zcast(int size) {
+    if (size == 8) {
+        return;
+    }
+    out("popq	%rax");
+    if (size == 1) {
+        out("movzbq	%al, %rax");
+    } else if (size == 4) {
+        out("movzlq	%eax, %rax");
+    } else {
+        error("invalid size for emit_zcast");
+    }
+    out("pushq %rax");
+}
+
+void emit_scast(int size) {
+    if (size == 8) {
+        return;
+    }
+    out("popq	%rax");
+    if (size == 1) {
+        out("movsbq	%al, %rax");
+    } else if (size == 4) {
+        out("movslq	%eax, %rax");
+    } else {
+        error("invalid size for emit_scast");
+    }
+    out("pushq %rax");
+}
+
 void emit_binop(char *op, int size) {
     out("popq	%rdx");
     out("popq	%rax");
@@ -483,6 +513,11 @@ void compile(int pos) {
 
         case TYPE_CONVERT:
             compile(p->atom_pos);
+            break;
+
+        case TYPE_CAST:
+            compile(p->atom_pos);
+            emit_scast(p->t->size);
             break;
 
         case TYPE_INTEGER: 
