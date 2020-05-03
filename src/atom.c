@@ -19,7 +19,7 @@ char *atom_name[] = {
     "&(ptr_of)", "*(val_of)", "func", "return", "apply",
     "n++", "n--",
     "str", ".", "->", "gval_ref", "rvalue", "convert", "struct-offset", "array-index",
-    "switch", "case", "default", "?:"
+    "switch", "case", "default", "?:", "cast"
 };
 
 int alloc_atom(int size) {

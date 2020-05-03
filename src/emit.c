@@ -160,7 +160,7 @@ void emit_string(char* str) {
 }
 
 void emit_global_ref(int i) {
-    out_int("lea	.G", i, ", %rax");
+    out_int("leaq	.G", i, "(%rip), %rax");
     out("pushq	%rax");
 }
 
@@ -209,6 +209,12 @@ void emit_call(char *name) {
     out("pushq	%rax");
 }
 
+void emit_plt_call(char *name) {
+    out("movb $0, %al");
+    out_str("call	", name, "@PLT");
+    out("pushq	%rax");
+}
+
 void emit_deref(int size) {
     out("popq	%rax");
     if (size == 1) {
@@ -251,6 +257,36 @@ void emit_copy(int size) {
 void emit_pop() {
     out("popq	%rax");
     out("");
+}
+
+void emit_zcast(int size) {
+    if (size == 8) {
+        return;
+    }
+    out("popq	%rax");
+    if (size == 1) {
+        out("movzbq	%al, %rax");
+    } else if (size == 4) {
+        out("movzlq	%eax, %rax");
+    } else {
+        error("invalid size for emit_zcast");
+    }
+    out("pushq %rax");
+}
+
+void emit_scast(int size) {
+    if (size == 8) {
+        return;
+    }
+    out("popq	%rax");
+    if (size == 1) {
+        out("movsbq	%al, %rax");
+    } else if (size == 4) {
+        out("movslq	%eax, %rax");
+    } else {
+        error("invalid size for emit_scast");
+    }
+    out("pushq %rax");
 }
 
 void emit_binop(char *op, int size) {
@@ -361,10 +397,10 @@ void emit_log_not(int size) {
 void emit_print() {
     out("popq	%rax");
 	out("movl	%eax, %esi");
-	out("movl	$.LC0, %edi");
+	out("leaq	.LC0(%rip), %rdi");
 	out("movl	$0, %eax");
-	out("call	printf");
-	out("nop");
+	out("call	printf@PLT");
+	out("movl	$0, %eax");
 }
 
 void emit_label(int i) {
@@ -477,6 +513,11 @@ void compile(int pos) {
 
         case TYPE_CONVERT:
             compile(p->atom_pos);
+            break;
+
+        case TYPE_CAST:
+            compile(p->atom_pos);
+            emit_scast(p->t->size);
             break;
 
         case TYPE_INTEGER: 
@@ -663,7 +704,11 @@ void compile(int pos) {
                 compile((p+i+1)->atom_pos);
                 emit_pop_argv(i);
             }
-            emit_call(f->name);
+            if (f->is_external) {
+                emit_plt_call(f->name);
+            } else {
+                emit_call(f->name);
+            }
         }
             break;
         
@@ -830,6 +875,7 @@ void emit() {
         }
     }
 
+    out(".text");
     out(".section	.rodata");
     out_label(".LC0");
     out(".string	\"%d\\n\"");

@@ -17,7 +17,7 @@ int parse_prefix();
 int parse_unary();
 type_t *parse_type_declaration();
 type_t *parse_pointer();
-int parse_local_variable();
+int parse_local_variable_declaration();
 
 int parse_int() {
     int value;
@@ -63,6 +63,18 @@ int parse_char() {
     return 0;
 }
 
+int parse_enum_member() {
+    char *ident;
+    if (expect_ident(&ident)) {
+        var_t *v = find_var(ident);
+        if (v && v->t->enum_of && v->is_constant) {
+            int pos = alloc_typed_int_atom(TYPE_INTEGER, v->int_value, find_type("int"));
+            return pos;
+        }
+    }
+    return 0;
+}
+
 int parse_int_literal() {
     int pos;
 
@@ -73,6 +85,9 @@ int parse_int_literal() {
     if (pos) return pos;
 
     pos = parse_signed_int();
+    if (pos) return pos;
+
+    pos = parse_enum_member();
     if (pos) return pos;
 
     return 0;
@@ -417,8 +432,36 @@ int parse_logical_not() {
     return 0;
 }
 
+int parse_cast() {
+    int pos = get_token_pos();
+    if (!expect(T_LPAREN)) {
+        return 0;
+    }
+
+    type_t *t = parse_type_declaration();
+    if (!t) {
+        set_token_pos(pos);
+        return 0;
+    }
+
+    t = parse_pointer(t);
+
+    if (!expect(T_RPAREN)) {
+        error("invalid end of cast");
+    }
+
+    pos = parse_primary();
+    if (!pos) {
+        error("invalid cast");
+    }
+    return alloc_typed_pos_atom(TYPE_CAST, atom_to_rvalue(pos), t);
+}
+
 int parse_prefix() {
     int pos;
+
+    pos = parse_cast();
+    if (pos) return pos;
 
     pos = parse_postfix();
     if (pos) return pos;
@@ -760,14 +803,8 @@ int parse_if_statement() {
 
 int parse_case_clause() {
     if (expect(T_CASE)) {
-        int integer;
-        char ch;
-        int cond_pos;
-        if (expect_int(&integer)) {
-            cond_pos = alloc_typed_int_atom(TYPE_INTEGER, integer, find_type("int"));
-        } else if (expect_char(&ch)) {
-            cond_pos = alloc_typed_int_atom(TYPE_INTEGER, ch, find_type("char"));
-        } else {
+        int cond_pos = parse_int_literal();
+        if (!cond_pos) {
             error("no target value for 'case'");
         }
 
@@ -849,36 +886,49 @@ int parse_for_statement() {
     int post_pos;
     int body_pos;
     int pos;
-    if (expect(T_FOR)) {
-        if (!expect(T_LPAREN)) {
-            error("no contition part after 'for'");
-        }
-        pre_pos = wrap_expr_sequence(parse_expr_sequence());
-        if (!expect(T_SEMICOLON)) {
+    if (!expect(T_FOR)) {
+        return 0;
+    }
+    if (!expect(T_LPAREN)) {
+        error("no contition part after 'for'");
+    }
+
+    enter_var_frame();
+
+    pre_pos = parse_local_variable_declaration();
+    if (!pre_pos) {
+        pre_pos = parse_expr_statement();
+    }
+    if (!pre_pos) {
+        if (expect(T_SEMICOLON)) {
+            pre_pos = alloc_nop_atom();
+        } else {
             error("invalid end of the first part of 'for' conditions");
         }
-        cond_pos = parse_expr_sequence();
-        if (!cond_pos) {
-            cond_pos = alloc_typed_int_atom(TYPE_INTEGER, 1, find_type("int")); // TRUE
-        }   
-        if (!expect(T_SEMICOLON)) {
-            error("invalid end of the second part of 'for' conditions");
-        }
-        post_pos = wrap_expr_sequence(parse_expr_sequence());
-        if (!expect(T_RPAREN)) {
-            error("invalid end of 'for' conditions");
-        }
-        body_pos = parse_block_or_statement();
-        if (body_pos != 0) {
-            pos = alloc_atom(4);
-            build_pos_atom(pos, TYPE_FOR, body_pos);
-            build_pos_atom(pos+1, TYPE_ARG, cond_pos);
-            build_pos_atom(pos+2, TYPE_ARG, pre_pos);
-            build_pos_atom(pos+3, TYPE_ARG, post_pos);
-            return pos;
-        }
     }
-    return 0;
+    cond_pos = parse_expr_sequence();
+    if (!cond_pos) {
+        cond_pos = alloc_typed_int_atom(TYPE_INTEGER, 1, find_type("int")); // TRUE
+    }   
+    if (!expect(T_SEMICOLON)) {
+        error("invalid end of the second part of 'for' conditions");
+    }
+    post_pos = wrap_expr_sequence(parse_expr_sequence());
+    if (!expect(T_RPAREN)) {
+        error("invalid end of 'for' conditions");
+    }
+    body_pos = parse_block_or_statement();
+    exit_var_frame();
+    if (!body_pos) {
+        return 0;
+    }
+
+    pos = alloc_atom(4);
+    build_pos_atom(pos, TYPE_FOR, body_pos);
+    build_pos_atom(pos+1, TYPE_ARG, cond_pos);
+    build_pos_atom(pos+2, TYPE_ARG, pre_pos);
+    build_pos_atom(pos+3, TYPE_ARG, post_pos);
+    return pos;
 }
 
 int parse_while_statement() {
@@ -981,7 +1031,7 @@ int parse_statement() {
     if (expect(T_SEMICOLON)) {
         return alloc_nop_atom();
     } 
-    int pos = parse_local_variable();
+    int pos = parse_local_variable_declaration();
     if (pos == 0) {
         pos = parse_print_statement();
     }
@@ -1026,11 +1076,11 @@ type_t *parse_primitive_type() {
     int pos = get_token_pos();
 
     if (!expect_ident(&type_name)) {
-        debug("parse_var_declare: not ident");
+        debug("parse_primitive_type: not ident");
         return 0;
     }
     if (0 == (t = find_type(type_name))) {
-        debug_s("parse_var_declare: not type name: ", type_name);
+        debug_s("parse_primitive_type: not type name: ", type_name);
         set_token_pos(pos);
         return 0;
     };
@@ -1246,17 +1296,16 @@ var_t *add_var_with_check(type_t *t, char *name) {
         error(buf);
     }
 
-    if (v->t->array_length < 0 && t->array_length >= 0) {
+    if (v->t->array_length <= 0 && t->array_length >= 0) {
         v->t = t; // declaring 'a[100]' can overwrite 'a[]' or '*a'
         return v;
     }
-    error_s("variable is already declared with different size: ", v->name);
+    debug_i("", v->t->array_length);
+    error_i("variable is already declared with different size: ", t->array_length);
     return 0;
 }
 
-var_t *parse_var_declare() {
-    char *ident;
-
+type_t *parse_local_variable_typepart() {
     expect(T_CONST);
 
     type_t *t = parse_type_declaration();
@@ -1264,6 +1313,17 @@ var_t *parse_var_declare() {
         return 0;
     }
     t = parse_pointer(t);
+
+    return t;
+}
+
+var_t *parse_func_arg_declare() {
+    char *ident;
+
+    type_t *t = parse_local_variable_typepart();
+    if (!t) {
+        return 0;
+    }
 
     if (!expect_ident(&ident)) {
         error("parse_var_declare: invalid name");
@@ -1342,7 +1402,7 @@ int parse_global_variable(type_t *t, bool is_external) {
 
     if (expect(T_EQUAL)) {
         if (v->is_external) {
-            debug_s("variable is initialized but delcared 'extern':", v->name);
+            debug_s("variable is initialized but delcared as 'extern':", v->name);
         }
         if (v->t->array_length >= 0) {
             v->int_value = parse_global_var_array_initializer(v, v->t->array_length);
@@ -1423,14 +1483,18 @@ int parse_array_initializer(var_t *v, int array, int array_length) {
     return pos;
 }
 
-int parse_local_variable() {
-    var_t *v = parse_var_declare();
-    if (!v) {
-        return 0;
+int parse_local_variable_identifier(type_t *t) {
+    char *ident;
+    if (!expect_ident(&ident)) {
+        error("parse_var_declare: invalid name");
     }
 
+    t = parse_var_array_declare(t);
+
+    var_t *v = add_var_with_check(t, ident);
+
     int pos = alloc_var_atom(v);
-    dump_atom(pos,0);
+    // dump_atom(pos,0);
 
     if (expect(T_EQUAL)) {
         if (v->t->array_length >= 0) {
@@ -1440,6 +1504,22 @@ int parse_local_variable() {
         }
     } else {
         pos = alloc_nop_atom();
+    }
+    return pos;
+}
+
+int parse_local_variable_declaration() {
+
+    type_t *t = parse_local_variable_typepart();
+    if (!t) {
+        return 0;
+    }
+
+    int pos = parse_local_variable_identifier(t);
+
+    while (expect(T_COMMA)) {
+        int pos2 = parse_local_variable_identifier(t);
+        pos = alloc_binop_atom(TYPE_ANDTHEN, pos, pos2);
     }
 
     if (!expect(T_SEMICOLON)) {
@@ -1571,13 +1651,13 @@ int parse_function_prototype(type_t *t, bool is_external) {
 int parse_func_args() {
     int argc = 0;
 
-    if (!parse_var_declare()) {
+    if (!parse_func_arg_declare()) {
         return 0;
     }
     argc++;
 
     while (expect(T_COMMA)) {
-        if (!parse_var_declare()) {
+        if (!parse_func_arg_declare()) {
             error("Invalid argv");
         }
         argc++;

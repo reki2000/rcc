@@ -248,22 +248,24 @@ void add_ident_token(char *s) {
 
 void dump_tokens() {
     int i;
-    int start = token_pos - 10;
+    int start = token_pos - 5;
     if (start < 0) {
         start = 0;
     }
-    int end = token_pos + 10;
+    int end = token_pos + 5;
     if (end > token_len) {
         end = token_len;
     }
     for (i=start; i<end; i++) {
-        char buf[100] = {0};
+        char buf[1000] = {0};
         token *t = &tokens[i];
+        src_t *s = file_info(0);
         strcat(buf, (i == token_pos - 1) ? "*" : " ");
-        _strcat3(buf, "id:", t->id, "");
-        _strcat3(buf, "(#", t->src_id, ",");
-        _strcat3(buf, "col:", t->src_column, ",");
-        _strcat3(buf, "lin:", t->src_line, ") ");
+        _strcat3(buf, "id:", t->id, " ");
+        _strcat3(buf, "#", t->src_id, " ");
+        strcat(buf, s->filename);
+        _strcat3(buf, ":", t->src_line, "");
+        _strcat3(buf, ":", t->src_column, " ");
         strcat(buf, dump_file(t->src_id, t->src_pos));
         for (char *s = buf; *s != 0; s++) {
             if (*s == '\n') *s = ' ';
