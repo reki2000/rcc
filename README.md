@@ -94,8 +94,8 @@ unary: prefix
 
 prefix: postfix | cast | prefix_incdec | logical_not | signed | ptr | ptr_deref | sizeof
 
-cast : '(' type_declaration pointer? ')'
-logical_not: '!' prefix
+cast : '(' type_declaration pointer? ')' unary
+logical_not: '!' unary
 signed: ( '+' | '-' ) prefix
 sizeof: 'sizeof' ( unary | type_name )
 ptr: '&' unary

@@ -198,6 +198,7 @@ int parse_var() {
 
 int parse_primary() {
     int pos;
+    int start_pos = get_token_pos();
     pos = parse_literal();
     if (pos) return pos;
 
@@ -207,7 +208,8 @@ int parse_primary() {
     if (expect(T_LPAREN)) {
         pos = parse_expr();
         if (!pos) {
-            error("Invalid expr within '()'");
+            set_token_pos(start_pos);
+            return 0;
         }
         if (!expect(T_RPAREN)) {
             error("no ')' after '('");
@@ -423,7 +425,7 @@ int parse_sizeof() {
 int parse_logical_not() {
     int pos;
     if (expect(T_L_NOT)) {
-        pos = parse_primary();
+        pos = parse_unary();
         if (!pos) {
             error("Invalid '!'");
         }
@@ -450,7 +452,7 @@ int parse_cast() {
         error("invalid end of cast");
     }
 
-    pos = parse_primary();
+    pos = parse_unary();
     if (!pos) {
         error("invalid cast");
     }
@@ -460,10 +462,10 @@ int parse_cast() {
 int parse_prefix() {
     int pos;
 
-    pos = parse_cast();
+    pos = parse_postfix();
     if (pos) return pos;
 
-    pos = parse_postfix();
+    pos = parse_cast();
     if (pos) return pos;
 
     pos = parse_sizeof();
@@ -860,6 +862,8 @@ int parse_switch_statement() {
     int pos_default = parse_default_clause();
     if (pos_default) {
         body_pos[n] = pos_default;
+    } else {
+        n--;
     }
     if (!expect(T_RBLACE)) {
         error("invalid end of 'switch' body");
