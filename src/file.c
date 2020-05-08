@@ -122,6 +122,28 @@ char *dump_file(int id, int pos) {
     return _slice(&file_body[id][pos], 10);
 }
 
+char *dump_file2(int id, int start_pos, int end_pos) {
+    int line_start_pos = start_pos;
+    while (line_start_pos >= 0 && file_body[id][line_start_pos] != '\n') {
+        line_start_pos--;
+    }
+    line_start_pos++;
+
+    int line_end_pos = end_pos;
+    while (file_body[id][line_end_pos] != '\n') {
+        line_end_pos++;
+    }
+    int line_size = line_end_pos - line_start_pos + 1;
+    char *buf = calloc(1, line_size * 2 + 1);
+    int i=0;
+    for (int p = line_start_pos; p <= line_end_pos; i++, p++) {
+        buf[i] = file_body[id][p];
+        buf[i+line_size] = (p >= start_pos && p <= end_pos) ? '^' : ' ';
+    }
+    buf[i+line_size - 1] = 0;
+    return buf;
+}
+
 src_t *file_info(int id) {
     return &src_files[id];
 }
@@ -141,6 +163,7 @@ int ch() {
     if (is_eof()) {
         return -1;
     }
+    //debug_i("ch: ", src->body[src->pos]);
     return src->body[src->pos];
 }
 

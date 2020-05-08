@@ -104,6 +104,7 @@
 - [*] cast
 - [*] global variable initializer for string literals
 - [*] empty statement for 'for'
+- [*] define value
 
 ## A.D. (self hosted)
 
@@ -116,7 +117,6 @@
 - [ ] signed char/int/long
 - [ ] unsigned char/int/long
 
-- [ ] define value
 - [ ] ifdef
 - [ ] define macro
 

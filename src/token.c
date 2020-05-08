@@ -3,6 +3,7 @@
 #include <devtool.h>
 #include <types.h>
 #include <file.h>
+#include <macro.h>
 #include <token.h>
 #include <gstr.h>
 
@@ -17,13 +18,10 @@ void set_src_pos() {
 }
 
 void skip() {
-    int c;
-    for (;;) {
-        c = ch();
-        if (c != ' ' && c != '\t' && c != '\n') {
-            break;
-        }
+    int c = ch();
+    while (c == ' ' || c == '\t' || c == '\n' || c == '\\') {
         next();
+        c = ch();
     }
     set_src_pos();
 }
@@ -247,36 +245,25 @@ void add_ident_token(char *s) {
 }
 
 void dump_tokens() {
-    int i;
-    int start = token_pos - 5;
-    if (start < 0) {
-        start = 0;
-    }
-    int end = token_pos + 5;
-    if (end > token_len) {
-        end = token_len;
-    }
-    for (i=start; i<end; i++) {
-        char buf[1000] = {0};
-        token *t = &tokens[i];
-        src_t *s = file_info(0);
-        strcat(buf, (i == token_pos - 1) ? "*" : " ");
-        _strcat3(buf, "id:", t->id, " ");
-        _strcat3(buf, "#", t->src_id, " ");
-        strcat(buf, s->filename);
-        _strcat3(buf, ":", t->src_line, "");
-        _strcat3(buf, ":", t->src_column, " ");
-        strcat(buf, dump_file(t->src_id, t->src_pos));
-        for (char *s = buf; *s != 0; s++) {
-            if (*s == '\n') *s = ' ';
-        }
-        debug_s("token:", buf);
-    }
+    int i = token_pos;
+    char buf[1000] = {0};
+    token *t = &tokens[i];
+    token *t_next = &tokens[i+1];
+
+    src_t *s = file_info(0);
+    strcat(buf, (i == token_pos - 1) ? "*" : " ");
+    _strcat3(buf, "id:", t->id, " ");
+    _strcat3(buf, "#", t->src_id, " ");
+    strcat(buf, s->filename);
+    _strcat3(buf, ":", t->src_line, "");
+    _strcat3(buf, ":", t->src_column, "\n");
+    strcat(buf, dump_file2(t->src_id, t->src_pos, t_next->src_pos - 1));
+    debug_s("token:", buf);
 }
 
 void tokenize();
 
-void include() {
+void directive_include() {
     if (accept_char('\"')) {
         char filename[100];
         int i=0;
@@ -298,9 +285,31 @@ void include() {
     }
 }
 
+void directive_define() {
+    char *name;
+    if (tokenize_ident(&name)) {
+        skip();
+        int start_pos = src->pos;
+        char prev_ch = 0;
+        for (;;) {
+            if (ch() == '\n' && prev_ch != '\\') {
+                    break;
+            }
+            prev_ch = ch();
+            next();
+        }
+        int end_pos = src->pos;
+        add_macro(name, start_pos, end_pos);
+    } else {
+        error("no identifier for define directive");
+    }
+}
+
 void preprocess() {
     if (accept_ident("include")) {
-        include();
+        directive_include();
+    } else if (accept_ident("define")) {
+        directive_define();
     } else {
         error("unknown directive");
     }
@@ -452,19 +461,26 @@ void tokenize() {
             } else if (tokenize_string(&str)) {
                 add_string_token(str);
             } else if (tokenize_ident(&str)) {
-                add_ident_token(str);
+                if (enter_macro(str)) {
+                    tokenize();
+                    exit_macro();
+                } else {
+                    add_ident_token(str);
+                }
             } else {
-                char buf[100];
-                buf[0] = 0;
-                strcat(buf, "Invalid token: \n");
+                char buf[100] = {0};
+                strcat(buf, "Invalid token: ");
+                strcat(buf, src->filename);
+                _strcat3(buf, ":", src->line, "");
+                _strcat3(buf, ":", src->column, " ");
+                _strcat3(buf, "[", ch(), "]\n");
                 strcat(buf, _slice(&(src->body[(src->pos > 20) ? src->pos - 20 : 0]), 20));
                 strcat(buf, " --> ");
                 strcat(buf, _slice(&(src->body[src->pos]), 20));
-                // dump_tokens();
-
                 error(buf);
             }
         }
+        skip();
     }
 }
 
