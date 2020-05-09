@@ -277,7 +277,7 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
     build_pos_atom(pos, type, lpos);
 
     type_t *lpos_t = atom_type(lpos);
-    if (lpos_t->ptr_to != 0 && (type == TYPE_ADD || type == TYPE_SUB)) {
+    if (lpos_t->ptr_to && (type == TYPE_ADD || type == TYPE_SUB)) {
         if (atom_type(rpos)->ptr_to != 0) {
             error("Cannot + or - between pointers");
         }
@@ -291,7 +291,14 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
 
 int alloc_assign_op_atom(int type, int lval, int rval) {
     int lval_deref = atom_to_rvalue(lval);
-    rval = atom_convert_type(lval_deref, atom_to_rvalue(rval));
+    rval = atom_to_rvalue(rval);
+    type_t *lval_t = atom_type(lval);
+    type_t *rval_t = atom_type(rval);
+    if (lval_t->ptr_to && !rval_t->ptr_to && (type == TYPE_ADD || type == TYPE_SUB)) {
+        rval = alloc_typed_pos_atom(TYPE_CONVERT, rval, find_type("int"));
+    } else {
+        rval = atom_convert_type(lval_deref, atom_to_rvalue(rval));
+    }
     rval = alloc_binop_atom(type, lval_deref, rval);
     return alloc_binop_atom(TYPE_BIND, rval, lval);
 }

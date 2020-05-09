@@ -1,3 +1,5 @@
+extern int write(int, char *, int);
+
 int main() {
     char *fmt = "abcdefg\n";
     fmt += 2;
