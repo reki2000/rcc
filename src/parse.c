@@ -1023,14 +1023,18 @@ int parse_continue_statement() {
 int parse_return_statement() {
     int pos;
 
-    if (expect(T_RETURN)) {
-        pos = parse_expr_sequence();
-        if (pos != 0 && expect(T_SEMICOLON)) {
-            int oppos = alloc_typed_pos_atom(TYPE_RETURN, pos, find_type("void"));
-            return oppos;
-        }
+    if (!expect(T_RETURN)) {
+        return 0;
     }
-    return 0;
+
+    pos = parse_expr_sequence();
+    if (!pos) {
+        pos = alloc_typed_int_atom(TYPE_INTEGER, 0, find_type("void"));
+    }
+    if (!expect(T_SEMICOLON)) {
+        error("invalid expr for return");
+    }
+    return alloc_typed_pos_atom(TYPE_RETURN, pos, find_type("void"));
 }
 
 int parse_statement() {

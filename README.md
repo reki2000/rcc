@@ -55,15 +55,15 @@ var_identifiers: var_name array_type? local_variable_initializer?
 block: '{' block_or_statement* '}'
 block_or_statement: ( statement | block )
 
-statement: ';' | var_declare | print_statement | if_statement | while_statement | for_statement | 
+statement: ';' | var_declare | print_statement | if_statement | while_statement | for_statement 
+  do_while_statement | expr_statement | return_statement | break_statement | continue_statement | switch_statement
 
-do_while_statement | expr_statement | return_statement | break_statement | continue_statement | switch_statement
 if_statement: 'if' '(' expr_sequence ')' ( statement | block ( 'else' block_or_statement )? )
 for_statement: 'for' '(' (var_declare | expr_statement) expr_sequence ';' expr_sequence ')' block_or_statement
 while_statement: 'while' '(' expr_sequence ')' block_or_statement
 do_while_statement: 'do' block 'while' '(' expr_sequence ')' ';'
 print_statement: 'print' '(' expr ');'
-return_statement: 'return' expr_sequence ';'
+return_statement: 'return' expr_sequence? ';'
 break_statement: 'break' ';'
 continue_statement: 'continue' ';'
 
