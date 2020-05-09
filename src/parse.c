@@ -18,87 +18,43 @@ int parse_unary();
 type_t *parse_type_declaration();
 type_t *parse_pointer();
 int parse_local_variable_declaration();
-
-int parse_int() {
-    int value;
-    if (expect_int(&value)) {
-        return alloc_typed_int_atom(TYPE_INTEGER, value, find_type("int"));
-    }
-    return 0;
-}
-
-int parse_signed_int() {
-    int pos;
-    int start_pos = get_token_pos();
-    if (expect(T_PLUS)) {
-        return parse_int();
-    }
-
-    if (expect(T_MINUS)) {
-        pos = parse_int();
-        if (!pos) {
-            set_token_pos(start_pos);
-            return 0;
-        }
-        return alloc_binop_atom(TYPE_SUB, alloc_typed_int_atom(TYPE_INTEGER, 0, find_type("int")), pos);
-    }
-
-    return 0;
-}
-
-int parse_string() {
-    char *s;
-    if (expect_string(&s)) {
-        int index = add_global_string(s);
-        return alloc_typed_int_atom(TYPE_STRING, index, add_pointer_type(find_type("char")));
-    }
-    return 0;
-}
-
-int parse_char() {
-    char value;
-    if (expect_char(&value)) {
-        return alloc_typed_int_atom(TYPE_INTEGER, value, find_type("char"));
-    }
-    return 0;
-}
-
-int parse_enum_member() {
-    char *ident;
-    if (expect_ident(&ident)) {
-        var_t *v = find_var(ident);
-        if (v && v->t->enum_of && v->is_constant) {
-            int pos = alloc_typed_int_atom(TYPE_INTEGER, v->int_value, find_type("int"));
-            return pos;
-        }
-    }
-    return 0;
-}
-
-int parse_int_literal() {
-    int pos;
-
-    pos = parse_char();
-    if (pos) return pos;
-
-    pos = parse_int();
-    if (pos) return pos;
-
-    pos = parse_signed_int();
-    if (pos) return pos;
-
-    pos = parse_enum_member();
-    if (pos) return pos;
-
-    return 0;
-}
-
 bool expect_int_expr(int *v);
 
+
+bool expect_enum_member(int *v) {
+    int pos = get_token_pos();
+    char *ident;
+    if (expect_ident(&ident)) {
+        var_t *var = find_var(ident);
+        if (var && var->t->enum_of && var->is_constant) {
+            *v = var->int_value;
+            return TRUE;
+        }
+    }
+    set_token_pos(pos);
+    return FALSE;
+}
+
+bool expect_int_unary(int *v) {
+    if (expect_int(v)) {
+        return TRUE;
+    }
+
+    char ch;
+    if (expect_char(&ch)) {
+        *v = (int)ch;
+        return TRUE;
+    }
+
+    return expect_enum_member(v);
+}
+
 bool expect_int_factor(int *v) {
+    int pos = get_token_pos();
     if (expect(T_LPAREN)) {
         int v2;
         if (!expect_int_expr(&v2)) {
+            set_token_pos(pos);
             return FALSE;
         }
         if (!expect(T_RPAREN)) {
@@ -107,29 +63,61 @@ bool expect_int_factor(int *v) {
         *v = v2;
         return TRUE;
     }
-    return expect_int(v);
+
+    if (expect(T_PLUS)) {
+        return expect_int_unary(v);
+    }
+    
+    if (expect(T_MINUS)) {
+        int v2;
+        if(!expect_int_unary(&v2)) {
+            set_token_pos(pos);
+            return FALSE;
+        }
+        *v = -v2;
+        return TRUE;
+    }
+    return expect_int_unary(v);
 }
 
 bool expect_int_term(int *v) {
+    int pos = get_token_pos();
     if (!expect_int_factor(v)) {
+        set_token_pos(pos);
         return FALSE;
     }
 
     for (;;) {
-        if (!expect(T_ASTERISK)) {
+        int op;
+        if (expect(T_ASTERISK)) {
+            op = 0;
+        } else if (expect(T_SLASH)) {
+            op = 1;
+        } else if (expect(T_PERCENT)) {
+            op = 2;
+        } else {
             break;
         }
         int v2;
         if (!expect_int_factor(&v2)) {
+            set_token_pos(pos);
             return FALSE;
         }
-        *v *= v2;
+        if (op == 0) {
+            *v *= v2;
+        } else if (op == 1) {
+            *v /= v2;
+        } else if (op == 2) {
+            *v %= v2;
+        }
     }
     return TRUE;
 }
 
 bool expect_int_expr(int *v) {
+    int pos = get_token_pos();
     if (!expect_int_term(v)) {
+        set_token_pos(pos);
         return FALSE;
     }
 
@@ -142,15 +130,42 @@ bool expect_int_expr(int *v) {
         }
         int v2;
         if (!expect_int_term(&v2)) {
+            set_token_pos(pos);
             return FALSE;
         }
+        debug_i("found added constant:", *v);
+        debug_i("found added constant:", v2);
         if (is_plus) {
             *v += v2;
         } else {
             *v -= v2;
         }
+        debug_i("found added constant:", *v);
     }
     return TRUE;
+}
+
+int parse_int_expr() {
+    int value;
+    int pos = get_token_pos();
+    if (expect_int_expr(&value)) {
+        return alloc_typed_int_atom(TYPE_INTEGER, value, find_type("int"));
+    }
+    set_token_pos(pos);
+    return 0;
+}
+
+int parse_string() {
+    char *s;
+    if (expect_string(&s)) {
+        int index = add_global_string(s);
+        return alloc_typed_int_atom(TYPE_STRING, index, add_pointer_type(find_type("char")));
+    }
+    return 0;
+}
+
+int parse_int_literal() {
+    return parse_int_expr();
 }
 
 int parse_literal() {
@@ -1346,13 +1361,8 @@ var_t *parse_func_arg_declare() {
 
 int parse_global_var_initializer() {
     int num = 0;
-    if (expect_int(&num)) {
+    if (expect_int_expr(&num)) {
         return num;
-    }
-
-    char ch = 0;
-    if (expect_char(&ch)) {
-        return ch;
     }
 
     char *str = 0;

@@ -118,12 +118,13 @@ int_literal_term: int_literal_factor ( '*' int_literal_factor )*
 int_literal_factor : '(' int_literal_expr ')' | int_literal 
 
 int_literal: signed_int | int | char | enum_member_name
-global_string: '"' escaped_string '"'
 signed_int: ( '+' | '-' ) int
 char: ''' ( ANY | escaped_char ) '''
 
+global_string: '"' escaped_string '"'
+
 escaped_string: ( ANY | escaped_char )*
-escaped_char: '\' [abfnrtr"'\]
+escaped_char: '\' [0abfnrtr"'\]
 func_name: IDENT
 var_name: IDENT
 int: DIGIT*

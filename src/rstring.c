@@ -2,29 +2,25 @@
 #include "types.h"
 
 void _strcati(char *dst, int i) {
-    char buf[RCC_BUF_SIZE];
+    char buf[100];
     int pos = 0;
-    bool is_negative = FALSE;
-    if (i < 0) {
-        is_negative = TRUE;
-        i = -i;
-    }
+    int val = i;
     for (;;) {
-        buf[pos] = '0' + (i % 10);
-        i /= 10;
-        if (i==0 || pos >= 100) {
+        int mod = val % 10;
+        buf[pos++] = '0' +((mod >= 0) ? mod : -mod);
+        val /= 10;
+        if (val == 0) {
             break;
         }
-        pos++;
     }
+
     dst += strlen(dst);
-    if (is_negative) {
+    if (i < 0) {
         *dst++ = '-';
-        *dst = 0;
     }
-    for (;pos >= 0; pos--) {
-        *dst = buf[pos];
-        dst++;
+
+    for (pos--; pos >= 0; pos--) {
+        *dst++ = buf[pos];
     }
     *dst = 0;
 }
