@@ -66,7 +66,7 @@ DEBUG_ASM=out/test.s
 
 function all {
     for t in 0*; do
-        run $t
+        run "$t"
     done
 }
 
@@ -74,6 +74,6 @@ if [ -z "$1" ]; then
     all
 else
     for t in ${1}*; do
-        run $t
+        run "$t"
     done
 fi

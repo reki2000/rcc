@@ -8,17 +8,20 @@
 #include "func.h"
 #include "atom.h"
 
-frame_t env[100];
+#define NUM_VARS 1000
+#define NUM_FRAMES 100
+
+frame_t env[NUM_FRAMES];
 int env_top = -1;
 int max_offset = 0;
 
 void enter_var_frame() {
     env_top++;
     debug_i("entering frame:", env_top);
-    if (env_top >= 100) {
+    if (env_top >= NUM_FRAMES) {
         error("Too many frames");
     }
-    env[env_top].vars = calloc(sizeof(var_t), 100);
+    env[env_top].vars = calloc(sizeof(var_t), NUM_VARS);
     env[env_top].offset = env[env_top - 1].offset;
     env[env_top].num_vars = 0;
 }
@@ -47,7 +50,7 @@ var_t *add_constant_int(char *name, type_t*t, int value) {
     var_t *v;
     frame_t *f = &env[env_top];
 
-    if (f->num_vars >= 100) {
+    if (f->num_vars >= NUM_VARS) {
         error("Too many variables");
     }
     v = &(f->vars[f->num_vars]);
@@ -104,7 +107,7 @@ var_t *add_var(char *name, type_t *t) {
     v->name = name;
     v->t = t;
 
-    char buf[100] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, "'");
     strcat(buf, name);
     _strcat3(buf, "' frame[", env_top, "] ");
@@ -154,15 +157,13 @@ void dump_env() {
     int pos;
     var_t *var_ptr;
     for (pos = env_top; pos >= 0; pos--) {
-        char buf[100];
-        buf[0] = 0;
+        char buf[RCC_BUF_SIZE] = {0};
         _strcat3(buf, "env[", pos, "] ");
         _strcat3(buf, "vars:", env[pos].num_vars, "");
         _strcat3(buf, " offset:", env[pos].offset, "");
         debug_s("", buf);
         for (var_ptr = env[pos].vars; var_ptr->name != 0; var_ptr++) {
-            char buf[100];
-            buf[0] = 0;
+            char buf[RCC_BUF_SIZE] = {0};
             strcat(buf, var_ptr->name);
             _strcat3(buf, "=", var_ptr->offset, "\n");
             debug_s("", buf);

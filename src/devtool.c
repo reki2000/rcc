@@ -23,10 +23,10 @@ char *color_cyan = "\e[36m";
 char *color_white = "\e[37m";
 
 void _log(level_e level, char *message) {
-    char *color_str[5] = {color_red, color_red, "", color_yellow, ""};
-    char *level_str[5] = {"WARN ", "ERROR", "DEBUG", "INFO ", ""};
+    char *color_str[] = {color_red, color_red, "", color_yellow, ""};
+    char *level_str[] = {"WARN ", "ERROR", "DEBUG", "INFO ", ""};
 
-    char buf[1024] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, color_str[level]);
     strcat(buf, level_str[level]);
     strcat(buf, ": ");
@@ -43,13 +43,13 @@ void debug(char *str) {
 }
 
 void debug_i(char *str, int val) {
-    char buf[1024] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     _strcat3(buf, str, val, "");
     debug(buf);
 }
 
 void debug_s(char *str, char *val) {
-    char buf[1024] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str);
     strcat(buf, val);
     debug(buf);
@@ -63,13 +63,13 @@ void error(char *str) {
 }
 
 void error_i(char *str, int val) {
-    char buf[1024] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     _strcat3(buf, str, val, "");
     error(buf);
 }
 
 void error_s(char *str, char *val) {
-    char buf[1024] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str);
     strcat(buf, val);
     error(buf);
@@ -80,13 +80,13 @@ void warning(char *str) {
 }
 
 void warning_i(char *str, int val) {
-    char buf[1024] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     _strcat3(buf, str, val, "");
     warning(buf);
 }
 
 void warning_s(char *str, char *val) {
-    char buf[1024] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str);
     strcat(buf, val);
     warning(buf);

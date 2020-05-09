@@ -8,7 +8,9 @@
 #include "func.h"
 #include "atom.h"
 
-atom_t program[10000];
+#define NUM_ATOMS 10000
+
+atom_t program[NUM_ATOMS];
 int atom_pos = 1;
 
 char *atom_name[] = {
@@ -25,7 +27,7 @@ char *atom_name[] = {
 int alloc_atom(int size) {
     int current;
     current = atom_pos;
-    if (atom_pos + size >= 10000) {
+    if (atom_pos + size >= NUM_ATOMS) {
         error("Source code too long");
     }
     atom_pos += size;
@@ -56,7 +58,7 @@ void dump_atom(int pos, int indent) {
     dump_atom2(&program[pos], indent, pos);
 }
 void dump_atom2(atom_t *p, int indent, int pos) {
-    char buf[1024] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     dump_atom3(buf, p, indent, pos);
     debug_s("", buf);
 }
@@ -308,7 +310,7 @@ int atom_convert_type(int p1, int p2) {
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
     if (t1->ptr_to && t2->ptr_to && t2->ptr_to == find_type("void")) {
-        char buf[100] = {0};
+        char buf[RCC_BUF_SIZE] = {0};
         dump_type(buf, t2);
         strcat(buf, " -> ");
         dump_type(buf, t1);

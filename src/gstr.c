@@ -2,11 +2,14 @@
 #include "rstring.h"
 #include "devtool.h"
 
-char *gstrings[1024];
+#define NUM_GLOBAL_STRINGS 1024
+#define NUM_GLOBAL_ARRAY (1024*1024)
+
+char *gstrings[NUM_GLOBAL_STRINGS];
 int gstrings_len = 0;
 
 int add_global_string(char *name) {
-    if (gstrings_len >= 1024) {
+    if (gstrings_len >= NUM_GLOBAL_STRINGS) {
         error("Too many strings!");
     }
     for (int i=0; i<gstrings_len; i++) {
@@ -24,11 +27,13 @@ char *find_global_string(int index) {
 
 // 'global_array' is implemented as containing multiple lists in a array
 // [length] [val0] [val1] ... [length] [val0] [val1] ...
-int global_array[1024*1024];
+
+
+int global_array[NUM_GLOBAL_ARRAY];
 int global_array_len = 0;
 
 int alloc_global_array() {
-    if (global_array_len >= 1024*1024) {
+    if (global_array_len >= NUM_GLOBAL_ARRAY) {
         error("too much global array initializations");
     }
     global_array[global_array_len] = 0;

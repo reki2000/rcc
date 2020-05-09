@@ -3,7 +3,12 @@
 #include "types.h"
 #include "type.h"
 
-type_t types[1024];
+#define NUM_TYPES 1024
+#define NUM_ENUMS 1024
+#define NUM_STRUCTS 1024
+#define NUM_STRUCT_MEMBERS 100 // todo: this should be same with type.h 
+
+type_t types[NUM_TYPES];
 int types_pos = 0;
 
 void init_types() {
@@ -56,7 +61,7 @@ type_t *add_type(char* name, int size, type_t *prt_to, int array_length) {
     p->struct_of = 0;
     p->typedef_of = 0;
 
-    char buf[100] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, "added type:");
     dump_type(buf, p);
     debug(buf);
@@ -101,7 +106,7 @@ type_t *find_type(char *name) {
     return 0;
 }
 
-struct_t structs[1024];
+struct_t structs[NUM_STRUCTS];
 int structs_len = 0;
 
 type_t *find_struct_type(char *name, bool is_union) {
@@ -127,7 +132,7 @@ type_t *add_struct_union_type(char *name, bool is_union, bool is_anonymous) {
             return t;
         }
     }
-    if (structs_len > 1024) {
+    if (structs_len >= NUM_STRUCTS) {
         error_s("Too many structs:", name);
     }
     struct_t *s = &structs[structs_len++];
@@ -161,7 +166,7 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
     if (s == 0) {
         error_s("adding member to non struct type: ", st->name);
     }
-    if (s->num_members > 100) {
+    if (s->num_members > NUM_STRUCT_MEMBERS) {
         error_s("Too many struct members: ", name);
     }
     member_t *m = &(s->members[s->num_members++]);
@@ -199,7 +204,7 @@ member_t *find_struct_member(type_t *t, char *name) {
 }
 
 
-enum_t enums[1024];
+enum_t enums[NUM_ENUMS];
 int enums_len = 0;
 
 type_t *find_enum_type(char *name) {
@@ -220,7 +225,7 @@ type_t *add_enum_type(char *name) {
         return t;
     }
 
-    if (enums_len >= 1024) {
+    if (enums_len >= NUM_ENUMS) {
         error("too much enum definitions");
     }
 
