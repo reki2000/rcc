@@ -4,19 +4,23 @@
 #include "devtool.h"
 #include "file.h"
 
+#define NUM_FILES 1000
+#define NUM_INCLUDE_DIRS 100
+#define SIZE_FILE_BUF 1024*1024
+
 src_t *src;
 
-src_t src_files[100];
+src_t src_files[NUM_FILES];
 int src_file_len = 0;
 
-char *file_body[100];
+char *file_body[NUM_FILES];
 int file_body_len = 0;
 
-char *include_dirs[100];
+char *include_dirs[NUM_INCLUDE_DIRS];
 int include_dirs_len = 0;
 
 void add_include_dir(char *dir) {
-    if (include_dirs_len >= 100) {
+    if (include_dirs_len >= NUM_INCLUDE_DIRS) {
         error("too much include directories");
     }
     include_dirs[include_dirs_len++] = dir;
@@ -47,7 +51,7 @@ src_t *get_current_file() {
 int open_include_file(char *filename) {
     int i;
     for (i=0; i<include_dirs_len; i++) {
-        char path[200] = {0};
+        char path[RCC_BUF_SIZE] = {0};
         strcat(path, include_dirs[i]);
         strcat(path, "/");
         strcat(path, filename);
@@ -61,7 +65,7 @@ int open_include_file(char *filename) {
 }
 
 bool enter_file(char *filename) {
-    if (src_file_len >= 100) {
+    if (src_file_len >= NUM_FILES) {
         error("too much include files");
     }
 
@@ -69,7 +73,7 @@ bool enter_file(char *filename) {
 
     s->filename = filename;
 
-    file_body[file_body_len] = calloc(1, 1024 * 1024);
+    file_body[file_body_len] = calloc(1, SIZE_FILE_BUF);
     s->id = file_body_len;
     s->body = file_body[file_body_len];
     file_body_len++;
@@ -86,7 +90,7 @@ bool enter_file(char *filename) {
     int fd;
 
     if (src_file_len == 0) {
-        char *buf = calloc(1, 100);
+        char *buf = calloc(1, RCC_BUF_SIZE);
         dirname(buf, filename);
         add_include_dir(buf);
         fd = open(filename, 0);
@@ -97,7 +101,7 @@ bool enter_file(char *filename) {
     if (fd == -1) {
         error_s("cannot open include file: ", filename);
     }
-    s->len = read(fd, s->body, 1024*1024);
+    s->len = read(fd, s->body, SIZE_FILE_BUF);
     if (close(fd)) {
         debug_i("closing fd:", fd);
         error_s("error on closing file: ", filename);
@@ -149,7 +153,7 @@ src_t *file_info(int id) {
 }
 
 void dump_src() {
-    char buf[1000] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     src_t *s = file_info(0);
     strcat(buf, s->filename);
     debug_s("files:\n", buf);

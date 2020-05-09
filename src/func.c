@@ -8,7 +8,9 @@
 
 #include "func.h"
 
-func functions[1000];
+#define NUM_FUNCTIONS 1000
+
+func functions[NUM_FUNCTIONS];
 int function_pos = 0;
 int function_len = 0;
 
@@ -43,7 +45,7 @@ func *find_function(char *name, type_t *ret_type, int argc, var_t *argv) {
 }
 
 func *add_function(char *name, type_t *ret_type, bool is_external, int argc, var_t *argv) {
-    if (function_len >= 1000) {
+    if (function_len >= NUM_FUNCTIONS) {
         error("Too many functions");
     }
     func *f = find_function(name, ret_type, argc, argv);

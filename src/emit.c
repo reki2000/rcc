@@ -39,8 +39,7 @@ void out_x(char *fmt, int size) {
         debug_s(" ", fmt);
         error_i("unknown size:", size);
     }
-    char buf[1024];
-    buf[0] = 0;
+    char buf[RCC_BUF_SIZE] = {0};
     char *d = &buf[0];
     while (*fmt) {
         switch (*fmt) {
@@ -74,15 +73,13 @@ void out_x(char *fmt, int size) {
 }
 
 void out_int(char *str1, int i, char *str2) {
-    char buf[1024];
-    buf[0] = 0;
+    char buf[RCC_BUF_SIZE] = {0};
     _strcat3(buf, str1, i, str2);
     out(buf);
 }
 
 void out_int4(char *str1, char *str2, char *str3, int i, char *str4) {
-    char buf[1024];
-    buf[0] = 0;
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str1);
     strcat(buf, str2);
     _strcat3(buf, str3, i, str4);
@@ -90,16 +87,14 @@ void out_int4(char *str1, char *str2, char *str3, int i, char *str4) {
 }
 
 void out_intx(char *str1, char *str2, int i, char *str3, int size) {
-    char buf[1024];
-    buf[0] = 0;
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str1);
     _strcat3(buf, str2, i, str3);
     out_x(buf, size);
 }
 
 void out_str(char *str1, char *str2, char *str3) {
-    char buf[1024];
-    buf[0] = 0;
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str1);
     strcat(buf, str2);
     strcat(buf, str3);
@@ -107,8 +102,7 @@ void out_str(char *str1, char *str2, char *str3) {
 }
 
 void out_strx(char *str1, char *str2, char *str3, char *str4, int size) {
-    char buf[1024];
-    buf[0] = 0;
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str1);
     strcat(buf, str2);
     strcat(buf, str3);
@@ -131,9 +125,9 @@ void emit_int(int i, int size) {
 }
 
 void emit_string(char* str) {
-    char buf[1024];
+    char buf[RCC_BUF_SIZE] = {0};
     char *d;
-    buf[0] = 0;
+
     strcat(buf, ".string\t");
     d = buf + strlen(buf);
     *d++ = '"';
@@ -190,8 +184,7 @@ char *reg(int no, int size) {
 }
 
 void emit_var_arg_init(int no, int offset, int size) {
-    char buf[1000];
-    buf[0] = 0;
+    char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, size == 8 ? "movq" : size == 4 ? "movl" : "movzbl");
     strcat(buf, "\t");
     strcat(buf, reg(no, (size == 1) ? 4 : size));
@@ -404,13 +397,13 @@ void emit_print() {
 }
 
 void emit_label(int i) {
-    char buf[100] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     _strcat3(buf, ".L", i, "");
     out_label(buf);
 }
 
 void emit_global_label(int i) {
-    char buf[100] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     _strcat3(buf, ".G", i, "");
     out_label(buf);
 }
@@ -442,10 +435,12 @@ void emit_jmp_case(int i, int size) {
 
 int func_return_label;
 
+#define NUM_BREAK_LABELS 1000
+
 struct {
     int break_label;
     int continue_label;
-} break_labels[100];
+} break_labels[NUM_BREAK_LABELS];
 
 int break_label_top = -1;
 
@@ -462,7 +457,7 @@ int get_continue_label() {
     return break_labels[break_label_top].continue_label;
 }
 void enter_break_label(int break_label, int continue_label) {
-    if (break_label_top == 100) {
+    if (break_label_top >= NUM_BREAK_LABELS) {
         error("too many break label");
     }
     break_label_top++;
@@ -480,7 +475,7 @@ void exit_break_label() {
 void compile(int pos) {
     atom_t *p = &(program[pos]);
 
-    char ast_text[1000] = {0};
+    char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
     debug_s("compiling atom_t: ", ast_text);
 
@@ -723,7 +718,7 @@ void compile(int pos) {
             enter_break_label(l_end, 0);
             emit_jmp(l_table);
 
-            int case_label[200];
+            int case_label[RCC_BUF_SIZE];
             int case_label_index = 0;
             for (p = top_p + 1; p->type == TYPE_ARG; p++) {
                 int label = new_label();
@@ -851,7 +846,7 @@ void out_global_constant(var_t *v) {
 }
 
 void out_global_declare(var_t *v) {
-    char buf[100];
+    char buf[RCC_BUF_SIZE];
     buf[0] = 0;
     strcat(buf, ".comm	");
     strcat(buf, v->name);

@@ -2,7 +2,7 @@
 #include "types.h"
 
 void _strcati(char *dst, int i) {
-    char buf[100];
+    char buf[RCC_BUF_SIZE];
     int pos = 0;
     bool is_negative = FALSE;
     if (i < 0) {

@@ -7,7 +7,9 @@
 #include <token.h>
 #include <gstr.h>
 
-token tokens[1024 * 128];
+#define NUM_TOKENS  (1024*128)
+
+token tokens[NUM_TOKENS];
 int token_pos = 0;
 int token_len = 0;
 
@@ -19,7 +21,7 @@ void set_src_pos() {
 
 void skip() {
     int c = ch();
-    while (c == ' ' || c == '\t' || c == '\n' || c == '\\') {
+    while (c == ' ' || c == '\t' || c == '\n') {
         next();
         c = ch();
     }
@@ -142,7 +144,7 @@ bool tokenize_char(char *retval) {
 }
 
 bool tokenize_string(char **retval) {
-    char buf[1024];
+    char buf[RCC_BUF_SIZE];
     int buf_pos = 0;
     char *str;
     int i;
@@ -180,9 +182,8 @@ bool tokenize_string(char **retval) {
 
 bool tokenize_ident(char **retval) {
     bool is_first = TRUE;
-    char buf[100];
+    char buf[RCC_BUF_SIZE];
     int buf_pos = 0;
-    int i;
 
     skip();
     for (;;) {
@@ -196,22 +197,18 @@ bool tokenize_ident(char **retval) {
             break;
         }
     }
+    buf[buf_pos] = 0;
 
     if (buf_pos == 0) {
         return FALSE;
     }
 
-    char *str = malloc(buf_pos + 1);
-    for (i=0; i<buf_pos; i++) {
-        str[i] = buf[i];
-    }
-    str[i] = 0;
-    *retval = str;
+    *retval = strdup(buf);
     return TRUE;
 }
 
 void add_token(token_id id) {
-    if (token_len >= 1024 * 128) {
+    if (token_len >= NUM_TOKENS) {
         error("Too much tokens");
     }
     tokens[token_len].id = id;
@@ -246,7 +243,7 @@ void add_ident_token(char *s) {
 
 void dump_tokens() {
     int i = token_pos;
-    char buf[1000] = {0};
+    char buf[RCC_BUF_SIZE] = {0};
     token *t = &tokens[i];
     token *t_next = &tokens[i+1];
 
@@ -265,7 +262,7 @@ void tokenize();
 
 void directive_include() {
     if (accept_char('\"')) {
-        char filename[100];
+        char filename[RCC_BUF_SIZE];
         int i=0;
         while (ch() != '\"') {
             if (i>=100) {
@@ -318,7 +315,8 @@ void preprocess() {
 
 void tokenize() {
     while (!is_eof()) {
-        if (accept_char('#')) {
+        if (accept_string("\\\n")) {
+        } else if (accept_char('#')) {
             preprocess();
         } else if (accept_string("!=")) {
             add_token(T_NE);
@@ -468,7 +466,7 @@ void tokenize() {
                     add_ident_token(str);
                 }
             } else {
-                char buf[100] = {0};
+                char buf[RCC_BUF_SIZE] = {0};
                 strcat(buf, "Invalid token: ");
                 strcat(buf, src->filename);
                 _strcat3(buf, ":", src->line, "");

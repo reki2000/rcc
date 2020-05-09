@@ -3,3 +3,5 @@ typedef enum {
     TRUE = 1
 } bool;
 
+
+#define RCC_BUF_SIZE 1024

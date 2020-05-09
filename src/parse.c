@@ -833,6 +833,8 @@ int parse_default_clause() {
     return 0;
 }
 
+#define NUM_CASE_CLAUSES 200
+
 int parse_switch_statement() {
     if (!expect(T_SWITCH)) {
         return 0;
@@ -850,9 +852,9 @@ int parse_switch_statement() {
     if (!expect(T_LBLACE)) {
         error("no body for 'switch'");
     }
-    int body_pos[201];
+    int body_pos[NUM_CASE_CLAUSES + 1];
     int n;
-    for (n=1; n<200; n++) {
+    for (n=1; n<NUM_CASE_CLAUSES; n++) {
         int pos_case = parse_case_clause();
         if (!pos_case) {
             break;
@@ -1290,7 +1292,7 @@ var_t *add_var_with_check(type_t *t, char *name) {
     }
 
     if (v->t->ptr_to && !type_is_same(v->t->ptr_to, t->ptr_to)) {
-        char buf[1000] = {0};
+        char buf[RCC_BUF_SIZE] = {0};
         strcat(buf, "variable is already declared with different type: ");
         strcat(buf, v->name);
         strcat(buf, " ");

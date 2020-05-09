@@ -4,11 +4,13 @@
 #include "file.h"
 #include "macro.h"
 
-macro_t macros[1000];
+#define NUM_MACROS 1000
+
+macro_t macros[NUM_MACROS];
 int macro_len = 0;
 
 void add_macro(const char *name, int start_pos, int end_pos) {
-    if (macro_len >= 1000) {
+    if (macro_len >= NUM_MACROS) {
         error("too many macros");
     }
     macro_t *m = &macros[macro_len++];
