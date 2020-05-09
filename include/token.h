@@ -42,6 +42,7 @@ typedef struct {
     int src_line;
     int src_column;
     int src_pos;
+    int src_end_pos;
 } token;
 
 extern bool expect(token_id id);

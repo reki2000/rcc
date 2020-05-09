@@ -41,7 +41,6 @@ bool accept_char(char c) {
     skip();
     if (ch() == c) {
         next();
-        skip();
         return TRUE;
     }
     return FALSE;
@@ -57,7 +56,6 @@ bool accept_string(char *str) {
         }
         next();
     }
-    skip();
     return TRUE;
 }
 
@@ -73,7 +71,6 @@ bool accept_ident(char *str) {
     }
     int c = ch();
     if (!is_alpha(c) && !is_digit(c) && c != '_') {
-        skip();
         return TRUE;
     }
     src->pos = old_pos;
@@ -155,7 +152,7 @@ bool tokenize_string(char **retval) {
     }
     next();
     for (;;) {
-        if (buf_pos >= 1024) {
+        if (buf_pos >= RCC_BUF_SIZE) {
             error("String too long");
         }
         int c = ch();
@@ -207,55 +204,65 @@ bool tokenize_ident(char **retval) {
     return TRUE;
 }
 
-void add_token(token_id id) {
+token *add_token(token_id id) {
     if (token_len >= NUM_TOKENS) {
         error("Too much tokens");
     }
-    tokens[token_len].id = id;
-    tokens[token_len].src_id = src->id;
-    tokens[token_len].src_line = src->prev_line;
-    tokens[token_len].src_column = src->prev_column;
-    tokens[token_len].src_pos = src->prev_pos;
+
+    token *t=&tokens[token_len++];
+    t->id = id;
+    t->src_id = src->id;
+    t->src_line = src->prev_line;
+    t->src_column = src->prev_column;
+    t->src_pos = src->prev_pos;
+    t->src_end_pos = src->pos - 1;
 
     set_src_pos();
-    token_len++;
+
+    return t;
 }
 
 void add_int_token(int val) {
-    add_token(T_INT);
-    tokens[token_len - 1].int_value = val;
+    token *t = add_token(T_INT);
+    t->int_value = val;
 }
 
 void add_string_token(char *val) {
-    add_token(T_STRING);
-    tokens[token_len - 1].str_value = val;
+    token *t = add_token(T_STRING);
+    t->str_value = val;
 }
 
 void add_char_token(char val) {
-    add_token(T_CHAR);
-    tokens[token_len - 1].char_value = val;
+    token *t = add_token(T_CHAR);
+    t->char_value = val;
 }
 
 void add_ident_token(char *s) {
-    add_token(T_IDENT);
-    tokens[token_len - 1].str_value = s;
+    token *t = add_token(T_IDENT);
+    t->str_value = s;
 }
 
-void dump_tokens() {
-    int i = token_pos;
-    char buf[RCC_BUF_SIZE] = {0};
-    token *t = &tokens[i];
-    token *t_next = &tokens[i+1];
+void dump_token(int pos, token *t) {
+    src_t *s = file_info(t->src_id);
 
-    src_t *s = file_info(0);
-    strcat(buf, (i == token_pos - 1) ? "*" : " ");
+    char buf[RCC_BUF_SIZE] = {0};
+    _strcat3(buf, "#:", pos, " ");
     _strcat3(buf, "id:", t->id, " ");
-    _strcat3(buf, "#", t->src_id, " ");
+    _strcat3(buf, "src_id:", t->src_id, " ");
     strcat(buf, s->filename);
     _strcat3(buf, ":", t->src_line, "");
     _strcat3(buf, ":", t->src_column, "\n");
-    strcat(buf, dump_file2(t->src_id, t->src_pos, t_next->src_pos - 1));
+    strcat(buf, dump_file2(t->src_id, t->src_pos, t->src_end_pos));
     debug_s("token:", buf);
+}
+
+void dump_tokens() {
+    for (int i = token_pos - 2; i <= token_pos; i++) {
+        if (i<0 || i>=token_len) {
+            continue;
+        }
+        dump_token(i, &tokens[i]);
+    }
 }
 
 void tokenize();

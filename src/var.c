@@ -8,7 +8,7 @@
 #include "func.h"
 #include "atom.h"
 
-#define NUM_VARS 1000
+#define NUM_VARS 10000
 #define NUM_FRAMES 100
 
 frame_t env[NUM_FRAMES];
@@ -51,7 +51,7 @@ var_t *add_constant_int(char *name, type_t*t, int value) {
     frame_t *f = &env[env_top];
 
     if (f->num_vars >= NUM_VARS) {
-        error("Too many variables");
+        error("Too many constants");
     }
     v = &(f->vars[f->num_vars]);
     f->num_vars++;
@@ -86,7 +86,7 @@ var_t *add_var(char *name, type_t *t) {
     var_t *v;
     frame_t *f = &env[env_top];
 
-    if (f->num_vars >= 100) {
+    if (f->num_vars >= NUM_VARS) {
         error("Too many variables");
     }
     v = &(f->vars[f->num_vars]);
