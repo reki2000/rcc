@@ -25,6 +25,11 @@ typedef struct type_t {
     char *name;
     type_t *ptr_to;
     int array_length;
+    /*
+     *  -1: not array
+     *  0: array without size specification (ptr_to must be set)
+     *  1: array of size >1 (ptr_to must be set)
+     */
     struct_t *struct_of;
     enum_t *enum_of;
     type_t *typedef_of;
@@ -49,3 +54,4 @@ extern member_t *find_struct_member(type_t *, char *);
 void copy_union_member_to_struct(type_t *st, type_t *ut);
 
 extern type_t *add_enum_type(char *);
+

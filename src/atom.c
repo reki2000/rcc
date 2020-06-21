@@ -245,14 +245,24 @@ int alloc_func_atom(func *f) {
 int alloc_index_atom(int base_pos, int index_pos) {
     int pos = base_pos;
     type_t *t = atom_type(pos);
-    if (t->ptr_to->array_length >= 0) {
-        t = add_pointer_type(t->ptr_to->ptr_to);
+    type_t *tt = t->ptr_to; // type of base
+    if (tt->array_length >= 0) { // base is an array
+        debug("alloc array index for array: ");
+        dump_atom_tree(base_pos, 0);
+        t = add_pointer_type(tt->ptr_to);
+    } else if (tt->ptr_to) { // base is a pointer
+        debug("alloc array index for pointer: ");
+        dump_atom_tree(base_pos, 0);
+        char buf[RCC_BUF_SIZE] = {0};
+        dump_type(buf, tt);
+        warning_s("implicit convertion from pointer to array: ", buf);
+        t = tt;
+        pos = alloc_deref_atom(pos);
     } else {
         dump_atom_tree(base_pos, 0);
         dump_atom_tree(index_pos, 0);
         error_i("index for non-array atom #" , pos);
     }
-
     int size = alloc_typed_int_atom(TYPE_INTEGER, t->ptr_to->size, find_type("int"));
     int pos2 = alloc_binop_atom(TYPE_ARRAY_INDEX, pos, alloc_binop_atom(TYPE_MUL, atom_to_rvalue(index_pos), size));
     atom_set_type(pos2, t);
