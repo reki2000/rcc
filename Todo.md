@@ -46,29 +46,29 @@
 
 - [x] multi-dimension array
 
-- [*] operators += -= *= /= %= |= &= ^=
-- [*] multiple expressions with comma
+- [x] operators += -= *= /= %= |= &= ^=
+- [x] multiple expressions with comma
 
-- [*] local variable initialization
-- [*] global variable initialization for int
+- [x] local variable initialization
+- [x] global variable initialization for int
 
-- [*] union
-- [*] enum
+- [x] union
+- [x] enum
 
-- [*] typedef
-- [*] enum declaration
-- [*] union/struct declaration
+- [x] typedef
+- [x] enum declaration
+- [x] union/struct declaration
 
-- [*] sizeof
+- [x] sizeof
 
-- [*] break, continue
+- [x] break, continue
 
-- [*] switch case
-- [*] ternary operator ?:
+- [x] switch case
+- [x] ternary operator ?:
 
-- [*] function prototype declaration
+- [x] function prototype declaration
 
-- [*] extern variable 
+- [x] extern variable 
   - w/ extern
    - w/ init : .data, @global, WARN: 'initialized and declared 'extern'
    - w/o init : no declaration, only reference in code, duplicate OK
@@ -76,35 +76,35 @@
    - w/ init : .data, @global, duplicate OK, duplicate init NG
    - w/o init : .comm, not @global, duplicate OK
 
-- [*] extern function
+- [x] extern function
 
-- [*] inline comment
-- [*] multiline comment
+- [x] inline comment
+- [x] multiline comment
 
-- [*] include
+- [x] include
 
-- [*] compiler options (-S)? 
+- [x] compiler options (-S)? 
 
-- [*] refactor : remove _read, _write etc.
+- [x] refactor : remove _read, _write etc.
 
-- [*] allow variable declaration in middle of block
-- [*] array initialization
+- [x] allow variable declaration in middle of block
+- [x] array initialization
 
 
 ## New Era
 
-- [*] const classifier (just ignoring)
-- [*] anonymous union in struct
-- [*] implicit cast for char -> int/long, int -> char/long, long- > char/int
-- [*] implicit but warned cast for void* -> any pointers
-- [*] add warning level for logging
-- [*] local multiple variable definition
-- [*] array initializer for non-sized array declaration
-- [*] variable declaration in the first clause of 'for'
-- [*] cast
-- [*] global variable initializer for string literals
-- [*] empty statement for 'for'
-- [*] define value
+- [x] const classifier (just ignoring)
+- [x] anonymous union in struct
+- [x] implicit cast for char -> int/long, int -> char/long, long- > char/int
+- [x] implicit but warned cast for void* -> any pointers
+- [x] add warning level for logging
+- [x] local multiple variable definition
+- [x] array initializer for non-sized array declaration
+- [x] variable declaration in the first clause of 'for'
+- [x] cast
+- [x] global variable initializer for string literals
+- [x] empty statement for 'for'
+- [x] define value
 
 ## A.D. (self hosted)
 
