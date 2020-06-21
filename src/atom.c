@@ -324,8 +324,17 @@ int atom_convert_type(int p1, int p2) {
         warning_s("implicit pointer conversion: ", buf);
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
-    dump_atom_tree(p1, 0);
-    dump_atom_tree(p2, 0);
+    if (t1->enum_of && t2 == find_type("int")) {
+        char buf[RCC_BUF_SIZE] = {0};
+        dump_type(buf, t2);
+        strcat(buf, " -> ");
+        dump_type(buf, t1);
+        debug_s("implicit enum conversion: ", buf);
+        return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
+    }
+    debug("not compatible type");
+    dump_atom_tree(p1, 1);
+    dump_atom_tree(p2, 1);
     error("not compatible type");
     return 0;
 }
