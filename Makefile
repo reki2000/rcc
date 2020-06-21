@@ -24,3 +24,6 @@ clean:
 
 stage1: clean $(PROG)
 	cd stage1 && make
+
+test: clean $(PROG)
+	test/test.sh
