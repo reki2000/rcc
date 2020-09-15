@@ -715,10 +715,11 @@ int parse_ternary(int eq_pos) {
         if (!val2) {
             error("nosecond value for ternary operator");
         }
-        int pos = alloc_atom(3);
-        build_pos_atom(pos, TYPE_TERNARY, eq_pos);
-        build_pos_atom(pos+1, TYPE_ARG, val1);
-        build_pos_atom(pos+2, TYPE_ARG, val2);
+        int first = atom_to_rvalue(val1);
+        int second = atom_to_rvalue(val2);
+        int pos = alloc_typed_pos_atom(TYPE_TERNARY, atom_to_rvalue(eq_pos), atom_type(first));
+        alloc_ptr_atom(first);
+        alloc_ptr_atom(second);
         return pos;
     }
     return 0;
