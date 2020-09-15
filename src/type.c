@@ -57,9 +57,9 @@ type_t *add_type(char* name, int size, type_t *prt_to, int array_length) {
     p->size = size;
     p->ptr_to = prt_to;
     p->array_length = array_length;
-    p->enum_of = 0;
-    p->struct_of = 0;
-    p->typedef_of = 0;
+    p->enum_of = (void *)0;
+    p->struct_of = (void *)0;
+    p->typedef_of = (void *)0;
 
     char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, "added type:");
@@ -125,7 +125,7 @@ type_t *find_struct_type(char *name, bool is_union) {
 }
 
 type_t *add_struct_union_type(char *name, bool is_union, bool is_anonymous) {
-    type_t *t = 0;
+    type_t *t = (void *)0;
     if (!is_anonymous) {
         t = find_struct_type(name, is_union);
         if (t) {
