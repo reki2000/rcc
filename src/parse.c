@@ -427,8 +427,10 @@ int parse_sizeof() {
     if (!pos) {
         pos = parse_unary();
         if (pos) {
-            int rval = atom_to_rvalue(pos);
-            int size = program[rval].t->size;
+            if (program[pos].t->array_length < 0) {
+                pos = atom_to_rvalue(pos);
+            }
+            int size = program[pos].t->size;
             pos = alloc_typed_int_atom(TYPE_INTEGER, size, find_type("int"));
         } else {
             error("invliad expr after sizeof");
@@ -684,13 +686,13 @@ int parse_postfix_assignment(int pos) {
     return alloc_assign_op_atom(op, pos, atom_to_rvalue(expr_pos));
 }
 
-int parse_variable_initializer(int lval) {
-    int rval = parse_expr();
-    if (!rval) {
+int parse_variable_initializer(int lhs) {
+    int rhs = parse_expr();
+    if (!rhs) {
         error("cannot bind - no rvalue");
     }
-    rval = atom_convert_type(atom_to_rvalue(lval), atom_to_rvalue(rval));
-    return alloc_binop_atom(TYPE_BIND, rval, lval);
+    rhs = atom_convert_type(atom_to_rvalue(lhs), atom_to_rvalue(rhs));
+    return alloc_binop_atom(TYPE_BIND, rhs, lhs);
 }
 
 int parse_assignment(int lval) {

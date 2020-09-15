@@ -478,6 +478,7 @@ void compile(int pos) {
     char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
     debug_s("compiling atom_t: ", ast_text);
+    dump_token_by_id(p->token_pos);
 
     switch (p->type) {
         case TYPE_VAR_REF:
@@ -540,7 +541,7 @@ void compile(int pos) {
             compile(p->atom_pos);
             compile((p+1)->atom_pos);
             switch (p->type) {
-                case TYPE_ARRAY_INDEX:
+                case TYPE_ARRAY_INDEX: emit_add(8); break;
                 case TYPE_MEMBER_OFFSET:
                 case TYPE_ADD: emit_add(p->t->size); break;
                 case TYPE_SUB: emit_sub(p->t->size); break;
