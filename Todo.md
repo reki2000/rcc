@@ -106,6 +106,10 @@
 - [x] empty statement for 'for'
 - [x] define value
 
+## bugs
+
+- [ ] test 066 (assignment from fixed-length-array to pointer) fails
+
 ## A.D. (self hosted)
 
 - [ ] refactor : remove printi statement, replace with `void printi(int i) { printf("%d\n",i); }`

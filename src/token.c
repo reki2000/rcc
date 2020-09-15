@@ -256,6 +256,10 @@ void dump_token(int pos, token *t) {
     debug_s("token:", buf);
 }
 
+void dump_token_by_id(int pos) {
+    dump_token(pos, &tokens[pos]);
+}
+
 void dump_tokens() {
     for (int i = token_pos - 2; i <= token_pos; i++) {
         if (i<0 || i>=token_len) {

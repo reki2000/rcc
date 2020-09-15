@@ -57,3 +57,4 @@ extern void set_token_pos(int pos);
 extern bool is_eot();
 
 extern void dump_tokens();
+extern void dump_token_by_id(int pos);

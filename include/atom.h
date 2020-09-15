@@ -65,6 +65,7 @@ typedef struct {
         long long_value;
         int atom_pos;
     };
+    int token_pos;
 } atom_t;
 
 extern atom_t program[];
