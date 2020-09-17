@@ -5,17 +5,25 @@ void _strcati(char *dst, int i) {
     char buf[100];
     int pos = 0;
     int val = i;
-    for (;;) {
-        int mod = val % 10;
-        buf[pos++] = '0' +((mod >= 0) ? mod : -mod);
-        val /= 10;
-        if (val == 0) {
-            break;
-        }
+    bool is_negative = FALSE;
+    if (val == -2147483648) {
+        // INT_MIN cannot be negated 
+        strcat(dst, "-2147483648");
+        return;
+    }
+    if (val < 0) {
+        val = -val;
+        is_negative = TRUE;
     }
 
+    do {
+        int mod = val % 10;
+        buf[pos++] = '0' + mod;
+        val /= 10;
+    } while (val > 0);
+
     dst += strlen(dst);
-    if (i < 0) {
+    if (is_negative) {
         *dst++ = '-';
     }
 
