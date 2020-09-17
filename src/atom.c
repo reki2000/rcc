@@ -44,6 +44,9 @@ void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
     _strcat3(buf, "atom#", pos, ",[");
     strcat(buf, atom_name[p->type]);
     strcat(buf, "] value:");
+    if (!p) {
+        error_s("null atom for:", buf);
+    }
     switch (p->type) {
         case TYPE_APPLY:
             strcat(buf, ((func *)(p->ptr_value))->name);
@@ -56,6 +59,7 @@ void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
     strcat(buf, " t:");
     dump_type(buf, p->t);
     _strcat3(buf, " token:", p->token_pos, " ");
+    dump_token_by_id(p->token_pos);
 }
 
 void dump_atom(int pos, int indent) {
