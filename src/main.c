@@ -7,7 +7,7 @@ extern void add_include_dir(char *);
 extern int parse();
 extern void emit();
 
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
     int arg_index;
     bool out_asm_source = FALSE;
 
