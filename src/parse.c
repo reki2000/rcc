@@ -16,10 +16,9 @@ int parse_primary();
 int parse_prefix();
 int parse_unary();
 type_t *parse_type_declaration();
-type_t *parse_pointer();
+type_t *parse_pointer(type_t *t);
 int parse_local_variable_declaration();
 bool expect_int_expr(int *v);
-
 
 bool expect_enum_member(int *v) {
     int pos = get_token_pos();
@@ -87,6 +86,7 @@ bool expect_int_term(int *v) {
         return FALSE;
     }
 
+    pos = get_token_pos();
     for (;;) {
         int op;
         if (expect(T_ASTERISK)) {
@@ -101,7 +101,7 @@ bool expect_int_term(int *v) {
         int v2;
         if (!expect_int_factor(&v2)) {
             set_token_pos(pos);
-            return FALSE;
+            return TRUE;
         }
         if (op == 0) {
             *v *= v2;
@@ -121,21 +121,22 @@ bool expect_int_expr(int *v) {
         return FALSE;
     }
 
+    pos = get_token_pos();
     for (;;) {
-        bool is_plus = TRUE;
+        bool op_is_plus = TRUE;
         if (expect(T_MINUS)) {
-            is_plus = FALSE;
+            op_is_plus = FALSE;
         } else if (!expect(T_PLUS)) {
             break;
         }
         int v2;
         if (!expect_int_term(&v2)) {
             set_token_pos(pos);
-            return FALSE;
+            return TRUE;
         }
         debug_i("found added constant:", *v);
         debug_i("found added constant:", v2);
-        if (is_plus) {
+        if (op_is_plus) {
             *v += v2;
         } else {
             *v -= v2;
@@ -170,7 +171,6 @@ int parse_int_literal() {
 
 int parse_literal() {
     int pos;
-
     pos = parse_string();
     if (pos) return pos;
 
@@ -192,7 +192,6 @@ var_t *parse_var_name() {
     }
     var_t *v = find_var(ident);
     if (!v) {
-        debug_s("variable not declared: ", ident);
         set_token_pos(pos);
         return 0;
     }
@@ -324,7 +323,6 @@ int parse_postfix_incdec(int pos) {
 
 int parse_postfix() {
     int pos;
-
     pos = parse_primary();
     if (!pos) {
         pos = parse_apply_func();
@@ -548,7 +546,7 @@ int parse_add() {
     for (;;) {
         int rpos;
         int type;
-        if (expect(T_PLUS)) {
+    if (expect(T_PLUS)) {
             type = TYPE_ADD;
         } else if (expect(T_MINUS)) {
             type = TYPE_SUB;
@@ -716,10 +714,13 @@ int parse_ternary(int eq_pos) {
             error("nosecond value for ternary operator");
         }
         int first = atom_to_rvalue(val1);
+        type_t *first_t = program[first].t;
         int second = atom_to_rvalue(val2);
-        int pos = alloc_typed_pos_atom(TYPE_TERNARY, atom_to_rvalue(eq_pos), atom_type(first));
-        alloc_ptr_atom(first);
-        alloc_ptr_atom(second);
+        type_t *second_t = program[second].t;
+
+        int pos = alloc_typed_pos_atom(TYPE_TERNARY, atom_to_rvalue(eq_pos), first_t);
+        alloc_typed_pos_atom(TYPE_ARG, first, first_t);
+        alloc_typed_pos_atom(TYPE_ARG, second, second_t);
         return pos;
     }
     return 0;
@@ -1368,7 +1369,7 @@ int parse_global_var_initializer() {
         return num;
     }
 
-    char *str = 0;
+    char *str = (void *)0;
     if (expect_string(&str)) {
         return add_global_string(str);
     }
@@ -1430,7 +1431,7 @@ int parse_global_variable(type_t *t, bool is_external) {
         if (v->t->array_length >= 0) {
             v->int_value = parse_global_var_array_initializer(v, v->t->array_length);
         } else {
-            v->int_value = parse_global_var_initializer(v);
+            v->int_value = parse_global_var_initializer();
         }
         v->has_value = TRUE;
     }
@@ -1483,7 +1484,7 @@ int parse_array_initializer(var_t *v, int array, int array_length) {
                 a = &program[(a)->int_value];
             } else {
                 bind_atom = a;
-                a = 0; // exit loop
+                a = (void *)0; // exit loop
             }
             if (bind_atom->type == TYPE_BIND) {
                 atom_t *array_index_atom = &program[(bind_atom+1)->int_value];
