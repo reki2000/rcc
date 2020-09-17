@@ -22,33 +22,35 @@ void init_types() {
 void dump_type(char buf[], type_t *t) {
     type_t *t_org = t;
 
-    if (t) {
-        while (t->ptr_to) {
-            if (t->array_length >= 0) {
-                _strcat3(buf, "[", t->array_length, "]");
-            } else {
-                strcat(buf, "*");
-            }
-            t = t->ptr_to;
-        }
-
-        if (t->struct_of) {
-            if (t->struct_of->is_union) {
-                strcat(buf, "union ");
-            } else {
-                strcat(buf, "struct ");
-            }
-            strcat(buf, t->struct_of->name);
-        } else if (t->enum_of) {
-            strcat(buf, "enum ");
-            strcat(buf, t->enum_of->name);
-        } else {
-            strcat(buf, t->name);
-        }
-       _strcat3(buf, " size:", t_org->size, "");
-    } else {
+    if (!t) {
         strcat(buf, "?");
+        return;
     }
+    while (t && t->ptr_to) {
+        if (t->array_length > 0) {
+            _strcat3(buf, "[", t->array_length, "]");
+        } else if (t->array_length == 0) {
+            strcat(buf, "[]");
+        } else {
+            strcat(buf, "*");
+        }
+        t = t->ptr_to;
+    }
+
+    if (t->struct_of) {
+        if (t->struct_of->is_union) {
+            strcat(buf, "union ");
+        } else {
+            strcat(buf, "struct ");
+        }
+        strcat(buf, t->struct_of->name);
+    } else if (t->enum_of) {
+        strcat(buf, "enum ");
+        strcat(buf, t->enum_of->name);
+    } else {
+        strcat(buf, t->name);
+    }
+    _strcat3(buf, " size:", t_org->size, "");
 }
 
 type_t *add_type(char* name, int size, type_t *prt_to, int array_length) {
