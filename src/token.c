@@ -1,11 +1,11 @@
-#include <rsys.h>
-#include <rstring.h>
-#include <devtool.h>
-#include <types.h>
-#include <file.h>
-#include <macro.h>
-#include <token.h>
-#include <gstr.h>
+#include "rsys.h"
+#include "rstring.h"
+#include "devtool.h"
+#include "types.h"
+#include "file.h"
+#include "macro.h"
+#include "token.h"
+#include "gstr.h"
 
 #define NUM_TOKENS  (1024*128)
 
