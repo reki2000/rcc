@@ -58,7 +58,7 @@ function run {
 
 set -e
 
-CC=../bin/rekicc
+CC=../bin/rcc
 LD=cc
 DEBUG_LOG=out/debug.log
 DEBUG_BIN=out/test.out

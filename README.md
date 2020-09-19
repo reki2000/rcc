@@ -1,4 +1,4 @@
-# rekicc
+# rcc
 ## What"s this ?
 
 This is an experimental tiny subset of C language compiler inspired by [9cc](https://github.com/rui314/9cc). Will grow toward enabing self-compile.

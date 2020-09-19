@@ -4,7 +4,7 @@ CC = gcc
 CFLAGS = -g -Wall -Wextra -I./include
 RM = rm -f
 
-PROG      = bin/rekicc
+PROG      = bin/rcc
 SRCDIR    = ./src
 SOURCES   = $(wildcard $(SRCDIR)/*.c)
 OBJDIR    = ./out
