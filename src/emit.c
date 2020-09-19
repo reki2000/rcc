@@ -13,8 +13,10 @@
 
 #include "parse.h"
 
+int output_fd = 1;
+
 void _write(char *s) {
-    write(1, s, strlen(s));
+    write(output_fd, s, strlen(s));
 }
 
 void out_comment(char *str) {
@@ -880,7 +882,9 @@ void out_global_declare(var_t *v) {
     out(buf);
 }
 
-void emit() {
+void emit(int fd) {
+    output_fd = fd;
+    
     out(".file	\"main.c\"");
     out("");
 
@@ -915,7 +919,7 @@ void emit() {
 
     func *f = &functions[0];
     while (f->name != 0) {
-        if (!f->is_external) {
+        if (f->body_pos != 0) {
             debug_s(f->name, " --------------------- ");
             dump_atom_tree(f->body_pos, 0);
             compile_func(f);
