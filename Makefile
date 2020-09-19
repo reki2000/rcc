@@ -4,7 +4,7 @@ CC = gcc
 CFLAGS = -g -Wall -Wextra -I./include
 RM = rm -f
 
-PROG      = bin/rekicc
+PROG      = bin/rcc
 SRCDIR    = ./src
 SOURCES   = $(wildcard $(SRCDIR)/*.c)
 OBJDIR    = ./out
@@ -22,5 +22,8 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 clean:
 	$(RM) $(PROG) $(OBJDIR)/* test/out/* core test/core
 
-stage2: clean $(PROG)
-	cd stage2 && make
+stage1: clean $(PROG)
+	cd stage1 && make clean && make
+
+test: clean $(PROG)
+	test/test.sh

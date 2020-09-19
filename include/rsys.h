@@ -7,3 +7,5 @@ extern int write(int, char *, int);
 
 extern void *calloc(long, long);
 extern void *malloc(long);
+
+extern int isatty(int);

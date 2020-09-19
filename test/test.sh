@@ -39,7 +39,7 @@ function check_result {
 }
 
 function check_error {
-    if [ ! -f $1 ]; then
+    if [ ! -f "$1" ]; then
       fatal "unexpected compiler error" $DEBUG_LOG
     fi
 
@@ -58,7 +58,7 @@ function run {
 
 set -e
 
-CC=../bin/rekicc
+CC=../bin/rcc
 LD=cc
 DEBUG_LOG=out/debug.log
 DEBUG_BIN=out/test.out
@@ -66,7 +66,7 @@ DEBUG_ASM=out/test.s
 
 function all {
     for t in 0*; do
-        run "$t"
+        run $t
     done
 }
 
@@ -74,6 +74,6 @@ if [ -z "$1" ]; then
     all
 else
     for t in ${1}*; do
-        run "$t"
+        run $t
     done
 fi

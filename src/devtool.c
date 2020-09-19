@@ -27,12 +27,13 @@ void _log(level_e level, char *message) {
     char *level_str[] = {"WARN ", "ERROR", "DEBUG", "INFO ", ""};
 
     char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, color_str[level]);
+    bool tty = isatty(2);
+    if (tty) strcat(buf, color_str[level]);
     strcat(buf, level_str[level]);
     strcat(buf, ": ");
     strcat(buf, message);
     strcat(buf, "\n");
-    if (color_str[level] != color_white) {
+    if (tty && color_str[level] != color_white) {
         strcat(buf, color_white);
     }
     write(2, buf, strlen(buf));

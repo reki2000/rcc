@@ -13,8 +13,10 @@
 
 #include "parse.h"
 
+int output_fd = 1;
+
 void _write(char *s) {
-    write(1, s, strlen(s));
+    write(output_fd, s, strlen(s));
 }
 
 void out_comment(char *str) {
@@ -34,6 +36,12 @@ void out(char *str) {
     _write("\n");
 }
 
+/**
+ * Build a proper assembly instruction which suits for the specified size.
+ * ex:
+ *   movX Zedx, %Zax (size=4) --> movl %edx, %eax
+ *   addX $2, %Zdi   (size=1) --> addb $2, %dil
+ */
 void out_x(char *fmt, int size) {
     if (size != 8 && size != 4 && size != 1) {
         debug_s(" ", fmt);
@@ -180,14 +188,28 @@ char *reg(int no, int size) {
     char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9" };
     char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d" };
     char *regs1[] = { "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b" };
-    return size == 8 ? regs8[no] : size == 4 ? regs4[no] : regs1[no];
+    switch (size) {
+        case 8: return regs8[no];
+        case 4: return regs4[no];
+        case 1: return regs1[no];
+        default: error_i("invalid size for reg:", size); return (void *)0;
+    }
 }
 
 void emit_var_arg_init(int no, int offset, int size) {
     char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, size == 8 ? "movq" : size == 4 ? "movl" : "movzbl");
+    if (size == 1) {
+        strcat(buf, "movzbl\t");
+        strcat(buf, reg(no, 1));
+        strcat(buf, ",\t");
+        strcat(buf, reg(no, 4));
+        out(buf);
+        size = 4;
+        buf[0] = '\0';
+    }
+    strcat(buf, size == 8 ? "movq" : "movl");
     strcat(buf, "\t");
-    strcat(buf, reg(no, (size == 1) ? 4 : size));
+    strcat(buf, reg(no, size));
     strcat(buf, ", ");
     out_int(buf, -offset, "(%rbp)");
 }
@@ -478,6 +500,7 @@ void compile(int pos) {
     char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
     debug_s("compiling atom_t: ", ast_text);
+    dump_token_by_id(p->token_pos);
 
     switch (p->type) {
         case TYPE_VAR_REF:
@@ -540,7 +563,7 @@ void compile(int pos) {
             compile(p->atom_pos);
             compile((p+1)->atom_pos);
             switch (p->type) {
-                case TYPE_ARRAY_INDEX:
+                case TYPE_ARRAY_INDEX: emit_add(8); break;
                 case TYPE_MEMBER_OFFSET:
                 case TYPE_ADD: emit_add(p->t->size); break;
                 case TYPE_SUB: emit_sub(p->t->size); break;
@@ -787,6 +810,11 @@ void compile_func(func *f) {
 
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
+        // char buf[RCC_BUF_SIZE] = {0};
+        // strcat(buf, v->name);
+        // strcat(buf, " t:");
+        // dump_type(buf, v->t);
+        // debug_s("emitting func var:", buf);
         emit_var_arg_init(i, v->offset, v->t->size);
     }
 
@@ -854,7 +882,9 @@ void out_global_declare(var_t *v) {
     out(buf);
 }
 
-void emit() {
+void emit(int fd) {
+    output_fd = fd;
+    
     out(".file	\"main.c\"");
     out("");
 
@@ -889,7 +919,7 @@ void emit() {
 
     func *f = &functions[0];
     while (f->name != 0) {
-        if (!f->is_external) {
+        if (f->body_pos != 0) {
             debug_s(f->name, " --------------------- ");
             dump_atom_tree(f->body_pos, 0);
             compile_func(f);

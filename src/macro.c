@@ -32,7 +32,10 @@ macro_t *find_macro(const char *name) {
 }
 
 extern int src_file_len;
+extern int src_file_stack_top;
 extern src_t src_files[];
+extern int src_file_id_stack[];
+extern bool exit_file();
 extern src_t *get_current_file();
 
 bool enter_macro(const char *name) {
@@ -49,7 +52,7 @@ bool enter_macro(const char *name) {
 
     s->filename = m->name;
 
-    s->id = m->src->id;
+    s->id = src_file_len;
     s->body = m->src->body;
 
     s->pos = m->start_pos;
@@ -62,18 +65,15 @@ bool enter_macro(const char *name) {
     s->prev_pos = s->pos;
 
     src_file_len++;
-    src = get_current_file();
-    debug_s("entering macro: ", src->filename);
 
+    src_file_id_stack[src_file_stack_top] = s->id;
+    src_file_stack_top++;
+    src = get_current_file();
+
+    debug_s("entering macro: ", src->filename);
     return TRUE;
 }
 
 bool exit_macro() {
-    if (src_file_len == 0) {
-        error("invalid exit from the root file");
-    }
-    debug_s("exiting macro: ", src->filename);
-    src_file_len--;
-    src = get_current_file();
-    return TRUE;
+    return exit_file();
 }

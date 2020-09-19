@@ -16,33 +16,143 @@ int parse_primary();
 int parse_prefix();
 int parse_unary();
 type_t *parse_type_declaration();
-type_t *parse_pointer();
+type_t *parse_pointer(type_t *t);
 int parse_local_variable_declaration();
+bool expect_int_expr(int *v);
 
-int parse_int() {
-    int value;
-    if (expect_int(&value)) {
-        return alloc_typed_int_atom(TYPE_INTEGER, value, find_type("int"));
+bool expect_enum_member(int *v) {
+    int pos = get_token_pos();
+    char *ident;
+    if (expect_ident(&ident)) {
+        var_t *var = find_var(ident);
+        if (var && var->t->enum_of && var->is_constant) {
+            *v = var->int_value;
+            return TRUE;
+        }
     }
-    return 0;
+    set_token_pos(pos);
+    return FALSE;
 }
 
-int parse_signed_int() {
-    int pos;
-    int start_pos = get_token_pos();
-    if (expect(T_PLUS)) {
-        return parse_int();
+bool expect_int_unary(int *v) {
+    if (expect_int(v)) {
+        return TRUE;
     }
 
-    if (expect(T_MINUS)) {
-        pos = parse_int();
-        if (!pos) {
-            set_token_pos(start_pos);
-            return 0;
+    char ch;
+    if (expect_char(&ch)) {
+        *v = (int)ch;
+        return TRUE;
+    }
+
+    return expect_enum_member(v);
+}
+
+bool expect_int_factor(int *v) {
+    int pos = get_token_pos();
+    if (expect(T_LPAREN)) {
+        int v2;
+        if (!expect_int_expr(&v2)) {
+            set_token_pos(pos);
+            return FALSE;
         }
-        return alloc_binop_atom(TYPE_SUB, alloc_typed_int_atom(TYPE_INTEGER, 0, find_type("int")), pos);
+        if (!expect(T_RPAREN)) {
+            error("invalid end of constant expression");
+        }
+        *v = v2;
+        return TRUE;
     }
 
+    if (expect(T_PLUS)) {
+        return expect_int_unary(v);
+    }
+    
+    if (expect(T_MINUS)) {
+        int v2;
+        if(!expect_int_unary(&v2)) {
+            set_token_pos(pos);
+            return FALSE;
+        }
+        *v = -v2;
+        return TRUE;
+    }
+    return expect_int_unary(v);
+}
+
+bool expect_int_term(int *v) {
+    int pos = get_token_pos();
+    if (!expect_int_factor(v)) {
+        set_token_pos(pos);
+        return FALSE;
+    }
+
+    pos = get_token_pos();
+    for (;;) {
+        int op;
+        if (expect(T_ASTERISK)) {
+            op = 0;
+        } else if (expect(T_SLASH)) {
+            op = 1;
+        } else if (expect(T_PERCENT)) {
+            op = 2;
+        } else {
+            break;
+        }
+        int v2;
+        if (!expect_int_factor(&v2)) {
+            set_token_pos(pos);
+            return TRUE;
+        }
+        if (op == 0) {
+            *v *= v2;
+        } else if (op == 1) {
+            *v /= v2;
+        } else if (op == 2) {
+            *v %= v2;
+        }
+    }
+    return TRUE;
+}
+
+bool expect_int_expr(int *v) {
+    int pos = get_token_pos();
+    if (!expect_int_term(v)) {
+        set_token_pos(pos);
+        return FALSE;
+    }
+
+    pos = get_token_pos();
+    for (;;) {
+        bool op_is_plus = TRUE;
+        if (expect(T_MINUS)) {
+            op_is_plus = FALSE;
+        } else if (!expect(T_PLUS)) {
+            break;
+        }
+        int v2;
+        if (!expect_int_term(&v2)) {
+            set_token_pos(pos);
+            return TRUE;
+        }
+        debug_i("found added constant:", *v);
+        debug_i("found added constant:", v2);
+        if (op_is_plus) {
+            *v += v2;
+        } else {
+            *v -= v2;
+        }
+        debug_i("found added constant:", *v);
+    }
+    return TRUE;
+}
+
+int parse_int_expr() {
+    int value;
+    int pos = get_token_pos();
+    if (expect_int_expr(&value)) {
+        return alloc_typed_int_atom(TYPE_INTEGER, value, find_type("int"));
+    }
+    set_token_pos(pos);
     return 0;
 }
 
@@ -55,107 +165,12 @@ int parse_string() {
     return 0;
 }
 
-int parse_char() {
-    char value;
-    if (expect_char(&value)) {
-        return alloc_typed_int_atom(TYPE_INTEGER, value, find_type("char"));
-    }
-    return 0;
-}
-
-int parse_enum_member() {
-    char *ident;
-    if (expect_ident(&ident)) {
-        var_t *v = find_var(ident);
-        if (v && v->t->enum_of && v->is_constant) {
-            int pos = alloc_typed_int_atom(TYPE_INTEGER, v->int_value, find_type("int"));
-            return pos;
-        }
-    }
-    return 0;
-}
-
 int parse_int_literal() {
-    int pos;
-
-    pos = parse_char();
-    if (pos) return pos;
-
-    pos = parse_int();
-    if (pos) return pos;
-
-    pos = parse_signed_int();
-    if (pos) return pos;
-
-    pos = parse_enum_member();
-    if (pos) return pos;
-
-    return 0;
-}
-
-bool expect_int_expr(int *v);
-
-bool expect_int_factor(int *v) {
-    if (expect(T_LPAREN)) {
-        int v2;
-        if (!expect_int_expr(&v2)) {
-            return FALSE;
-        }
-        if (!expect(T_RPAREN)) {
-            error("invalid end of constant expression");
-        }
-        *v = v2;
-        return TRUE;
-    }
-    return expect_int(v);
-}
-
-bool expect_int_term(int *v) {
-    if (!expect_int_factor(v)) {
-        return FALSE;
-    }
-
-    for (;;) {
-        if (!expect(T_ASTERISK)) {
-            break;
-        }
-        int v2;
-        if (!expect_int_factor(&v2)) {
-            return FALSE;
-        }
-        *v *= v2;
-    }
-    return TRUE;
-}
-
-bool expect_int_expr(int *v) {
-    if (!expect_int_term(v)) {
-        return FALSE;
-    }
-
-    for (;;) {
-        bool is_plus = TRUE;
-        if (expect(T_MINUS)) {
-            is_plus = FALSE;
-        } else if (!expect(T_PLUS)) {
-            break;
-        }
-        int v2;
-        if (!expect_int_term(&v2)) {
-            return FALSE;
-        }
-        if (is_plus) {
-            *v += v2;
-        } else {
-            *v -= v2;
-        }
-    }
-    return TRUE;
+    return parse_int_expr();
 }
 
 int parse_literal() {
     int pos;
-
     pos = parse_string();
     if (pos) return pos;
 
@@ -177,7 +192,6 @@ var_t *parse_var_name() {
     }
     var_t *v = find_var(ident);
     if (!v) {
-        debug_s("variable not declared: ", ident);
         set_token_pos(pos);
         return 0;
     }
@@ -309,7 +323,6 @@ int parse_postfix_incdec(int pos) {
 
 int parse_postfix() {
     int pos;
-
     pos = parse_primary();
     if (!pos) {
         pos = parse_apply_func();
@@ -412,8 +425,10 @@ int parse_sizeof() {
     if (!pos) {
         pos = parse_unary();
         if (pos) {
-            int rval = atom_to_rvalue(pos);
-            int size = program[rval].t->size;
+            if (program[pos].t->array_length < 0) {
+                pos = atom_to_rvalue(pos);
+            }
+            int size = program[pos].t->size;
             pos = alloc_typed_int_atom(TYPE_INTEGER, size, find_type("int"));
         } else {
             error("invliad expr after sizeof");
@@ -531,7 +546,7 @@ int parse_add() {
     for (;;) {
         int rpos;
         int type;
-        if (expect(T_PLUS)) {
+    if (expect(T_PLUS)) {
             type = TYPE_ADD;
         } else if (expect(T_MINUS)) {
             type = TYPE_SUB;
@@ -669,13 +684,13 @@ int parse_postfix_assignment(int pos) {
     return alloc_assign_op_atom(op, pos, atom_to_rvalue(expr_pos));
 }
 
-int parse_variable_initializer(int lval) {
-    int rval = parse_expr();
-    if (!rval) {
+int parse_variable_initializer(int lhs) {
+    int rhs = parse_expr();
+    if (!rhs) {
         error("cannot bind - no rvalue");
     }
-    rval = atom_convert_type(atom_to_rvalue(lval), atom_to_rvalue(rval));
-    return alloc_binop_atom(TYPE_BIND, rval, lval);
+    rhs = atom_convert_type(atom_to_rvalue(lhs), atom_to_rvalue(rhs));
+    return alloc_binop_atom(TYPE_BIND, rhs, lhs);
 }
 
 int parse_assignment(int lval) {
@@ -698,10 +713,14 @@ int parse_ternary(int eq_pos) {
         if (!val2) {
             error("nosecond value for ternary operator");
         }
-        int pos = alloc_atom(3);
-        build_pos_atom(pos, TYPE_TERNARY, eq_pos);
-        build_pos_atom(pos+1, TYPE_ARG, val1);
-        build_pos_atom(pos+2, TYPE_ARG, val2);
+        int first = atom_to_rvalue(val1);
+        type_t *first_t = program[first].t;
+        int second = atom_to_rvalue(val2);
+        type_t *second_t = program[second].t;
+
+        int pos = alloc_typed_pos_atom(TYPE_TERNARY, atom_to_rvalue(eq_pos), first_t);
+        alloc_typed_pos_atom(TYPE_ARG, first, first_t);
+        alloc_typed_pos_atom(TYPE_ARG, second, second_t);
         return pos;
     }
     return 0;
@@ -1023,14 +1042,18 @@ int parse_continue_statement() {
 int parse_return_statement() {
     int pos;
 
-    if (expect(T_RETURN)) {
-        pos = parse_expr_sequence();
-        if (pos != 0 && expect(T_SEMICOLON)) {
-            int oppos = alloc_typed_pos_atom(TYPE_RETURN, pos, find_type("void"));
-            return oppos;
-        }
+    if (!expect(T_RETURN)) {
+        return 0;
     }
-    return 0;
+
+    pos = parse_expr_sequence();
+    if (!pos) {
+        pos = alloc_typed_int_atom(TYPE_INTEGER, 0, find_type("void"));
+    }
+    if (!expect(T_SEMICOLON)) {
+        error("invalid expr for return");
+    }
+    return alloc_typed_pos_atom(TYPE_RETURN, pos, find_type("void"));
 }
 
 int parse_statement() {
@@ -1342,16 +1365,11 @@ var_t *parse_func_arg_declare() {
 
 int parse_global_var_initializer() {
     int num = 0;
-    if (expect_int(&num)) {
+    if (expect_int_expr(&num)) {
         return num;
     }
 
-    char ch = 0;
-    if (expect_char(&ch)) {
-        return ch;
-    }
-
-    char *str = 0;
+    char *str = (void *)0;
     if (expect_string(&str)) {
         return add_global_string(str);
     }
@@ -1413,7 +1431,7 @@ int parse_global_variable(type_t *t, bool is_external) {
         if (v->t->array_length >= 0) {
             v->int_value = parse_global_var_array_initializer(v, v->t->array_length);
         } else {
-            v->int_value = parse_global_var_initializer(v);
+            v->int_value = parse_global_var_initializer();
         }
         v->has_value = TRUE;
     }
@@ -1466,7 +1484,7 @@ int parse_array_initializer(var_t *v, int array, int array_length) {
                 a = &program[(a)->int_value];
             } else {
                 bind_atom = a;
-                a = 0; // exit loop
+                a = (void *)0; // exit loop
             }
             if (bind_atom->type == TYPE_BIND) {
                 atom_t *array_index_atom = &program[(bind_atom+1)->int_value];

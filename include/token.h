@@ -42,6 +42,7 @@ typedef struct {
     int src_line;
     int src_column;
     int src_pos;
+    int src_end_pos;
 } token;
 
 extern bool expect(token_id id);
@@ -56,3 +57,4 @@ extern void set_token_pos(int pos);
 extern bool is_eot();
 
 extern void dump_tokens();
+extern void dump_token_by_id(int pos);

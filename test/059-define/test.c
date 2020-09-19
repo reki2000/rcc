@@ -1,6 +1,5 @@
-#define MAX_LINE 500
+#define SIZE 100
 
 int main() {
-    print(MAX_LINE);
-    return 0;
+    return SIZE;
 }

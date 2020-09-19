@@ -6,15 +6,15 @@
 
 #define NUM_FILES 1000
 #define NUM_INCLUDE_DIRS 100
-#define SIZE_FILE_BUF 1024*1024
+#define SIZE_FILE_BUF (1024*1024)
 
 src_t *src;
 
 src_t src_files[NUM_FILES];
 int src_file_len = 0;
 
-char *file_body[NUM_FILES];
-int file_body_len = 0;
+int src_file_id_stack[NUM_FILES];
+int src_file_stack_top = 0;
 
 char *include_dirs[NUM_INCLUDE_DIRS];
 int include_dirs_len = 0;
@@ -42,10 +42,10 @@ void dirname(char *out, char*path) {
 }
 
 src_t *get_current_file() {
-    if (src_file_len <= 0) {
+    if (src_file_stack_top <= 0) {
         return 0;
     }
-    return &src_files[src_file_len - 1];
+    return &src_files[src_file_id_stack[src_file_stack_top - 1]];
 }
 
 int open_include_file(char *filename) {
@@ -64,19 +64,16 @@ int open_include_file(char *filename) {
     return -1;
 }
 
-bool enter_file(char *filename) {
+src_t *load_file(char *filename) {
     if (src_file_len >= NUM_FILES) {
         error("too much include files");
     }
 
     src_t *s = &src_files[src_file_len];
 
+    s->id = src_file_len;
     s->filename = filename;
-
-    file_body[file_body_len] = calloc(1, SIZE_FILE_BUF);
-    s->id = file_body_len;
-    s->body = file_body[file_body_len];
-    file_body_len++;
+    s->body = calloc(1, SIZE_FILE_BUF);
 
     s->pos = 0;
     s->len = 0;
@@ -101,6 +98,7 @@ bool enter_file(char *filename) {
     if (fd == -1) {
         error_s("cannot open include file: ", filename);
     }
+
     s->len = read(fd, s->body, SIZE_FILE_BUF);
     if (close(fd)) {
         debug_i("closing fd:", fd);
@@ -108,40 +106,53 @@ bool enter_file(char *filename) {
     }
 
     src_file_len++;
-    src = get_current_file();
+
     debug_s("loaded: ", s->filename);
+    return s;
+}
+
+bool enter_file(char *filename) {
+    src_t *s = load_file(filename);
+
+    if (src_file_stack_top >= NUM_FILES) {
+        error_s("too many file stack:", filename);
+    }
+    src_file_id_stack[src_file_stack_top] = s->id;
+    src_file_stack_top++;
+
+    src = get_current_file();
     return TRUE;
 }
 
 bool exit_file() {
-    if (src_file_len == 0) {
+    if (src_file_stack_top == 0) {
         error("invalid exit from the root file");
     }
-    src_file_len--;
+    src_file_stack_top--;
     src = get_current_file();
     return TRUE;
 }
 
-char *dump_file(int id, int pos) {
-    return _slice(&file_body[id][pos], 10);
-}
-
 char *dump_file2(int id, int start_pos, int end_pos) {
     int line_start_pos = start_pos;
-    while (line_start_pos >= 0 && file_body[id][line_start_pos] != '\n') {
+    char *body = src_files[id].body;
+
+    while (line_start_pos >= 0 && body[line_start_pos] != '\n') {
         line_start_pos--;
     }
     line_start_pos++;
 
     int line_end_pos = end_pos;
-    while (file_body[id][line_end_pos] != '\n') {
+    while (line_end_pos < src_files[id].len && body[line_end_pos] != '\n') {
         line_end_pos++;
     }
+
     int line_size = line_end_pos - line_start_pos + 1;
+
     char *buf = calloc(1, line_size * 2 + 1);
     int i=0;
     for (int p = line_start_pos; p <= line_end_pos; i++, p++) {
-        buf[i] = file_body[id][p];
+        buf[i] = body[p];
         buf[i+line_size] = (p >= start_pos && p <= end_pos) ? '^' : ' ';
     }
     buf[i+line_size - 1] = 0;
@@ -149,6 +160,9 @@ char *dump_file2(int id, int start_pos, int end_pos) {
 }
 
 src_t *file_info(int id) {
+    if (id < 0 || id >= src_file_len) {
+        error_i("invalid file id:", id);
+    }
     return &src_files[id];
 }
 

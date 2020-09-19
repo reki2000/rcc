@@ -11,7 +11,7 @@ int main() {
     print(sizeof &p);
     print(sizeof p.name);
     print(sizeof (1+1));
-    print(sizeof 1+1);
+    print((sizeof 1)+1);
     print(sizeof (int));
     print(sizeof (char *));
     return 0;

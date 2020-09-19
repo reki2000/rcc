@@ -7,6 +7,7 @@
 #include "var.h"
 #include "func.h"
 #include "atom.h"
+#include "token.h"
 
 #define NUM_ATOMS 10000
 
@@ -30,6 +31,7 @@ int alloc_atom(int size) {
     if (atom_pos + size >= NUM_ATOMS) {
         error("Source code too long");
     }
+    program[atom_pos].token_pos = get_token_pos();
     atom_pos += size;
     return current;
 }
@@ -42,16 +44,22 @@ void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
     _strcat3(buf, "atom#", pos, ",[");
     strcat(buf, atom_name[p->type]);
     strcat(buf, "] value:");
+    if (!p) {
+        error_s("null atom for:", buf);
+    }
     switch (p->type) {
         case TYPE_APPLY:
             strcat(buf, ((func *)(p->ptr_value))->name);
             break;
+        case TYPE_VAR_REF:
         default:
             _strcat3(buf, "", p->int_value, "");
     }
 
     strcat(buf, " t:");
     dump_type(buf, p->t);
+    _strcat3(buf, " token:", p->token_pos, " ");
+    dump_token_by_id(p->token_pos);
 }
 
 void dump_atom(int pos, int indent) {
@@ -185,11 +193,20 @@ int alloc_typed_int_atom(int type, int value, type_t *t) {
 
 int atom_to_rvalue(int target) {
     atom_t *a = &program[target];
+    type_t *t;
     switch (a->type) {
-        case TYPE_ARRAY_INDEX:
-        case TYPE_MEMBER_OFFSET:
         case TYPE_VAR_REF:
         case TYPE_GLOBAL_VAR_REF:
+            t = a->t->ptr_to;
+            // in rvalue context, array type should forget its size information
+            if (a->t->array_length != -1) { 
+                t = add_pointer_type(t);
+                return alloc_typed_pos_atom(TYPE_CONVERT, target, t);
+            }
+            return alloc_typed_pos_atom(TYPE_RVALUE, target, t);
+
+        case TYPE_ARRAY_INDEX:
+        case TYPE_MEMBER_OFFSET:
         case TYPE_PTR_DEREF:
             return alloc_typed_pos_atom(TYPE_RVALUE, target, a->t->ptr_to);
     }
@@ -203,7 +220,12 @@ int alloc_var_atom(var_t *v) {
     } else {
         build_int_atom(pos, TYPE_VAR_REF, v->offset);
     }
-    atom_set_type(pos, add_pointer_type(v->t));
+
+    if (v->t->array_length != -1) {
+        atom_set_type(pos, v->t); // array type is already pointer(lvalue)
+    } else {
+        atom_set_type(pos, add_pointer_type(v->t)); // handle all variables as pointer(lvalue)
+    }
     return pos;
 }
 
@@ -245,17 +267,33 @@ int alloc_func_atom(func *f) {
 int alloc_index_atom(int base_pos, int index_pos) {
     int pos = base_pos;
     type_t *t = atom_type(pos);
-    if (t->ptr_to->array_length >= 0) {
-        t = add_pointer_type(t->ptr_to->ptr_to);
+    int size = 0;
+    if (t->array_length >= 0) { // base is an array
+        debug("alloc array index for array: ");
+        dump_atom_tree(base_pos, 0);
+        t = t->ptr_to;
+        size = t->size;
+        if (!t->ptr_to || t->array_length < 0) {
+            t = add_pointer_type(t);
+        }
+    } else if (t->ptr_to) { // base is a pointer
+        debug("alloc array index for pointer: ");
+        dump_atom_tree(base_pos, 0);
+        char buf[RCC_BUF_SIZE] = {0};
+        dump_type(buf, t);
+        warning_s("implicit convertion from pointer to array: ", buf);
+        pos = alloc_deref_atom(pos);
+        t = t->ptr_to;
+        size = t->ptr_to->size;
     } else {
         dump_atom_tree(base_pos, 0);
         dump_atom_tree(index_pos, 0);
         error_i("index for non-array atom #" , pos);
     }
-
-    int size = alloc_typed_int_atom(TYPE_INTEGER, t->ptr_to->size, find_type("int"));
-    int pos2 = alloc_binop_atom(TYPE_ARRAY_INDEX, pos, alloc_binop_atom(TYPE_MUL, atom_to_rvalue(index_pos), size));
+    int size_atom = alloc_typed_int_atom(TYPE_INTEGER, size, find_type("int"));
+    int pos2 = alloc_binop_atom(TYPE_ARRAY_INDEX, pos, alloc_binop_atom(TYPE_MUL, atom_to_rvalue(index_pos), size_atom));
     atom_set_type(pos2, t);
+    //dump_atom_tree(pos2, 0);
     return pos2;
 }
 
@@ -277,7 +315,7 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
     build_pos_atom(pos, type, lpos);
 
     type_t *lpos_t = atom_type(lpos);
-    if (lpos_t->ptr_to != 0 && (type == TYPE_ADD || type == TYPE_SUB)) {
+    if (lpos_t->ptr_to && (type == TYPE_ADD || type == TYPE_SUB)) {
         if (atom_type(rpos)->ptr_to != 0) {
             error("Cannot + or - between pointers");
         }
@@ -291,7 +329,14 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
 
 int alloc_assign_op_atom(int type, int lval, int rval) {
     int lval_deref = atom_to_rvalue(lval);
-    rval = atom_convert_type(lval_deref, atom_to_rvalue(rval));
+    rval = atom_to_rvalue(rval);
+    type_t *lval_t = atom_type(lval);
+    type_t *rval_t = atom_type(rval);
+    if (lval_t->ptr_to && !rval_t->ptr_to && (type == TYPE_ADD || type == TYPE_SUB)) {
+        rval = alloc_typed_pos_atom(TYPE_CONVERT, rval, find_type("int"));
+    } else {
+        rval = atom_convert_type(lval_deref, atom_to_rvalue(rval));
+    }
     rval = alloc_binop_atom(type, lval_deref, rval);
     return alloc_binop_atom(TYPE_BIND, rval, lval);
 }
@@ -317,8 +362,17 @@ int atom_convert_type(int p1, int p2) {
         warning_s("implicit pointer conversion: ", buf);
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
-    dump_atom_tree(p1, 0);
-    dump_atom_tree(p2, 0);
+    if (t1->enum_of && t2 == find_type("int")) {
+        char buf[RCC_BUF_SIZE] = {0};
+        dump_type(buf, t2);
+        strcat(buf, " -> ");
+        dump_type(buf, t1);
+        debug_s("implicit enum conversion: ", buf);
+        return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
+    }
+    debug("not compatible type");
+    dump_atom_tree(p1, 1);
+    dump_atom_tree(p2, 1);
     error("not compatible type");
     return 0;
 }
