@@ -23,7 +23,7 @@ clean:
 	$(RM) $(PROG) $(OBJDIR)/* test/out/* core test/core
 
 stage1: clean $(PROG)
-	cd stage1 && make
+	cd stage1 && make clean && make
 
 test: clean $(PROG)
 	test/test.sh

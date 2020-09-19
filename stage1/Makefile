@@ -16,9 +16,11 @@ all: $(PROG)
 $(PROG): $(OBJECTS)
 	$(CC) -o $(PROG) $(OBJECTS)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
-	../bin/rekicc -S $(INCLUDE) $< > $(OBJDIR)/asm.s
-	$(CC) $(CFLAGS) -o $@ -c $(OBJDIR)/asm.s
+$(OBJDIR)/%.s: $(SRCDIR)/%.c
+	../bin/rekicc -S $(INCLUDE) $< > $@
+
+$(OBJDIR)/%.o: $(OBJDIR)/%.s
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
 	$(RM) $(PROG) $(OBJDIR)/* core
