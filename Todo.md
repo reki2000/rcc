@@ -105,24 +105,23 @@
 - [x] global variable initializer for string literals
 - [x] empty statement for 'for'
 - [x] define value
+- [x] test 066 (assignment from fixed-length-array to pointer) fails
+- [x] compiler options (-o outfile)? {source.c)
+- [x] bit operators >> >>= << <<= & | ^  ~
+- [x] define macro
 
 ## bugs
 
-- [ ] test 066 (assignment from fixed-length-array to pointer) fails
 
 ## A.D. (self hosted)
 
-- [ ] refactor : remove printi statement, replace with `void printi(int i) { printf("%d\n",i); }`
 
-- [ ] compiler options (-o outfile)? {source.c)+
-
-- [ ] bit operators >> >>= << <<= & | ^  ~
+- [ ] cli : allow multiple .c files
 
 - [ ] signed char/int/long
 - [ ] unsigned char/int/long
 
 - [ ] ifdef
-- [ ] define macro
 
 - [ ] global multiple variable definition
 
@@ -135,14 +134,18 @@
 
 - [ ] function declaration for > 6 args
 - [ ] function call with > 6 args
-- [ ] function call ABI alignment
+- [ ] function call ABI stack 16bytes alignment
 
 - [ ] function with va_args
 
 - [ ] static
+
+## Refactorings
 
 - [ ] atom_t refactoring 2
  - use atom_t * instead of pos
  - rename TYPE to *
 
 - [ ] struct assignment - memcpy(&a,&b,sizeof(a))
+
+- [ ] remove print statement, replace with `void print(int i) { printf("%d\n",i); }`

@@ -341,22 +341,38 @@ void tokenize() {
             add_token(T_L_AND);
         } else if (accept_string("&=")) {
             add_token(T_AMP_EQUAL);
+        } else if (accept_char('&')) {
+            add_token(T_AMP);
         } else if (accept_string("||")) {
             add_token(T_L_OR);
         } else if (accept_string("|=")) {
             add_token(T_PIPE_EQUAL);
+        } else if (accept_char('|')) {
+            add_token(T_PIPE);
         } else if (accept_string("^=")) {
             add_token(T_HAT_EQUAL);
-        } else if (accept_char('&')) {
-            add_token(T_AMP);
+        } else if (accept_char('^')) {
+            add_token(T_HAT);
+        } else if (accept_string("~=")) {
+            add_token(T_TILDE_EQUAL);
+        } else if (accept_char('~')) {
+            add_token(T_TILDE);
         } else if (accept_char('=')) {
             add_token(T_EQUAL);
         } else if (accept_string("<=")) {
             add_token(T_LE);
+        } else if (accept_string("<<=")) {
+            add_token(T_LSHIFT_EQUAL);
+        } else if (accept_string("<<")) {
+            add_token(T_LSHIFT);
         } else if (accept_char('<')) {
             add_token(T_LT);
         } else if (accept_string(">=")) {
             add_token(T_GE);
+        } else if (accept_string(">>=")) {
+            add_token(T_RSHIFT_EQUAL);
+        } else if (accept_string(">>")) {
+            add_token(T_RSHIFT);
         } else if (accept_char('>')) {
             add_token(T_GT);
         } else if (accept_string("*=")) {

@@ -331,6 +331,20 @@ void emit_bit_xor(int size) {
     emit_binop("xor", size);
 }
 
+void emit_bit_lshift(int size) {
+    out("popq	%rcx");
+    out("popq	%rax");
+    out_x("salX %cl, %Zax", size);
+    out("pushq	%rax");
+}
+
+void emit_bit_rshift(int size) {
+    out("popq	%rcx");
+    out("popq	%rax");
+    out_x("sarX %cl, %Zax", size);
+    out("pushq	%rax");
+}
+
 void emit_mul(int size) {
     out("popq	%rdx");
     out("popq	%rax");
@@ -406,6 +420,12 @@ void emit_log_not(int size) {
     out("xorl   %eax, %eax");
     out_x("orX	%Zdx, %Zdx", size);
     out("setz %al");
+    out("pushq	%rax");
+}
+
+void emit_neg(int size) {
+    out("popq	%rax");
+    out_x("notX	%Zax", size);
     out("pushq	%rax");
 }
 
@@ -558,6 +578,8 @@ void compile(int pos) {
         case TYPE_OR:
         case TYPE_AND:
         case TYPE_XOR:
+        case TYPE_LSHIFT:
+        case TYPE_RSHIFT:
         case TYPE_ARRAY_INDEX:
         case TYPE_MEMBER_OFFSET:
             compile(p->atom_pos);
@@ -581,6 +603,8 @@ void compile(int pos) {
                 case TYPE_OR: emit_bit_or(p->t->size); break;
                 case TYPE_AND: emit_bit_and(p->t->size); break;
                 case TYPE_XOR: emit_bit_xor(p->t->size); break;
+                case TYPE_LSHIFT: emit_bit_lshift(p->t->size); break;
+                case TYPE_RSHIFT: emit_bit_rshift(p->t->size); break;
             }
             break;
 
@@ -616,6 +640,11 @@ void compile(int pos) {
         case TYPE_LOG_NOT:
             compile(p->atom_pos);
             emit_log_not(p->t->size);
+            break;
+
+        case TYPE_NEG:
+            compile(p->atom_pos);
+            emit_neg(p->t->size);
             break;
 
         case TYPE_TERNARY: {
@@ -815,6 +844,7 @@ void compile_func(func *f) {
         // strcat(buf, " t:");
         // dump_type(buf, v->t);
         // debug_s("emitting func var:", buf);
+        switch (v->t->size)  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
         emit_var_arg_init(i, v->offset, v->t->size);
     }
 
