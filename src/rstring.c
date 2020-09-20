@@ -33,7 +33,7 @@ void _strcati(char *dst, int i) {
     *dst = 0;
 }
 
-void _strcat3(char buf[], char *s1, int i, char *s2) {
+void _strcat3(char *buf, char *s1, int i, char *s2) {
     strcat(buf, s1);
     _strcati(buf, i);
     strcat(buf, s2);
