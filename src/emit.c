@@ -835,7 +835,7 @@ void compile_func(func *f) {
     out_label(f->name);
     out("pushq	%rbp");
     out("movq	%rsp, %rbp");
-    out_int("subq	$", f->max_offset, ", %rsp");
+    out_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);

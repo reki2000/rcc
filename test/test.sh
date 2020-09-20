@@ -16,7 +16,7 @@ function fatal {
 }
 
 function compile {
-    $CC -S -I$(dirname $1)/include $1 2>$DEBUG_LOG > $DEBUG_ASM
+    $CC -S -I$(dirname $1)/include -o $DEBUG_ASM $1 2>$DEBUG_LOG
 }
 
 function check_diff {
@@ -28,8 +28,8 @@ function check_result {
       fatal "no result file"
     fi
 
-    $LD -fPIC -o $DEBUG_BIN $DEBUG_ASM \
-        || fatal " cannot build test program"
+    $GCC -o $DEBUG_BIN $DEBUG_ASM \
+    || fatal " cannot build test program"
 
     local result_file=out/result.txt
     $DEBUG_BIN > $result_file
@@ -59,9 +59,10 @@ function run {
 set -e
 
 CC=../bin/rcc
-LD=cc
+GCC=gcc
 DEBUG_LOG=out/debug.log
 DEBUG_BIN=out/test.out
+DEBUG_OBJ=out/test.o
 DEBUG_ASM=out/test.s
 
 function all {
