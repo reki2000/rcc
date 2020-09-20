@@ -9,7 +9,7 @@
 #include "atom.h"
 #include "token.h"
 
-#define NUM_ATOMS 10000
+#define NUM_ATOMS 100000
 
 atom_t program[NUM_ATOMS];
 int atom_pos = 1;
