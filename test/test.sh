@@ -70,6 +70,11 @@ function all {
     done
 }
 
+if [ "$1" = "--stage1" ]; then
+  CC=../bin/rcc2
+  shift
+fi
+
 if [ -z "$1" ]; then
     all
 else
