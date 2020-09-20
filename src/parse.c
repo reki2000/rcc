@@ -437,6 +437,18 @@ int parse_sizeof() {
     return pos;
 }
 
+int parse_bitwise_not() {
+    int pos;
+    if (expect(T_TILDE)) {
+        pos = parse_unary();
+        if (!pos) {
+            error("Invalid '~'");
+        }
+        return alloc_typed_pos_atom(TYPE_NEG, atom_to_rvalue(pos), find_type("int"));
+    }
+    return 0;
+}
+
 int parse_logical_not() {
     int pos;
     if (expect(T_L_NOT)) {
@@ -487,6 +499,9 @@ int parse_prefix() {
     if (pos) return pos;
 
     pos = parse_logical_not();
+    if (pos) return pos;
+
+    pos = parse_bitwise_not();
     if (pos) return pos;
 
     pos = parse_signed();
@@ -562,9 +577,33 @@ int parse_add() {
     return lpos;
 }
 
+int parse_bitshift() {
+    int lpos = parse_add();
+    if (lpos == 0) {
+        return 0;
+    }
+
+    for (;;) {
+        int rpos;
+        int type;
+    if (expect(T_LSHIFT)) {
+            type = TYPE_LSHIFT;
+        } else if (expect(T_RSHIFT)) {
+            type = TYPE_RSHIFT;
+        } else {
+            break;
+        }
+        rpos = parse_add();
+        if (rpos == 0) {
+            return 0;
+        }
+        lpos =  alloc_binop_atom(type, atom_to_rvalue(lpos), atom_to_rvalue(rpos));
+    }
+    return lpos;
+}
 
 int parse_lessgreat() {
-    int lpos = parse_add();
+    int lpos = parse_bitshift();
     if (lpos == 0) {
         return 0;
     }
@@ -581,7 +620,7 @@ int parse_lessgreat() {
         } else {
             break;
         }
-        int rpos = parse_add();
+        int rpos = parse_bitshift();
         if (rpos == 0) {
             error("Inalid rval for lessthan");
         }
@@ -613,8 +652,62 @@ int parse_equality() {
     return lpos;
 }
 
-int parse_logical_and() {
+int parse_bitwise_and() {
     int lpos = parse_equality();
+    if (lpos == 0) {
+        return 0;
+    }
+    for (;;) {
+        if (!expect(T_AMP)) {
+            break;
+        }
+        int rpos = parse_equality();
+        if (rpos == 0) {
+            error("Inalid rval for &(bitwise and)");
+        }
+        lpos = alloc_binop_atom(TYPE_AND, atom_to_rvalue(lpos), atom_to_rvalue(rpos));
+    }
+    return lpos;
+}
+
+int parse_bitwise_xor() {
+    int lpos = parse_bitwise_and();
+    if (lpos == 0) {
+        return 0;
+    }
+    for (;;) {
+        if (!expect(T_HAT)) {
+            break;
+        }
+        int rpos = parse_bitwise_and();
+        if (rpos == 0) {
+            error("Inalid rval for ^(bitwise xor)");
+        }
+        lpos = alloc_binop_atom(TYPE_XOR, atom_to_rvalue(lpos), atom_to_rvalue(rpos));
+    }
+    return lpos;
+}
+
+int parse_bitwise_or() {
+    int lpos = parse_bitwise_xor();
+    if (lpos == 0) {
+        return 0;
+    }
+    for (;;) {
+        if (!expect(T_PIPE)) {
+            break;
+        }
+        int rpos = parse_bitwise_xor();
+        if (rpos == 0) {
+            error("Inalid rval for |(bitwise or)");
+        }
+        lpos = alloc_binop_atom(TYPE_OR, atom_to_rvalue(lpos), atom_to_rvalue(rpos));
+    }
+    return lpos;
+}
+
+int parse_logical_and() {
+    int lpos = parse_bitwise_or();
     if (lpos == 0) {
         return 0;
     }
@@ -622,7 +715,7 @@ int parse_logical_and() {
         if (!expect(T_L_AND)) {
             break;
         }
-        int rpos = parse_equality();
+        int rpos = parse_bitwise_or();
         if (rpos == 0) {
             error("Inalid rval for &&");
         }
@@ -671,6 +764,12 @@ int parse_postfix_assignment(int pos) {
         op = TYPE_OR;
     } else if (expect(T_HAT_EQUAL)) {
         op = TYPE_XOR;
+    } else if (expect(T_LSHIFT_EQUAL)) {
+        op = TYPE_LSHIFT;
+    } else if (expect(T_RSHIFT_EQUAL)) {
+        op = TYPE_RSHIFT;
+    } else if (expect(T_TILDE_EQUAL)) {
+        op = TYPE_NEG;
     }
 
     if (!op) {

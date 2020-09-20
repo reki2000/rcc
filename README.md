@@ -79,34 +79,40 @@ ternaly: '?' expr ':' expr
 assignment: '=' expr
 local_variable_initializer: '=' ( array_initializer | expr )
 array_initializer: '{' expr ( ',' expr )* '}'
-postfix_assignment: ( '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' ) expr
+postfix_assignment: postfix ( '+= ' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '~=' ) expr
 
 value: logical_or
 
 logical_or: logical_and ( '||' logical_and )*
-logical_and: equality ( '&&' equality )*
+logical_and: bitwise_or ( '&&' bitwise_or )*
+
+bitwise_or: bitwise_xor ( '|' bitwise_xor )*
+bitwise_xor: bitwise_and ( '^' bitwise_and )*
+bitwise_and: equality ( '|' equality )*
+
 equality: lessgreat ( ( '==' | '!=' ) lessgreat )*
-lessgreat: add ( ( '<' | '<=' | '>' | '>=' ) add )*
+lessgreat: bitshift ( ( '<' | '<=' | '>' | '>=' ) bitshift )*
+bitshift: add ( ( '<<' | '>>' ) add )*
 add: mul ( ( '+' | '-' ) mul )*
 mul: unary ( ( '*' | '/' | '%' ) unary )*
 
 unary: prefix
 
-prefix: postfix | cast | prefix_incdec | logical_not | signed | ptr | ptr_deref | sizeof
+prefix: postfix | cast | prefix_incdec | logical_not | bitwise_not | signed | ptr | ptr_deref | sizeof
 
 cast : '(' type_declaration pointer? ')' unary
 logical_not: '!' unary
-signed: ( '+' | '-' ) prefix
+bitwise_not: '~' unary
+signed: ( '+' | '-' ) unary
 sizeof: 'sizeof' ( unary | type_name )
 ptr: '&' unary
 ptr_deref: '*' unary
 prefix_incdec: ( '++' | '--' ) var_name
 
-postfix: primary | apply_func | struct_member | postfix_array | postfix_incdec | postfix_assignment
+postfix: primary | apply_func | struct_member | postfix_array | postfix_incdec
 apply_func: func_name '(' expr? ( ',' expr )* ')'
 postfix_array: postfix '[' expr ']'
 postfix_incdec: postfix ( '++' | '--' )
-postfix_assignment: postfix ( '+= ' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' ) expr
 struct_member: postfix '.' member_name | postfix '->' member_name
 
 primary: var_name | literal | '(' expr ')'

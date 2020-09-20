@@ -15,7 +15,7 @@ atom_t program[NUM_ATOMS];
 int atom_pos = 1;
 
 char *atom_name[] = {
-    "args", "int", "add", "sub", "mul", "div", "mod", "bit-and","bit-or","bit-xor",
+    "args", "int", "add", "sub", "mul", "div", "mod", "bit-and","bit-or","bit-xor", "bit-neg", "bit-lshift", "bit-rshift",
     "var_ref", "nop", "expr_stmt", "andthen", "global", "print", "bind",
     "==","!=","<", ">", ">=", "<=", "&&", "||", "!",
     "if", "for", "while", "dowhile", "break", "continue",
