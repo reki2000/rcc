@@ -19,7 +19,7 @@ void init_types() {
     add_type("long", 8, 0, -1);
 }
 
-void dump_type(char buf[], type_t *t) {
+void dump_type(char *buf, type_t *t) {
     type_t *t_org = t;
 
     if (!t) {

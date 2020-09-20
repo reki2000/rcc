@@ -815,6 +815,7 @@ void compile_func(func *f) {
         // strcat(buf, " t:");
         // dump_type(buf, v->t);
         // debug_s("emitting func var:", buf);
+        switch (v->t->size)  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
         emit_var_arg_init(i, v->offset, v->t->size);
     }
 
