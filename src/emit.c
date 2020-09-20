@@ -520,7 +520,7 @@ void compile(int pos) {
     char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
     debug_s("compiling atom_t: ", ast_text);
-    dump_token_by_id(p->token_pos);
+    //dump_token_by_id(p->token_pos);
 
     switch (p->type) {
         case TYPE_VAR_REF:
@@ -951,7 +951,7 @@ void emit(int fd) {
     while (f->name != 0) {
         if (f->body_pos != 0) {
             debug_s(f->name, " --------------------- ");
-            dump_atom_tree(f->body_pos, 0);
+            //dump_atom_tree(f->body_pos, 0);
             compile_func(f);
         }
         f++;

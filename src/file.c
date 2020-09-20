@@ -159,6 +159,36 @@ char *dump_file2(int id, int start_pos, int end_pos) {
     return buf;
 }
 
+char *dump_file3(int id, int start_pos, int end_pos) {
+    int line_start_pos = start_pos;
+    char *body = src_files[id].body;
+
+    while (line_start_pos >= 0 && body[line_start_pos] != '\n') {
+        line_start_pos--;
+    }
+    line_start_pos++;
+
+    int line_end_pos = end_pos;
+    while (line_end_pos < src_files[id].len && body[line_end_pos] != '\n') {
+        line_end_pos++;
+    }
+
+    int line_size = line_end_pos - line_start_pos + 1;
+
+    char *buf = calloc(1, line_size + 3 + 5 + 5 + 2);
+    char *p = buf;
+    int i = line_start_pos;
+    strcat(p, " | "); p+=3;
+    while (i < start_pos) { *p++ = body[i++]; }
+    strcat(p, " <$ "); p+=4;
+    while (i <= end_pos) { *p++ = body[i++]; }
+    strcat(p, " $> "); p+=4;
+    while (i < line_end_pos) { *p++ = body[i++]; }
+    strcat(p, " |");
+
+    return buf;
+}
+
 src_t *file_info(int id) {
     if (id < 0 || id >= src_file_len) {
         error_i("invalid file id:", id);

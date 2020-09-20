@@ -256,8 +256,14 @@ void dump_token(int pos, token *t) {
     debug_s("token:", buf);
 }
 
-void dump_token_by_id(int pos) {
-    dump_token(pos, &tokens[pos]);
+void dump_token_simple(char *buf, int pos) {
+    token *t = &tokens[pos];
+    src_t *s = file_info(t->src_id);
+
+    strcat(buf, s->filename);
+    _strcat3(buf, ":", t->src_line, "");
+    _strcat3(buf, ":", t->src_column, " ");
+    strcat(buf, dump_file3(t->src_id, t->src_pos, t->src_end_pos));
 }
 
 void dump_tokens() {
