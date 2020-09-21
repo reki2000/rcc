@@ -210,6 +210,11 @@ enum_t enums[NUM_ENUMS];
 int enums_len = 0;
 
 type_t *find_enum_type(char *name) {
+    // annonymous enum should be different in every occurence
+    if (strlen(name) == 0) {
+        return 0; 
+    }
+
     for (int i=0; i<types_pos; i++) {
         type_t *t = &types[i];
         if (t->enum_of && t->typedef_of == 0) {
@@ -234,6 +239,7 @@ type_t *add_enum_type(char *name) {
     enum_t *e = &enums[enums_len++];
     e->next_value = 0;
     e->name = name;
+    debug_s("added new enum type: ", name);
 
     t = add_type("$e", 4, 0, -1);
     t->enum_of = e;

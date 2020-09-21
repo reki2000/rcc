@@ -1240,15 +1240,15 @@ type_t *parse_enum_type() {
     if (expect_ident(&tag_name)) {
         t = add_enum_type(tag_name);
     } else {
-        t = add_enum_type("---");
+        t = add_enum_type("");
     }
 
     if (expect(T_LBLACE)) {
-        debug("parsing enum member...");
+        debug_s("parsing members for enum : ", t->enum_of->name);
         for (;;) {
             char *member_name;
             if (!expect_ident(&member_name)) {
-                error("expected identifier");
+                error("enum member: expected identifier");
             }
             int value = t->enum_of->next_value++;
 
