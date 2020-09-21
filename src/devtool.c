@@ -28,7 +28,7 @@ void _log(level_e level, char *message) {
 
     char buf[RCC_BUF_SIZE] = {0};
     bool tty = isatty(2);
-    if (tty) strcat(buf, color_str[level]);
+    if (tty) { strcat(buf, color_str[level]); }
     strcat(buf, level_str[level]);
     strcat(buf, ": ");
     strcat(buf, message);
