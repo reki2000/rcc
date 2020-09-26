@@ -50,7 +50,7 @@ void dump_type(char *buf, type_t *t) {
     } else {
         strcat(buf, t->name);
     }
-    _strcat3(buf, " size:", t_org->size, "");
+    _strcat3(buf, " size:", type_size(t_org), "");
 }
 
 type_t *add_type(char* name, int size, type_t *prt_to, int array_length) {
@@ -176,16 +176,17 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
     m->t = t;
 
     // todo: alignment to 4 bytes
+    int t_size = type_size(t);
     if (is_union) {
         m->offset = s->next_offset;
-        if (t->size > st->size - s->next_offset) {
-            st->size = s->next_offset + t->size;
+        if (t_size > st->size - s->next_offset) {
+            st->size = s->next_offset + t_size;
         }
     } else {
         m->offset = st->size;
         debug_i("added struct member @", m->offset);
-        st->size += t->size;
-        s->next_offset += t->size;
+        st->size += t_size;
+        s->next_offset += t_size;
     }
 
     return m;
@@ -252,6 +253,10 @@ type_t *type_unalias(type_t *t) {
         t = t->typedef_of;
     }
     return t;
+}
+
+int type_size(type_t *t) {
+    return type_unalias(t)->size;
 }
 
 bool type_is_same(type_t *to, type_t *from) {

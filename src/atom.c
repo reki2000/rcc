@@ -272,7 +272,7 @@ int alloc_index_atom(int base_pos, int index_pos) {
         debug("alloc array index for array: ");
         //dump_atom_tree(base_pos, 0);
         t = t->ptr_to;
-        size = t->size;
+        size = type_size(t);
         if (!t->ptr_to || t->array_length < 0) {
             t = add_pointer_type(t);
         }
@@ -284,7 +284,7 @@ int alloc_index_atom(int base_pos, int index_pos) {
         warning_s("implicit convertion from pointer to array: ", buf);
         pos = alloc_deref_atom(pos);
         t = t->ptr_to;
-        size = t->ptr_to->size;
+        size = type_size(t->ptr_to);
     } else {
         dump_atom_tree(base_pos, 0);
         dump_atom_tree(index_pos, 0);
@@ -319,7 +319,7 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
         if (atom_type(rpos)->ptr_to != 0) {
             error("Cannot + or - between pointers");
         }
-        int size = alloc_typed_int_atom(TYPE_INTEGER, lpos_t->ptr_to->size, find_type("int"));
+        int size = alloc_typed_int_atom(TYPE_INTEGER, type_size(lpos_t->ptr_to), find_type("int"));
         rpos = alloc_binop_atom(TYPE_MUL, rpos, size);
     }
 

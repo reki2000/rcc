@@ -555,7 +555,7 @@ void compile(int pos) {
         case TYPE_BIND:
             compile(p->atom_pos); // rvalue
             compile((p+1)->atom_pos); // lvalue - should be an address
-            emit_copy(p->t->size);
+            emit_copy(type_size(p->t));
             break;
         case TYPE_PTR:
         case TYPE_PTR_DEREF:
@@ -566,7 +566,7 @@ void compile(int pos) {
             if (p->t->array_length >= 0 || p->t->struct_of) {
                 // rvalue of array / struct will be a pointer for itself
             } else {
-                emit_deref(p->t->size);
+                emit_deref(type_size(p->t));
             }
             break;
 
@@ -576,11 +576,11 @@ void compile(int pos) {
 
         case TYPE_CAST:
             compile(p->atom_pos);
-            emit_scast(p->t->size);
+            emit_scast(type_size(p->t));
             break;
 
         case TYPE_INTEGER: 
-            emit_int(p->int_value, p->t->size);
+            emit_int(p->int_value, type_size(p->t));
             break;
 
         case TYPE_ADD:
@@ -606,35 +606,35 @@ void compile(int pos) {
             switch (p->type) {
                 case TYPE_ARRAY_INDEX: emit_add(8); break;
                 case TYPE_MEMBER_OFFSET:
-                case TYPE_ADD: emit_add(p->t->size); break;
-                case TYPE_SUB: emit_sub(p->t->size); break;
-                case TYPE_DIV: emit_div(p->t->size); break;
-                case TYPE_MOD: emit_mod(p->t->size); break;
-                case TYPE_MUL: emit_mul(p->t->size); break;
-                case TYPE_EQ_EQ: emit_eq_eq(p->t->size); break;
-                case TYPE_EQ_NE: emit_eq_ne(p->t->size); break;
-                case TYPE_EQ_LE: emit_eq_le(p->t->size); break;
-                case TYPE_EQ_LT: emit_eq_lt(p->t->size); break;
-                case TYPE_EQ_GE: emit_eq_ge(p->t->size); break;
-                case TYPE_EQ_GT: emit_eq_gt(p->t->size); break;
-                case TYPE_OR: emit_bit_or(p->t->size); break;
-                case TYPE_AND: emit_bit_and(p->t->size); break;
-                case TYPE_XOR: emit_bit_xor(p->t->size); break;
-                case TYPE_LSHIFT: emit_bit_lshift(p->t->size); break;
-                case TYPE_RSHIFT: emit_bit_rshift(p->t->size); break;
+                case TYPE_ADD: emit_add(type_size(p->t)); break;
+                case TYPE_SUB: emit_sub(type_size(p->t)); break;
+                case TYPE_DIV: emit_div(type_size(p->t)); break;
+                case TYPE_MOD: emit_mod(type_size(p->t)); break;
+                case TYPE_MUL: emit_mul(type_size(p->t)); break;
+                case TYPE_EQ_EQ: emit_eq_eq(type_size(p->t)); break;
+                case TYPE_EQ_NE: emit_eq_ne(type_size(p->t)); break;
+                case TYPE_EQ_LE: emit_eq_le(type_size(p->t)); break;
+                case TYPE_EQ_LT: emit_eq_lt(type_size(p->t)); break;
+                case TYPE_EQ_GE: emit_eq_ge(type_size(p->t)); break;
+                case TYPE_EQ_GT: emit_eq_gt(type_size(p->t)); break;
+                case TYPE_OR: emit_bit_or(type_size(p->t)); break;
+                case TYPE_AND: emit_bit_and(type_size(p->t)); break;
+                case TYPE_XOR: emit_bit_xor(type_size(p->t)); break;
+                case TYPE_LSHIFT: emit_bit_lshift(type_size(p->t)); break;
+                case TYPE_RSHIFT: emit_bit_rshift(type_size(p->t)); break;
             }
             break;
 
         case TYPE_POSTFIX_DEC: {
             compile(p->atom_pos);
             type_t *target_t = p->t;
-            emit_postfix_add(target_t->size, (target_t->ptr_to) ? -(target_t->ptr_to->size) : -1);
+            emit_postfix_add(type_size(target_t), (target_t->ptr_to) ? -type_size(target_t->ptr_to) : -1);
             break;
         }
         case TYPE_POSTFIX_INC:  {
             compile(p->atom_pos);
             type_t *target_t = p->t;
-            emit_postfix_add(target_t->size, (target_t->ptr_to) ? target_t->ptr_to->size : 1);
+            emit_postfix_add(type_size(target_t), (target_t->ptr_to) ? type_size(target_t->ptr_to) : 1);
             break;
         }
         case TYPE_NOP:
@@ -674,12 +674,12 @@ void compile(int pos) {
             
         case TYPE_LOG_NOT:
             compile(p->atom_pos);
-            emit_log_not(p->t->size);
+            emit_log_not(type_size(p->t));
             break;
 
         case TYPE_NEG:
             compile(p->atom_pos);
-            emit_neg(p->t->size);
+            emit_neg(type_size(p->t));
             break;
 
         case TYPE_TERNARY: {
@@ -838,7 +838,7 @@ void compile(int pos) {
                 atom_t *case_atom = &program[p->atom_pos];
                 if (case_atom->type == TYPE_CASE) {
                     compile(case_atom->atom_pos);
-                    emit_jmp_case(case_label[i], p->t->size);
+                    emit_jmp_case(case_label[i], type_size(p->t));
                     i++;
                 } else if (case_atom->type == TYPE_DEFAULT) {
                     compile(case_atom->atom_pos);
@@ -881,8 +881,8 @@ void compile_func(func *f) {
         // strcat(buf, " t:");
         // dump_type(buf, v->t);
         // debug_s("emitting func var:", buf);
-        switch (v->t->size)  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
-        emit_var_arg_init(i, v->offset, v->t->size);
+        switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
+        emit_var_arg_init(i, v->offset, type_size(v->t));
     }
 
     compile(f->body_pos);
@@ -917,7 +917,7 @@ void out_global_constant(var_t *v) {
     out(".data");
     out_int(".align\t", 4, "");
     out_str(".type\t", v->name, ", @object");
-    out_int4(".size\t", v->name, ", ", v->t->size, "");
+    out_int4(".size\t", v->name, ", ", type_size(v->t), "");
     out_label(v->name);
     if (v->t->array_length >= 0) {
         int filled_size = 0;
@@ -928,8 +928,8 @@ void out_global_constant(var_t *v) {
             int value = get_global_array(pos, index);
             filled_size += out_global_constant_by_type(pt, value);
         }
-        if (v->t->size > filled_size) {
-            out_int(".zero\t", v->t->size - filled_size, "");
+        if (type_size(v->t) > filled_size) {
+            out_int(".zero\t", type_size(v->t) - filled_size, "");
         }
     } else {
         int filled_size = out_global_constant_by_type(v->t, v->int_value);
@@ -945,7 +945,7 @@ void out_global_declare(var_t *v) {
     buf[0] = 0;
     strcat(buf, ".comm	");
     strcat(buf, v->name);
-    _strcat3(buf, ", ", v->t->size, "");
+    _strcat3(buf, ", ", type_size(v->t), "");
     out(buf);
 }
 
