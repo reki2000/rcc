@@ -267,7 +267,7 @@ void dump_token_simple(char *buf, int pos) {
 }
 
 void dump_tokens() {
-    for (int i = token_pos - 2; i <= token_pos; i++) {
+    for (int i = token_pos - 2; i >= 0 && i <= token_pos; i++) {
         if (i<0 || i>=token_len) {
             continue;
         }
