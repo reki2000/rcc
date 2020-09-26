@@ -25,8 +25,11 @@ clean:
 
 $(PROG2): stage1
 
-stage1: clean $(PROG)
-	cd stage1 && make clean && make
+stage1: $(PROG)
+	cd stage1 && make
+
+clean-stage1: $(PROG)
+	cd stage1 && make clean
 
 test: clean $(PROG)
 	test/test.sh
