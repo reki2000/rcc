@@ -467,6 +467,20 @@ void emit_jmp_false(int i) {
     out_int("jz	.L", i, "");
 }
 
+void emit_jmp_true_keepvalue(int i) {
+    out("popq	%rax");
+    out("pushq	%rax");
+    out("orl	%eax, %eax");
+    out_int("jnz	.L", i, "");
+}
+
+void emit_jmp_false_keepvalue(int i) {
+    out("popq	%rax");
+    out("pushq	%rax");
+    out("orl	%eax, %eax");
+    out_int("jz	.L", i, "");
+}
+
 void emit_jmp_true(int i) {
     out("popq	%rax");
     out("orl	%eax, %eax");
@@ -580,8 +594,6 @@ void compile(int pos) {
         case TYPE_EQ_LE:
         case TYPE_EQ_GT:
         case TYPE_EQ_GE:
-        case TYPE_LOG_OR:
-        case TYPE_LOG_AND:
         case TYPE_OR:
         case TYPE_AND:
         case TYPE_XOR:
@@ -605,8 +617,6 @@ void compile(int pos) {
                 case TYPE_EQ_LT: emit_eq_lt(p->t->size); break;
                 case TYPE_EQ_GE: emit_eq_ge(p->t->size); break;
                 case TYPE_EQ_GT: emit_eq_gt(p->t->size); break;
-                case TYPE_LOG_OR: emit_log_or(p->t->size); break;
-                case TYPE_LOG_AND: emit_log_and(p->t->size); break;
                 case TYPE_OR: emit_bit_or(p->t->size); break;
                 case TYPE_AND: emit_bit_and(p->t->size); break;
                 case TYPE_XOR: emit_bit_xor(p->t->size); break;
@@ -637,6 +647,24 @@ void compile(int pos) {
         case TYPE_ANDTHEN:
             compile(p->atom_pos);
             compile((p+1)->atom_pos);
+            break;
+
+        case TYPE_LOG_AND: {
+                compile(p->atom_pos);
+                int l_end = new_label();
+                emit_jmp_false_keepvalue(l_end); // short circuit of '&&'
+                compile((p+1)->atom_pos);
+                emit_label(l_end);
+            }
+            break;
+
+        case TYPE_LOG_OR: {
+                compile(p->atom_pos);
+                int l_end = new_label();
+                emit_jmp_true_keepvalue(l_end);   // short circuit of '||'
+                compile((p+1)->atom_pos);
+                emit_label(l_end);
+            }
             break;
 
         case TYPE_PRINT:
