@@ -137,10 +137,9 @@ char *dump_file2(int id, int start_pos, int end_pos) {
     int line_start_pos = start_pos;
     char *body = src_files[id].body;
 
-    while (line_start_pos >= 0 && body[line_start_pos] != '\n') {
+    while (line_start_pos > 0 && body[line_start_pos-1] != '\n') {
         line_start_pos--;
     }
-    line_start_pos++;
 
     int line_end_pos = end_pos;
     while (line_end_pos < src_files[id].len && body[line_end_pos] != '\n') {
