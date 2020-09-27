@@ -637,7 +637,9 @@ void compile(int pos) {
             emit_postfix_add(type_size(target_t), (target_t->ptr_to) ? type_size(target_t->ptr_to) : 1);
             break;
         }
+        
         case TYPE_NOP:
+            debug("found nop");
             break;
 
         case TYPE_EXPR_STATEMENT:
@@ -809,23 +811,22 @@ void compile(int pos) {
 
             int case_label[RCC_BUF_SIZE];
             int case_label_index = 0;
-            for (p = top_p + 1; p->type == TYPE_ARG; p++) {
+            for (atom_t *pp = top_p + 1; pp->type == TYPE_ARG; pp++) {
                 int label = new_label();
-                if (case_label_index >= 200) {
+                if (case_label_index >= RCC_BUF_SIZE) {
                     error("too much labels");
                 }
                 case_label[case_label_index++] = label;
                 emit_label(label);
-                atom_t *case_atom = &program[p->atom_pos];
+                atom_t *case_atom = &program[pp->atom_pos];
                 if (case_atom->type == TYPE_CASE) {
                     compile((case_atom+1)->atom_pos);
                 } else if (case_atom->type == TYPE_DEFAULT) {
                     compile(case_atom->atom_pos);
                 } else {
-                    dump_atom_tree(p->atom_pos, 0);
+                    dump_atom_tree(pp->atom_pos, 0);
                     error("invalid child under switch node");
                 }
-                compile((case_atom+1)->atom_pos);
             }
             emit_jmp(l_end);
 
@@ -834,24 +835,24 @@ void compile(int pos) {
             compile(top_p->atom_pos);
 
             int i=0;
-            for (p = top_p + 1; p->type == TYPE_ARG; p++) {
-                atom_t *case_atom = &program[p->atom_pos];
+            for (atom_t *pp = top_p + 1; pp->type == TYPE_ARG; pp++) {
+                atom_t *case_atom = &program[pp->atom_pos];
                 if (case_atom->type == TYPE_CASE) {
                     compile(case_atom->atom_pos);
-                    emit_jmp_case(case_label[i], type_size(p->t));
-                    i++;
+                    emit_jmp_case(case_label[i], type_size(pp->t));
                 } else if (case_atom->type == TYPE_DEFAULT) {
-                    compile(case_atom->atom_pos);
+                    emit_jmp(case_label[i]);
                 } else {
-                    dump_atom_tree(p->atom_pos, 0);
+                    dump_atom_tree(pp->atom_pos, 0);
                     error("invalid child under switch node");
                 }
+                i++;
             }
+            exit_break_label();
             emit_label(l_end);
             emit_pop();
         }
             break;
-
 
         default:
             dump_atom(pos, 0);
