@@ -495,6 +495,14 @@ void emit_jmp_case(int i, int size) {
     out_int("jz	.L", i, "");
 }
 
+void emit_jmp_case_if_not(int i, int size) {
+    out("popq	%rax");
+    out("popq   %rcx");
+    out("pushq   %rcx");
+    out_x("subX	%Zcx, %Zax", size);
+    out_int("jnz	.L", i, "");
+}
+
 
 int func_return_label;
 
@@ -803,56 +811,46 @@ void compile(int pos) {
             break;
 
         case TYPE_SWITCH: {
-            atom_t *top_p = p;
-            int l_table = new_label();
             int l_end = new_label();
             enter_break_label(l_end, 0);
-            emit_jmp(l_table);
+            compile(p->atom_pos);
+            int size = type_size(p->t);
 
-            int case_label[RCC_BUF_SIZE];
-            int case_label_index = 0;
-            for (atom_t *pp = top_p + 1; pp->type == TYPE_ARG; pp++) {
-                int label = new_label();
-                if (case_label_index >= RCC_BUF_SIZE) {
-                    error("too much labels");
-                }
-                case_label[case_label_index++] = label;
-                emit_label(label);
-                atom_t *case_atom = &program[pp->atom_pos];
+            p++;
+            int l_fallthrough = new_label();
+            while (p->type == TYPE_ARG) {
+                int l_next_case = new_label(); 
+                atom_t *case_atom = &program[p->atom_pos];
+                int pos;
+
                 if (case_atom->type == TYPE_CASE) {
-                    compile((case_atom+1)->atom_pos);
+                    compile((case_atom  )->atom_pos);
+                    emit_jmp_case_if_not(l_next_case, size);
+                    pos = (case_atom+1)->atom_pos;
                 } else if (case_atom->type == TYPE_DEFAULT) {
-                    compile(case_atom->atom_pos);
+                    emit_label(l_fallthrough);
+                    pos = case_atom->atom_pos;
                 } else {
-                    dump_atom_tree(pp->atom_pos, 0);
+                    dump_atom_tree(p->atom_pos, 0);
                     error("invalid child under switch node");
                 }
-            }
-            emit_jmp(l_end);
 
-            // jump table
-            emit_label(l_table);
-            compile(top_p->atom_pos);
+                emit_label(l_fallthrough);
+                compile(pos);
+                l_fallthrough = new_label();    // points to the body of the next case
+                emit_jmp(l_fallthrough);
 
-            int i=0;
-            for (atom_t *pp = top_p + 1; pp->type == TYPE_ARG; pp++) {
-                atom_t *case_atom = &program[pp->atom_pos];
-                if (case_atom->type == TYPE_CASE) {
-                    compile(case_atom->atom_pos);
-                    emit_jmp_case(case_label[i], type_size(pp->t));
-                } else if (case_atom->type == TYPE_DEFAULT) {
-                    emit_jmp(case_label[i]);
-                } else {
-                    dump_atom_tree(pp->atom_pos, 0);
-                    error("invalid child under switch node");
-                }
-                i++;
+                emit_label(l_next_case);
+                p++;
             }
+
+            emit_label(l_fallthrough);
             exit_break_label();
             emit_label(l_end);
             emit_pop();
         }
             break;
+
 
         default:
             dump_atom(pos, 0);
