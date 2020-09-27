@@ -1,11 +1,15 @@
-int sub(int i) {
+void sub(int i) {
     switch (i) {
         case 1:
-        case 2:
+        case 2: {
             print(100);
+        }
             break;
         case 3:
-            print(101);
+            switch (i) {
+                case 3:
+                    print(101);
+            }
             break;
         default:
             print(102);

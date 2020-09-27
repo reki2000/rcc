@@ -22,7 +22,7 @@ void enter_var_frame() {
         error("Too many frames");
     }
     env[env_top].vars = calloc(sizeof(var_t), NUM_VARS);
-    env[env_top].offset = env[env_top - 1].offset;
+    env[env_top].offset = (env_top == 0) ? 0 : env[env_top - 1].offset;
     env[env_top].num_vars = 0;
 }
 
@@ -68,13 +68,13 @@ var_t *add_constant_int(char *name, type_t*t, int value) {
 }
 
 void var_realloc(var_t *v, type_t *t) {
-    if (v->t->size != 0) {
+    if (type_size(v->t) != 0) {
         error_s("cannot realloc variable: ", v->name);
     }
 
     frame_t *f = &env[env_top];
 
-    f->offset += align(t->size, 4);
+    f->offset += align(type_size(t), 4);
     if (f->offset > max_offset) {
         max_offset = f->offset;
     }
@@ -96,7 +96,7 @@ var_t *add_var(char *name, type_t *t) {
         v->offset = 0;
         v->is_global = TRUE;
     } else {
-        f->offset += align(t->size, 4);
+        f->offset += align(type_size(t), 4);
         if (f->offset > max_offset) {
             max_offset = f->offset;
         }

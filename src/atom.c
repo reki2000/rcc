@@ -58,8 +58,8 @@ void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
 
     strcat(buf, " t:");
     dump_type(buf, p->t);
-    _strcat3(buf, " token:", p->token_pos, " ");
-    dump_token_by_id(p->token_pos);
+    strcat(buf, " ");
+    dump_token_simple(buf, p->token_pos);
 }
 
 void dump_atom(int pos, int indent) {
@@ -270,21 +270,21 @@ int alloc_index_atom(int base_pos, int index_pos) {
     int size = 0;
     if (t->array_length >= 0) { // base is an array
         debug("alloc array index for array: ");
-        dump_atom_tree(base_pos, 0);
+        //dump_atom_tree(base_pos, 0);
         t = t->ptr_to;
-        size = t->size;
+        size = type_size(t);
         if (!t->ptr_to || t->array_length < 0) {
             t = add_pointer_type(t);
         }
     } else if (t->ptr_to) { // base is a pointer
-        debug("alloc array index for pointer: ");
-        dump_atom_tree(base_pos, 0);
+        //debug("alloc array index for pointer: ");
+        //dump_atom_tree(base_pos, 0);
         char buf[RCC_BUF_SIZE] = {0};
         dump_type(buf, t);
         warning_s("implicit convertion from pointer to array: ", buf);
         pos = alloc_deref_atom(pos);
         t = t->ptr_to;
-        size = t->ptr_to->size;
+        size = type_size(t->ptr_to);
     } else {
         dump_atom_tree(base_pos, 0);
         dump_atom_tree(index_pos, 0);
@@ -319,7 +319,7 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
         if (atom_type(rpos)->ptr_to != 0) {
             error("Cannot + or - between pointers");
         }
-        int size = alloc_typed_int_atom(TYPE_INTEGER, lpos_t->ptr_to->size, find_type("int"));
+        int size = alloc_typed_int_atom(TYPE_INTEGER, type_size(lpos_t->ptr_to), find_type("int"));
         rpos = alloc_binop_atom(TYPE_MUL, rpos, size);
     }
 

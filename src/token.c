@@ -218,7 +218,6 @@ token *add_token(token_id id) {
     t->src_end_pos = src->pos - 1;
 
     set_src_pos();
-
     return t;
 }
 
@@ -256,12 +255,18 @@ void dump_token(int pos, token *t) {
     debug_s("token:", buf);
 }
 
-void dump_token_by_id(int pos) {
-    dump_token(pos, &tokens[pos]);
+void dump_token_simple(char *buf, int pos) {
+    token *t = &tokens[pos];
+    src_t *s = file_info(t->src_id);
+
+    strcat(buf, s->filename);
+    _strcat3(buf, ":", t->src_line, "");
+    _strcat3(buf, ":", t->src_column, " ");
+    strcat(buf, dump_file3(t->src_id, t->src_pos, t->src_end_pos));
 }
 
 void dump_tokens() {
-    for (int i = token_pos - 2; i <= token_pos; i++) {
+    for (int i = token_pos - 2; i >= 0 && i <= token_pos; i++) {
         if (i<0 || i>=token_len) {
             continue;
         }
@@ -514,6 +519,7 @@ void tokenize_file(char *filename) {
     tokenize();
     add_token(T_EOF);
     exit_file();
+    debug_i("tokens:", token_len);
 }
 
 bool expect(token_id id) {

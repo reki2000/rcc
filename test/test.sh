@@ -16,7 +16,13 @@ function fatal {
 }
 
 function compile {
-    $CC -S -I$(dirname $1)/include $1 2>$DEBUG_LOG > $DEBUG_ASM
+    $CC -S -I$(dirname $1)/include -o $DEBUG_ASM $1 2>$DEBUG_LOG \
+    && ( $GCC -o $DEBUG_BIN $DEBUG_ASM || fatal " cannot build test program in rcc" )
+}
+
+function compile-gcc {
+    $GCC -S -I$(dirname $1)/include -o $DEBUG_ASM $1 2>$DEBUG_LOG \
+    && ( $GCC -o $DEBUG_BIN $DEBUG_ASM print.c || fatal " cannot build test program in gcc" )
 }
 
 function check_diff {
@@ -27,9 +33,6 @@ function check_result {
     if [ ! -f $1 ]; then
       fatal "no result file"
     fi
-
-    $LD -fPIC -o $DEBUG_BIN $DEBUG_ASM \
-        || fatal " cannot build test program"
 
     local result_file=out/result.txt
     $DEBUG_BIN > $result_file
@@ -52,23 +55,36 @@ function run {
     local t=$1
     echo "test: $t ------------------"
     clean
-    compile $t/test.c && check_result $t/expect.txt || check_error $t/expect-error.txt
+    $COMPILE $t/test.c && check_result $t/expect.txt || check_error $t/expect-error.txt
     echo "success"
 }
 
 set -e
 
 CC=../bin/rcc
-LD=cc
+GCC=gcc
 DEBUG_LOG=out/debug.log
 DEBUG_BIN=out/test.out
+DEBUG_OBJ=out/test.o
 DEBUG_ASM=out/test.s
+
+COMPILE=compile
 
 function all {
     for t in 0*; do
         run $t
     done
 }
+
+if [ "$1" = "--gen2" ]; then
+  CC=../bin/rcc2
+  shift
+fi
+
+if [ "$1" = "--gcc" ]; then
+  COMPILE=compile-gcc
+  shift
+fi
 
 if [ -z "$1" ]; then
     all

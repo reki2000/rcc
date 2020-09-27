@@ -225,8 +225,15 @@ void emit_call(char *name) {
 }
 
 void emit_plt_call(char *name) {
+    out("movq %rsp, %rax");
+    // out("andq $0xfffffffffffffff0, %rsp");
+    // out("pushq %rax");
+    // out("pushq %rax");
     out("movb $0, %al");
     out_str("call	", name, "@PLT");
+    // out("popq %rdx");
+    // out("popq %rdx");
+    // out("movq %rdx, %rsp");
     out("pushq	%rax");
 }
 
@@ -460,6 +467,20 @@ void emit_jmp_false(int i) {
     out_int("jz	.L", i, "");
 }
 
+void emit_jmp_true_keepvalue(int i) {
+    out("popq	%rax");
+    out("pushq	%rax");
+    out("orl	%eax, %eax");
+    out_int("jnz	.L", i, "");
+}
+
+void emit_jmp_false_keepvalue(int i) {
+    out("popq	%rax");
+    out("pushq	%rax");
+    out("orl	%eax, %eax");
+    out_int("jz	.L", i, "");
+}
+
 void emit_jmp_true(int i) {
     out("popq	%rax");
     out("orl	%eax, %eax");
@@ -472,6 +493,14 @@ void emit_jmp_case(int i, int size) {
     out("pushq   %rcx");
     out_x("subX	%Zcx, %Zax", size);
     out_int("jz	.L", i, "");
+}
+
+void emit_jmp_case_if_not(int i, int size) {
+    out("popq	%rax");
+    out("popq   %rcx");
+    out("pushq   %rcx");
+    out_x("subX	%Zcx, %Zax", size);
+    out_int("jnz	.L", i, "");
 }
 
 
@@ -520,7 +549,7 @@ void compile(int pos) {
     char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
     debug_s("compiling atom_t: ", ast_text);
-    dump_token_by_id(p->token_pos);
+    //dump_token_by_id(p->token_pos);
 
     switch (p->type) {
         case TYPE_VAR_REF:
@@ -534,7 +563,7 @@ void compile(int pos) {
         case TYPE_BIND:
             compile(p->atom_pos); // rvalue
             compile((p+1)->atom_pos); // lvalue - should be an address
-            emit_copy(p->t->size);
+            emit_copy(type_size(p->t));
             break;
         case TYPE_PTR:
         case TYPE_PTR_DEREF:
@@ -545,7 +574,7 @@ void compile(int pos) {
             if (p->t->array_length >= 0 || p->t->struct_of) {
                 // rvalue of array / struct will be a pointer for itself
             } else {
-                emit_deref(p->t->size);
+                emit_deref(type_size(p->t));
             }
             break;
 
@@ -555,11 +584,11 @@ void compile(int pos) {
 
         case TYPE_CAST:
             compile(p->atom_pos);
-            emit_scast(p->t->size);
+            emit_scast(type_size(p->t));
             break;
 
         case TYPE_INTEGER: 
-            emit_int(p->int_value, p->t->size);
+            emit_int(p->int_value, type_size(p->t));
             break;
 
         case TYPE_ADD:
@@ -573,8 +602,6 @@ void compile(int pos) {
         case TYPE_EQ_LE:
         case TYPE_EQ_GT:
         case TYPE_EQ_GE:
-        case TYPE_LOG_OR:
-        case TYPE_LOG_AND:
         case TYPE_OR:
         case TYPE_AND:
         case TYPE_XOR:
@@ -587,40 +614,40 @@ void compile(int pos) {
             switch (p->type) {
                 case TYPE_ARRAY_INDEX: emit_add(8); break;
                 case TYPE_MEMBER_OFFSET:
-                case TYPE_ADD: emit_add(p->t->size); break;
-                case TYPE_SUB: emit_sub(p->t->size); break;
-                case TYPE_DIV: emit_div(p->t->size); break;
-                case TYPE_MOD: emit_mod(p->t->size); break;
-                case TYPE_MUL: emit_mul(p->t->size); break;
-                case TYPE_EQ_EQ: emit_eq_eq(p->t->size); break;
-                case TYPE_EQ_NE: emit_eq_ne(p->t->size); break;
-                case TYPE_EQ_LE: emit_eq_le(p->t->size); break;
-                case TYPE_EQ_LT: emit_eq_lt(p->t->size); break;
-                case TYPE_EQ_GE: emit_eq_ge(p->t->size); break;
-                case TYPE_EQ_GT: emit_eq_gt(p->t->size); break;
-                case TYPE_LOG_OR: emit_log_or(p->t->size); break;
-                case TYPE_LOG_AND: emit_log_and(p->t->size); break;
-                case TYPE_OR: emit_bit_or(p->t->size); break;
-                case TYPE_AND: emit_bit_and(p->t->size); break;
-                case TYPE_XOR: emit_bit_xor(p->t->size); break;
-                case TYPE_LSHIFT: emit_bit_lshift(p->t->size); break;
-                case TYPE_RSHIFT: emit_bit_rshift(p->t->size); break;
+                case TYPE_ADD: emit_add(type_size(p->t)); break;
+                case TYPE_SUB: emit_sub(type_size(p->t)); break;
+                case TYPE_DIV: emit_div(type_size(p->t)); break;
+                case TYPE_MOD: emit_mod(type_size(p->t)); break;
+                case TYPE_MUL: emit_mul(type_size(p->t)); break;
+                case TYPE_EQ_EQ: emit_eq_eq(type_size(p->t)); break;
+                case TYPE_EQ_NE: emit_eq_ne(type_size(p->t)); break;
+                case TYPE_EQ_LE: emit_eq_le(type_size(p->t)); break;
+                case TYPE_EQ_LT: emit_eq_lt(type_size(p->t)); break;
+                case TYPE_EQ_GE: emit_eq_ge(type_size(p->t)); break;
+                case TYPE_EQ_GT: emit_eq_gt(type_size(p->t)); break;
+                case TYPE_OR: emit_bit_or(type_size(p->t)); break;
+                case TYPE_AND: emit_bit_and(type_size(p->t)); break;
+                case TYPE_XOR: emit_bit_xor(type_size(p->t)); break;
+                case TYPE_LSHIFT: emit_bit_lshift(type_size(p->t)); break;
+                case TYPE_RSHIFT: emit_bit_rshift(type_size(p->t)); break;
             }
             break;
 
         case TYPE_POSTFIX_DEC: {
             compile(p->atom_pos);
             type_t *target_t = p->t;
-            emit_postfix_add(target_t->size, (target_t->ptr_to) ? -(target_t->ptr_to->size) : -1);
+            emit_postfix_add(type_size(target_t), (target_t->ptr_to) ? -type_size(target_t->ptr_to) : -1);
             break;
         }
         case TYPE_POSTFIX_INC:  {
             compile(p->atom_pos);
             type_t *target_t = p->t;
-            emit_postfix_add(target_t->size, (target_t->ptr_to) ? target_t->ptr_to->size : 1);
+            emit_postfix_add(type_size(target_t), (target_t->ptr_to) ? type_size(target_t->ptr_to) : 1);
             break;
         }
+        
         case TYPE_NOP:
+            debug("found nop");
             break;
 
         case TYPE_EXPR_STATEMENT:
@@ -632,6 +659,24 @@ void compile(int pos) {
             compile((p+1)->atom_pos);
             break;
 
+        case TYPE_LOG_AND: {
+                compile(p->atom_pos);
+                int l_end = new_label();
+                emit_jmp_false_keepvalue(l_end); // short circuit of '&&'
+                compile((p+1)->atom_pos);
+                emit_label(l_end);
+            }
+            break;
+
+        case TYPE_LOG_OR: {
+                compile(p->atom_pos);
+                int l_end = new_label();
+                emit_jmp_true_keepvalue(l_end);   // short circuit of '||'
+                compile((p+1)->atom_pos);
+                emit_label(l_end);
+            }
+            break;
+
         case TYPE_PRINT:
             compile(p->atom_pos);
             emit_print();
@@ -639,12 +684,12 @@ void compile(int pos) {
             
         case TYPE_LOG_NOT:
             compile(p->atom_pos);
-            emit_log_not(p->t->size);
+            emit_log_not(type_size(p->t));
             break;
 
         case TYPE_NEG:
             compile(p->atom_pos);
-            emit_neg(p->t->size);
+            emit_neg(type_size(p->t));
             break;
 
         case TYPE_TERNARY: {
@@ -747,8 +792,10 @@ void compile(int pos) {
 
         case TYPE_APPLY: {
             func *f = (func *)(p->ptr_value);
-            for (int i=0; i<f->argc; i++) {
+            for (int i=f->argc-1; i>=0; i--) {
                 compile((p+i+1)->atom_pos);
+            }
+            for (int i=0; i<f->argc; i++) {
                 emit_pop_argv(i);
             }
             if (f->is_external) {
@@ -764,52 +811,41 @@ void compile(int pos) {
             break;
 
         case TYPE_SWITCH: {
-            atom_t *top_p = p;
-            int l_table = new_label();
             int l_end = new_label();
             enter_break_label(l_end, 0);
-            emit_jmp(l_table);
+            compile(p->atom_pos);
+            int size = type_size(p->t);
 
-            int case_label[RCC_BUF_SIZE];
-            int case_label_index = 0;
-            for (p = top_p + 1; p->type == TYPE_ARG; p++) {
-                int label = new_label();
-                if (case_label_index >= 200) {
-                    error("too much labels");
-                }
-                case_label[case_label_index++] = label;
-                emit_label(label);
+            p++;
+            int l_fallthrough = new_label();
+            while (p->type == TYPE_ARG) {
+                int l_next_case = new_label(); 
                 atom_t *case_atom = &program[p->atom_pos];
+                int pos;
+
                 if (case_atom->type == TYPE_CASE) {
-                    compile((case_atom+1)->atom_pos);
+                    compile((case_atom  )->atom_pos);
+                    emit_jmp_case_if_not(l_next_case, size);
+                    pos = (case_atom+1)->atom_pos;
                 } else if (case_atom->type == TYPE_DEFAULT) {
-                    compile(case_atom->atom_pos);
+                    emit_label(l_fallthrough);
+                    pos = case_atom->atom_pos;
                 } else {
                     dump_atom_tree(p->atom_pos, 0);
                     error("invalid child under switch node");
                 }
-                compile((case_atom+1)->atom_pos);
-            }
-            emit_jmp(l_end);
 
-            // jump table
-            emit_label(l_table);
-            compile(top_p->atom_pos);
+                emit_label(l_fallthrough);
+                compile(pos);
+                l_fallthrough = new_label();    // points to the body of the next case
+                emit_jmp(l_fallthrough);
 
-            int i=0;
-            for (p = top_p + 1; p->type == TYPE_ARG; p++) {
-                atom_t *case_atom = &program[p->atom_pos];
-                if (case_atom->type == TYPE_CASE) {
-                    compile(case_atom->atom_pos);
-                    emit_jmp_case(case_label[i], p->t->size);
-                    i++;
-                } else if (case_atom->type == TYPE_DEFAULT) {
-                    compile(case_atom->atom_pos);
-                } else {
-                    dump_atom_tree(p->atom_pos, 0);
-                    error("invalid child under switch node");
-                }
+                emit_label(l_next_case);
+                p++;
             }
+
+            emit_label(l_fallthrough);
+            exit_break_label();
             emit_label(l_end);
             emit_pop();
         }
@@ -835,7 +871,7 @@ void compile_func(func *f) {
     out_label(f->name);
     out("pushq	%rbp");
     out("movq	%rsp, %rbp");
-    out_int("subq	$", f->max_offset, ", %rsp");
+    out_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
@@ -844,8 +880,8 @@ void compile_func(func *f) {
         // strcat(buf, " t:");
         // dump_type(buf, v->t);
         // debug_s("emitting func var:", buf);
-        switch (v->t->size)  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
-        emit_var_arg_init(i, v->offset, v->t->size);
+        switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
+        emit_var_arg_init(i, v->offset, type_size(v->t));
     }
 
     compile(f->body_pos);
@@ -880,7 +916,7 @@ void out_global_constant(var_t *v) {
     out(".data");
     out_int(".align\t", 4, "");
     out_str(".type\t", v->name, ", @object");
-    out_int4(".size\t", v->name, ", ", v->t->size, "");
+    out_int4(".size\t", v->name, ", ", type_size(v->t), "");
     out_label(v->name);
     if (v->t->array_length >= 0) {
         int filled_size = 0;
@@ -891,8 +927,8 @@ void out_global_constant(var_t *v) {
             int value = get_global_array(pos, index);
             filled_size += out_global_constant_by_type(pt, value);
         }
-        if (v->t->size > filled_size) {
-            out_int(".zero\t", v->t->size - filled_size, "");
+        if (type_size(v->t) > filled_size) {
+            out_int(".zero\t", type_size(v->t) - filled_size, "");
         }
     } else {
         int filled_size = out_global_constant_by_type(v->t, v->int_value);
@@ -908,7 +944,7 @@ void out_global_declare(var_t *v) {
     buf[0] = 0;
     strcat(buf, ".comm	");
     strcat(buf, v->name);
-    _strcat3(buf, ", ", v->t->size, "");
+    _strcat3(buf, ", ", type_size(v->t), "");
     out(buf);
 }
 
@@ -951,7 +987,7 @@ void emit(int fd) {
     while (f->name != 0) {
         if (f->body_pos != 0) {
             debug_s(f->name, " --------------------- ");
-            dump_atom_tree(f->body_pos, 0);
+            //dump_atom_tree(f->body_pos, 0);
             compile_func(f);
         }
         f++;

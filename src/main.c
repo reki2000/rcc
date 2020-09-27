@@ -51,10 +51,7 @@ int main(int argc, char **argv) {
 
     tokenize_file(argv[arg_index]);
 
-    int pos = parse();
-    if (pos == 0) {
-        error("Invalid source code");
-    }
+    parse();
 
     emit(output_fd);
 

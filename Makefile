@@ -5,6 +5,7 @@ CFLAGS = -g -Wall -Wextra -I./include
 RM = rm -f
 
 PROG      = bin/rcc
+PROG2     = bin/rcc2
 SRCDIR    = ./src
 SOURCES   = $(wildcard $(SRCDIR)/*.c)
 OBJDIR    = ./out
@@ -21,9 +22,15 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 
 clean:
 	$(RM) $(PROG) $(OBJDIR)/* test/out/* core test/core
+	cd gen2 && make clean
 
-stage1: clean $(PROG)
-	cd stage1 && make clean && make
+gen2: $(PROG2)
+
+$(PROG2): $(PROG)
+	cd gen2 && make
 
 test: clean $(PROG)
 	test/test.sh
+
+test-gen2: clean $(PROG2)
+	test/test.sh --gen2

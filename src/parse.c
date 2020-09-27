@@ -417,7 +417,7 @@ int parse_sizeof() {
             if (!expect(T_RPAREN)) {
                 error("no () after sizeof");
             }
-            pos = alloc_typed_int_atom(TYPE_INTEGER, t->size, find_type("int"));
+            pos = alloc_typed_int_atom(TYPE_INTEGER, type_size(t), find_type("int"));
         } else {
             set_token_pos(start_pos);
         }
@@ -428,7 +428,7 @@ int parse_sizeof() {
             if (program[pos].t->array_length < 0) {
                 pos = atom_to_rvalue(pos);
             }
-            int size = program[pos].t->size;
+            int size = type_size(program[pos].t);
             pos = alloc_typed_int_atom(TYPE_INTEGER, size, find_type("int"));
         } else {
             error("invliad expr after sizeof");
@@ -1240,15 +1240,15 @@ type_t *parse_enum_type() {
     if (expect_ident(&tag_name)) {
         t = add_enum_type(tag_name);
     } else {
-        t = add_enum_type("---");
+        t = add_enum_type("");
     }
 
     if (expect(T_LBLACE)) {
-        debug("parsing enum member...");
+        debug_s("parsing members for enum : ", t->enum_of->name);
         for (;;) {
             char *member_name;
             if (!expect_ident(&member_name)) {
-                error("expected identifier");
+                error("enum member: expected identifier");
             }
             int value = t->enum_of->next_value++;
 
@@ -1361,7 +1361,7 @@ type_t *parse_typedef() {
         error("no type name for typedef");
     }
 
-    type_t *defined_type = add_type(type_name, t->size, t->ptr_to, t->array_length);
+    type_t *defined_type = add_type(type_name, type_size(t), t->ptr_to, t->array_length);
     defined_type->struct_of = t->struct_of;
     defined_type->enum_of = t->enum_of;
     defined_type->typedef_of = t;
