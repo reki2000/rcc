@@ -76,7 +76,7 @@ function all {
     done
 }
 
-if [ "$1" = "--stage1" ]; then
+if [ "$1" = "--gen2" ]; then
   CC=../bin/rcc2
   shift
 fi
