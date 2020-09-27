@@ -162,7 +162,11 @@ escaped_string: ( ANY | escaped_char )*
 escaped_char: '\' [0abfnrtr"'\]
 func_name: IDENT
 var_name: IDENT
-int: DIGIT*
+int: hex | oct | decimal
+
+hex: '0x' [0-9A-Fa-f]+
+oct: 0 DIGIT+
+decimal: DIGIT+
 
 IDENT: IDENT_CHAR ( IDENT_CHAR | DIGIT )*;
 IDENT_CHAR: ALPHA | '_'
