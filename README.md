@@ -16,10 +16,10 @@ This is an tiny subset of C language compiler inspired by [9cc](https://github.c
 ## Language features *NOT* supported yet
 
 - function arguments more than 6 (needs pass-by-stack on x64 ABI)
-- variadic function
-- non-decimal numeric literals (0x..., 0..., ...L)
+- variadic functions
 - #ifdef, #else, #endif
-- unsigned (all numeric variables are handled as signed)
+- unsigned types (all numeric variables are handled as signed)
+- long / long long types, long numeric literals (0L)
 - floating point types
 - handling for invalid syntax source codes
 - stack alignment (16 bytes) before function call
