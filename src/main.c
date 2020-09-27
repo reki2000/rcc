@@ -4,8 +4,8 @@
 
 extern int open(const char*, int, int);
 extern int close(int);
-#define O_CREAT 64
-#define O_TRUNC 512
+#define O_CREAT 0x40
+#define O_TRUNC 0x200
 #define O_WRONLY 1
 
 extern void tokenize_file(char *);
@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
         if (strncmp("-o", argv[arg_index], 2) == 0) {
             arg_index++;
             if (arg_index < argc) {
-                output_fd = open(argv[arg_index], O_CREAT | O_TRUNC | O_WRONLY, 6 *64 + 4 * 8 + 4);
+                output_fd = open(argv[arg_index], O_CREAT | O_TRUNC | O_WRONLY, 0644);
                 if (output_fd == -1) {
                     error_s("cannot open output file: ", argv[arg_index]);
                 }
