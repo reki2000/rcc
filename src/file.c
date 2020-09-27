@@ -134,6 +134,9 @@ bool exit_file() {
 }
 
 char *dump_file2(int id, int start_pos, int end_pos) {
+    if (start_pos > end_pos) {
+        return "*invalid pos for dump_file2*";
+    }
     int line_start_pos = start_pos;
     char *body = src_files[id].body;
 
@@ -159,6 +162,9 @@ char *dump_file2(int id, int start_pos, int end_pos) {
 }
 
 char *dump_file3(int id, int start_pos, int end_pos) {
+    if (start_pos > end_pos) {
+        return "*invalid pos for dump_file2*";
+    }
     int line_start_pos = start_pos;
     char *body = src_files[id].body;
 

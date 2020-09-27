@@ -218,7 +218,6 @@ token *add_token(token_id id) {
     t->src_end_pos = src->pos - 1;
 
     set_src_pos();
-
     return t;
 }
 
@@ -520,6 +519,7 @@ void tokenize_file(char *filename) {
     tokenize();
     add_token(T_EOF);
     exit_file();
+    debug_i("tokens:", token_len);
 }
 
 bool expect(token_id id) {
