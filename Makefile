@@ -4,33 +4,43 @@ CC = gcc
 CFLAGS = -g -Wall -Wextra -I./include
 RM = rm -f
 
-PROG      = bin/rcc
-PROG2     = bin/rcc2
+GEN1      = bin/rcc
+GEN2      = bin/rcc2
+GEN3      = bin/rcc3
 SRCDIR    = ./src
 SOURCES   = $(wildcard $(SRCDIR)/*.c)
 OBJDIR    = ./out
 OBJECTS   = $(addprefix $(OBJDIR)/, $(notdir $(SOURCES:.c=.o)))
 
-all: $(PROG)
+all: $(GEN1)
 
-$(PROG): $(OBJECTS)
-	$(CC) -o $(PROG) $(OBJECTS)
+$(GEN1): $(OBJECTS)
+	$(CC) -o $(GEN1) $(OBJECTS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 clean:
-	$(RM) $(PROG) $(OBJDIR)/* test/out/* core test/core
+	$(RM) $(GEN1) $(OBJDIR)/* test/out/* core test/core
 	cd gen2 && make clean
+	cd gen3 && make clean
 
-gen2: $(PROG2)
+gen2: $(GEN2)
 
-$(PROG2): $(PROG)
+$(GEN2): $(GEN1)
 	cd gen2 && make
 
-test: clean $(PROG)
+gen3: $(GEN3)
+
+$(GEN3): $(GEN2)
+	cd gen3 && make
+
+test: clean $(GEN1)
 	test/test.sh
 
-test-gen2: clean $(PROG2)
+test-gen2: clean $(GEN2)
 	test/test.sh --gen2
+
+test-gen3: clean $(GEN3)
+	test/test.sh --gen3
