@@ -96,28 +96,70 @@ char escape(char escaped_char) {
     return c;
 }
 
-bool tokenize_int(int *retval) {
-    int value = 0;
-    int count = 0;
+bool decode_digit(char c, int *value, char min, char max, int base, int radix) {
+    if (c >= min && c <= max) {
+        *value *= radix;
+        *value += ((char)c - min + base);
+        return TRUE;
+    }
+    return FALSE;
+}
 
+bool tokenize_int_hex(int *retval) {
+    if (ch() != '0') {
+        return FALSE;
+    }
+    next();
+    if (ch() != 'x' && ch() != 'X') {
+        src->pos--;
+        return FALSE;
+    }
+    next();
+
+    int count = 0;
+    *retval = 0;
     for (;;) {
         int c = ch();
-        if (c >= '0' && c <= '9') {
-            value *= 10;
-            value += ((char)c - '0');
-        } else {
+        if (!decode_digit(c, retval, '0', '9', 0, 16)
+            && !decode_digit(c, retval, 'A', 'F', 10, 16)
+            && !decode_digit(c, retval, 'a', 'f', 10, 16)) {
             break;
         }
         count++;
         next();
     }
 
-    if (count == 0) {
+    return (count != 0);
+}
+
+bool tokenize_int_oct(int *retval) {
+    if (ch() != '0') {
         return FALSE;
     }
+    next();
 
-    *retval = value;
+    *retval = 0;
+    while (decode_digit(ch(), retval, '0', '7', 0, 8)) {
+        next();
+    }
     return TRUE;
+}
+
+bool tokenize_int_decimal(int *retval) {
+    int count = 0;
+    *retval = 0;
+    while (decode_digit(ch(), retval, '0', '9', 0, 10)) {
+        count++;
+        next();
+    }
+    return (count != 0);
+}
+
+bool tokenize_int(int *retval) {
+    skip();
+    return tokenize_int_hex(retval)
+      || tokenize_int_oct(retval)
+      || tokenize_int_decimal(retval);
 }
 
 bool tokenize_char(char *retval) {

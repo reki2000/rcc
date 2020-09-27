@@ -126,7 +126,7 @@
 - [ ] global multiple variable definition
 
 - [ ] long literal (10000L)
-- [ ] hex literal (0x0000)
+- [x] hex literal (ex:0x0000), octal literal(ex:0100)
 
 - [ ] goto
 
