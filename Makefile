@@ -23,16 +23,16 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 clean:
 	$(RM) $(PROG) $(OBJDIR)/* test/out/* core test/core
 
-$(PROG2): stage1
+stage1: $(PROG2)
 
-stage1: $(PROG)
+$(PROG2): 
 	cd stage1 && make
 
-clean-stage1: $(PROG)
+clean-stage1:
 	cd stage1 && make clean
 
 test: clean $(PROG)
 	test/test.sh
 
-test-stage1: $(PROG2)
+test-stage1: clean-stage1 $(PROG2)
 	test/test.sh --stage1
