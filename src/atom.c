@@ -96,7 +96,6 @@ void dump_atom_tree(int pos, int indent) {
         case TYPE_LOG_AND:
         case TYPE_LOG_OR:
         case TYPE_BIND:
-        case TYPE_ARRAY_INDEX:
         case TYPE_MEMBER_OFFSET:
         case TYPE_CASE:
             dump_atom_tree(a->atom_pos, indent + 1);
@@ -113,6 +112,11 @@ void dump_atom_tree(int pos, int indent) {
         case TYPE_POSTFIX_INC:
         case TYPE_DEFAULT:
             dump_atom_tree(a->atom_pos, indent + 1);
+            break;
+        case TYPE_ARRAY_INDEX:
+            dump_atom_tree(a->atom_pos, indent + 1);
+            dump_atom_tree((a+1)->atom_pos, indent + 1);
+            dump_atom_tree((a+2)->atom_pos, indent + 1);
             break;
         case TYPE_WHILE:
         case TYPE_DO_WHILE:
@@ -269,7 +273,9 @@ int alloc_index_atom(int base_pos, int index_pos) {
     type_t *t = atom_type(pos);
     int size = 0;
     if (t->array_length >= 0) { // base is an array
-        debug("alloc array index for array: ");
+        char buf[RCC_BUF_SIZE] = {0};
+        dump_type(buf, t);
+        debug_s("alloc array index for array: ", buf);
         //dump_atom_tree(base_pos, 0);
         t = t->ptr_to;
         size = type_size(t);
@@ -290,9 +296,10 @@ int alloc_index_atom(int base_pos, int index_pos) {
         dump_atom_tree(index_pos, 0);
         error_i("index for non-array atom #" , pos);
     }
-    int size_atom = alloc_typed_int_atom(TYPE_INTEGER, size, find_type("int"));
-    int pos2 = alloc_binop_atom(TYPE_ARRAY_INDEX, pos, alloc_binop_atom(TYPE_MUL, atom_to_rvalue(index_pos), size_atom));
-    atom_set_type(pos2, t);
+    index_pos = atom_to_rvalue(index_pos);
+    int pos2 = alloc_typed_pos_atom(TYPE_ARRAY_INDEX, pos, t);
+    alloc_typed_pos_atom(TYPE_ARG, index_pos, atom_type(index_pos));
+    alloc_typed_int_atom(TYPE_ARG, size, find_type("int"));
     //dump_atom_tree(pos2, 0);
     return pos2;
 }
