@@ -311,6 +311,15 @@ void emit_scast(int size) {
     out("pushq %rax");
 }
 
+void emit_array_index(int item_size) {
+    out("popq	%rax");
+    out_int("movl	$", item_size, ",%ecx");
+    out("imulq %rcx");
+    out("popq	%rdx");
+    out("addq %rdx, %rax");
+    out("pushq	%rax");
+}
+
 void emit_binop(char *op, int size) {
     out("popq	%rdx");
     out("popq	%rax");
@@ -607,12 +616,10 @@ void compile(int pos) {
         case TYPE_XOR:
         case TYPE_LSHIFT:
         case TYPE_RSHIFT:
-        case TYPE_ARRAY_INDEX:
         case TYPE_MEMBER_OFFSET:
             compile(p->atom_pos);
             compile((p+1)->atom_pos);
             switch (p->type) {
-                case TYPE_ARRAY_INDEX: emit_add(8); break;
                 case TYPE_MEMBER_OFFSET:
                 case TYPE_ADD: emit_add(type_size(p->t)); break;
                 case TYPE_SUB: emit_sub(type_size(p->t)); break;
@@ -633,6 +640,12 @@ void compile(int pos) {
             }
             break;
 
+        case TYPE_ARRAY_INDEX:
+            compile(p->atom_pos);
+            compile((p+1)->atom_pos);
+            emit_array_index((p+2)->int_value);
+            break;
+
         case TYPE_POSTFIX_DEC: {
             compile(p->atom_pos);
             type_t *target_t = p->t;
@@ -647,7 +660,6 @@ void compile(int pos) {
         }
         
         case TYPE_NOP:
-            debug("found nop");
             break;
 
         case TYPE_EXPR_STATEMENT:
