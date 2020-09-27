@@ -1,12 +1,41 @@
 # rcc
-## What"s this ?
+## What's this ?
 
-This is an experimental tiny subset of C language compiler inspired by [9cc](https://github.com/rui314/9cc). Will grow toward enabing self-compile.
+This is an tiny subset of C language compiler inspired by [9cc](https://github.com/rui314/9cc). Supports minimum language features enough to compile itself.
 
-## Compile and test
+## Architecture Overview
+
+- Subset of C89
+- Compiling stages: tokenize, parse, output-x64-asm
+- LL(1) hand-written parser
+- Data type model: x64 - LP64 (int:32, long:64, pointer:64)
+- Stack machine
+- Depends on external assembler (as) and linker (ld)
+- Highly limited use of C standard library (listed in `include/rsys.h`)
+
+## Language features *NOT* supported yet
+
+- function arguments more than 6 (needs pass-by-stack on x64 ABI)
+- variadic function
+- non-decimal numeric literals (0x..., 0..., ...L)
+- #ifdef, #else, #endif
+- unsigned (all numeric variables are handled as signed)
+- floating point types
+- handling for invalid syntax source codes
+- stack alignment (16 bytes) before function call
+- etc.
+
+## How to build and test
 
 ```
-make clean && make && test/test.sh
+# build & test gen1 - compiled by gcc
+make test
+
+# build & test gen2 - complied by gen1 compiler
+make test-gen2
+
+# build & test gen3 - compiled by gen2 compiler
+make test-gen3
 ```
 
 ## Current BNF

@@ -81,6 +81,11 @@ if [ "$1" = "--gen2" ]; then
   shift
 fi
 
+if [ "$1" = "--gen3" ]; then
+  CC=../bin/rcc3
+  shift
+fi
+
 if [ "$1" = "--gcc" ]; then
   COMPILE=compile-gcc
   shift
