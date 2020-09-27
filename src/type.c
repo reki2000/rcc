@@ -93,7 +93,7 @@ type_t *add_pointer_type(type_t *t) {
 type_t *add_array_type(type_t *t, int array_length) {
     type_t *p = find_pointer(t, array_length);
     if (!p) {
-        int size = array_length * t->size;
+        int size = array_length * type_size(t);
         p = add_type("", align(size, 4), t, array_length);
     }
     return p;
