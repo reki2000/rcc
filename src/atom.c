@@ -116,7 +116,7 @@ void dump_atom_tree(int pos, int indent) {
         case TYPE_ARRAY_INDEX:
             dump_atom_tree(a->atom_pos, indent + 1);
             dump_atom_tree((a+1)->atom_pos, indent + 1);
-            dump_atom_tree((a+2)->atom_pos, indent + 1);
+            dump_atom2(a+2, indent + 1, pos+2);
             break;
         case TYPE_WHILE:
         case TYPE_DO_WHILE:
