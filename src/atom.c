@@ -262,7 +262,7 @@ int alloc_postincdec_atom(int type, int target) {
 }
 
 int alloc_func_atom(func *f) {
-    int pos = alloc_atom(f->argc + 1);
+    int pos = alloc_atom(2);
     build_ptr_atom(pos, TYPE_APPLY, (void *)f);
     atom_set_type(pos, f->ret_type);
     return pos;

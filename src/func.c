@@ -44,7 +44,7 @@ func *find_function(char *name, type_t *ret_type, int argc, var_t *argv) {
     return 0;
 }
 
-func *add_function(char *name, type_t *ret_type, bool is_external, int argc, var_t *argv) {
+func *add_function(char *name, type_t *ret_type, bool is_external, bool is_variadic, int argc, var_t *argv) {
     if (function_len >= NUM_FUNCTIONS) {
         error("Too many functions");
     }
@@ -56,6 +56,7 @@ func *add_function(char *name, type_t *ret_type, bool is_external, int argc, var
         f->argc = argc;
         f->argv = argv;
         f->is_external = is_external;
+        f->is_variadic = is_variadic;
     }
     debug_s("added function: ", f->name);
     return f;

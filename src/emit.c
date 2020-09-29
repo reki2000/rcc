@@ -218,22 +218,10 @@ void emit_pop_argv(int no) {
     out_str("popq	", reg(no, 8), "");
 }
 
-void emit_call(char *name) {
+void emit_call(char *name, int num_stack_args, char *plt) {
     out("movb $0, %al");
-    out_str("call	", name, "");
-    out("pushq	%rax");
-}
-
-void emit_plt_call(char *name) {
-    out("movq %rsp, %rax");
-    // out("andq $0xfffffffffffffff0, %rsp");
-    // out("pushq %rax");
-    // out("pushq %rax");
-    out("movb $0, %al");
-    out_str("call	", name, "@PLT");
-    // out("popq %rdx");
-    // out("popq %rdx");
-    // out("movq %rdx, %rsp");
+    out_str("call	", name, plt);
+    out_int("addq $", num_stack_args * 8, ", %rsp");
     out("pushq	%rax");
 }
 
@@ -804,17 +792,19 @@ void compile(int pos) {
 
         case TYPE_APPLY: {
             func *f = (func *)(p->ptr_value);
-            for (int i=f->argc-1; i>=0; i--) {
+            int argc = (p+1)->int_value;
+
+            for (int i=argc-1; i>=0; i--) {
                 compile((p+i+1)->atom_pos);
             }
-            for (int i=0; i<f->argc; i++) {
+
+            int num_reg_args = argc > 6 ? 6 : argc;
+            int num_stack_args = argc > 6 ? argc - 6 : 0;
+
+            for (int i=0; i<num_reg_args; i++) {
                 emit_pop_argv(i);
             }
-            if (f->is_external) {
-                emit_plt_call(f->name);
-            } else {
-                emit_call(f->name);
-            }
+            emit_call(f->name, num_stack_args, f->is_external ? "@PLT" : "");
         }
             break;
         
