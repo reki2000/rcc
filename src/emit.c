@@ -236,7 +236,7 @@ void emit_deref(int size) {
 }
 
 void emit_var_ref(int i) {
-    out_int("lea	-", i, "(%rbp), %rax");
+    out_int("lea	", -i, "(%rbp), %rax");
     out("pushq	%rax");
 }
 
@@ -791,15 +791,16 @@ void compile(int pos) {
             break;
 
         case TYPE_APPLY: {
+            dump_atom_tree(pos,0);
             func *f = (func *)(p->ptr_value);
             int argc = (p+1)->int_value;
 
             for (int i=argc-1; i>=0; i--) {
-                compile((p+i+1)->atom_pos);
+                compile((p+i+2)->atom_pos);
             }
 
-            int num_reg_args = argc > 6 ? 6 : argc;
-            int num_stack_args = argc > 6 ? argc - 6 : 0;
+            int num_reg_args = argc > ABI_NUM_REGISTER_PASS ? ABI_NUM_REGISTER_PASS : argc;
+            int num_stack_args = argc > ABI_NUM_REGISTER_PASS ? argc - ABI_NUM_REGISTER_PASS : 0;
 
             for (int i=0; i<num_reg_args; i++) {
                 emit_pop_argv(i);
@@ -875,15 +876,15 @@ void compile_func(func *f) {
     out("movq	%rsp, %rbp");
     out_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
+    if (f->is_variadic) {
+        error("variadic function is not supported yet!");
+    }
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
-        // char buf[RCC_BUF_SIZE] = {0};
-        // strcat(buf, v->name);
-        // strcat(buf, " t:");
-        // dump_type(buf, v->t);
-        // debug_s("emitting func var:", buf);
         switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
-        emit_var_arg_init(i, v->offset, type_size(v->t));
+        if (i<6) {
+            emit_var_arg_init(i, v->offset, type_size(v->t));
+        }
     }
 
     compile(f->body_pos);

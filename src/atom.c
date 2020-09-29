@@ -135,6 +135,12 @@ void dump_atom_tree(int pos, int indent) {
             dump_atom_tree((a+1)->atom_pos, indent + 1);
             dump_atom_tree((a+2)->atom_pos, indent + 1);
             break;
+        case TYPE_APPLY:
+            dump_atom2(++a, indent + 1, pos);
+            for (a++; a->type == TYPE_ARG; a++) {
+                dump_atom_tree(a->atom_pos, indent + 1);
+            }
+            break;
         case TYPE_SWITCH:
             dump_atom_tree(a->atom_pos, indent + 1);
             for (a++; a->type == TYPE_ARG; a++) {
@@ -261,10 +267,17 @@ int alloc_postincdec_atom(int type, int target) {
     return alloc_typed_pos_atom(type, target, t->ptr_to);
 }
 
-int alloc_func_atom(func *f) {
-    int pos = alloc_atom(2);
+int alloc_func_atom(func *f, int num_args, int *args) {
+    int pos = alloc_atom(2+num_args);
+
     build_ptr_atom(pos, TYPE_APPLY, (void *)f);
     atom_set_type(pos, f->ret_type);
+
+    build_int_atom(pos+1, TYPE_ARG, num_args); 
+
+    for (int i=0; i<num_args; i++) {
+        build_pos_atom(pos+2+i, TYPE_ARG, args[i]);
+    }
     return pos;
 }
 

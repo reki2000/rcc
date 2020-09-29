@@ -15,15 +15,26 @@ frame_t env[NUM_FRAMES];
 int env_top = -1;
 int max_offset = 0;
 
-void enter_var_frame() {
+
+void _enter_var_frame(bool is_function_args) {
     env_top++;
     debug_i("entering frame:", env_top);
     if (env_top >= NUM_FRAMES) {
         error("Too many frames");
     }
-    env[env_top].vars = calloc(sizeof(var_t), NUM_VARS);
-    env[env_top].offset = (env_top == 0) ? 0 : env[env_top - 1].offset;
-    env[env_top].num_vars = 0;
+    frame_t *f = &env[env_top];
+    f->vars = calloc(sizeof(var_t), NUM_VARS);
+    f->offset = (env_top == 0) ? 0 : env[env_top - 1].offset;
+    f->num_vars = 0;
+    f->is_function_args = is_function_args;
+}
+
+void enter_function_args_var_frame() {
+    _enter_var_frame(TRUE);
+}
+
+void enter_var_frame() {
+    _enter_var_frame(FALSE);
 }
 
 void exit_var_frame() {
@@ -95,6 +106,9 @@ var_t *add_var(char *name, type_t *t) {
     if (env_top == 0) {
         v->offset = 0;
         v->is_global = TRUE;
+    } else  if (f->is_function_args && f->num_vars > ABI_NUM_REGISTER_PASS) {
+        v->offset = -ALIGN_OF_STACK * (2 + f->num_vars - ABI_NUM_REGISTER_PASS - 1); // 2 : return address, %rbp
+        v->is_global = FALSE;
     } else {
         f->offset += align(type_size(t), 4);
         if (f->offset > max_offset) {
@@ -111,7 +125,7 @@ var_t *add_var(char *name, type_t *t) {
     strcat(buf, "'");
     strcat(buf, name);
     _strcat3(buf, "' frame[", env_top, "] ");
-    _strcat3(buf, "offset:", f->offset, " type:");
+    _strcat3(buf, "offset:", v->offset, " type:");
     dump_type(buf, t);
     debug_s("add_var:", buf);
 

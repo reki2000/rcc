@@ -249,7 +249,6 @@ func *parse_func_name() {
 }
 
 int parse_apply_func() {
-    int pos;
     func *f = parse_func_name();
     if (!f) {
         return 0;
@@ -258,9 +257,8 @@ int parse_apply_func() {
         error("no '(' after func name");
     }
 
-    pos = alloc_func_atom(f);
-
     int num_args=0;
+    int args[200];
     while (!expect(T_RPAREN)) {
         if (num_args > 0 && !expect(T_COMMA)) {
             error("no comma between args");
@@ -269,15 +267,15 @@ int parse_apply_func() {
         if (!expr) {
             error("invalid arg expr");
         }
-        int arg = atom_to_rvalue(expr);
-        build_pos_atom(alloc_atom(1), TYPE_ARG, arg);
+        args[num_args] = atom_to_rvalue(expr);
         num_args++;
     }
 
     if (!f->is_variadic && f->argc != num_args) {
         error_s("invalid number of arguments at calling: ", f->name);
     }
-    build_pos_atom(pos+1, TYPE_ARG, num_args); 
+
+    int pos = alloc_func_atom(f, num_args, args);
     return pos;
 }
 
@@ -1756,7 +1754,7 @@ int parse_function_prototype(type_t *t, bool is_external) {
     }
 
     reset_var_max_offset();
-    enter_var_frame();
+    enter_function_args_var_frame();
 
     bool is_variadic = FALSE;
     parse_funcion_prototype_arg_seq();
@@ -1815,7 +1813,7 @@ int parse_function_definition(type_t *t) {
     }
 
     reset_var_max_offset();
-    enter_var_frame();
+    enter_function_args_var_frame();
 
     parse_func_args();
     bool is_variadic = FALSE;

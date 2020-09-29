@@ -96,7 +96,7 @@ int alloc_deref_atom(int);
 int alloc_postincdec_atom(int, int);
 int alloc_assign_op_atom(int, int, int);
 int alloc_ptr_atom(int);
-int alloc_func_atom(func *);
+int alloc_func_atom(func *f, int num_args, int *args);
 int alloc_offset_atom(int, type_t *, int);
 int alloc_index_atom(int, int);
 int alloc_nop_atom();
