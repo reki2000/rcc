@@ -132,8 +132,8 @@
 
 - [ ] float, double, double double, short, long, long long
 
-- [ ] function declaration for > 6 args
-- [ ] function call with > 6 args
+- [x] function declaration for > 6 args
+- [x] function call with > 6 args
 - [ ] function call ABI stack 16bytes alignment
 
 - [ ] function with va_args
@@ -144,8 +144,10 @@
 
 - [ ] atom_t refactoring 2
  - use atom_t * instead of pos
- - rename TYPE to *
+ - rename TYPE_ to K_(KIND_) / C_(CLASS_) / N_(NODE_) ...
 
 - [ ] struct assignment - memcpy(&a,&b,sizeof(a))
+- [ ] struct argument
+- [ ] struct return value
 
 - [ ] remove print statement, replace with `void print(int i) { printf("%d\n",i); }`
