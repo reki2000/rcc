@@ -18,7 +18,6 @@ int parse_unary();
 type_t *parse_type_declaration();
 type_t *parse_pointer(type_t *t);
 int parse_local_variable_declaration();
-bool expect_int_expr(int *v);
 
 bool expect_enum_member(int *v) {
     int pos = get_token_pos();
@@ -48,114 +47,6 @@ bool expect_int_unary(int *v) {
     return expect_enum_member(v);
 }
 
-bool expect_int_factor(int *v) {
-    int pos = get_token_pos();
-    if (expect(T_LPAREN)) {
-        int v2;
-        if (!expect_int_expr(&v2)) {
-            set_token_pos(pos);
-            return FALSE;
-        }
-        if (!expect(T_RPAREN)) {
-            error("invalid end of constant expression");
-        }
-        *v = v2;
-        return TRUE;
-    }
-
-    if (expect(T_PLUS)) {
-        return expect_int_unary(v);
-    }
-    
-    if (expect(T_MINUS)) {
-        int v2;
-        if(!expect_int_unary(&v2)) {
-            set_token_pos(pos);
-            return FALSE;
-        }
-        *v = -v2;
-        return TRUE;
-    }
-    return expect_int_unary(v);
-}
-
-bool expect_int_term(int *v) {
-    int pos = get_token_pos();
-    if (!expect_int_factor(v)) {
-        set_token_pos(pos);
-        return FALSE;
-    }
-
-    pos = get_token_pos();
-    for (;;) {
-        int op;
-        if (expect(T_ASTERISK)) {
-            op = 0;
-        } else if (expect(T_SLASH)) {
-            op = 1;
-        } else if (expect(T_PERCENT)) {
-            op = 2;
-        } else {
-            break;
-        }
-        int v2;
-        if (!expect_int_factor(&v2)) {
-            set_token_pos(pos);
-            return TRUE;
-        }
-        if (op == 0) {
-            *v *= v2;
-        } else if (op == 1) {
-            *v /= v2;
-        } else if (op == 2) {
-            *v %= v2;
-        }
-    }
-    return TRUE;
-}
-
-bool expect_int_expr(int *v) {
-    int pos = get_token_pos();
-    if (!expect_int_term(v)) {
-        set_token_pos(pos);
-        return FALSE;
-    }
-
-    pos = get_token_pos();
-    for (;;) {
-        bool op_is_plus = TRUE;
-        if (expect(T_MINUS)) {
-            op_is_plus = FALSE;
-        } else if (!expect(T_PLUS)) {
-            break;
-        }
-        int v2;
-        if (!expect_int_term(&v2)) {
-            set_token_pos(pos);
-            return TRUE;
-        }
-        debug_i("found added constant:", *v);
-        debug_i("found added constant:", v2);
-        if (op_is_plus) {
-            *v += v2;
-        } else {
-            *v -= v2;
-        }
-        debug_i("found added constant:", *v);
-    }
-    return TRUE;
-}
-
-int parse_int_expr() {
-    int value;
-    int pos = get_token_pos();
-    if (expect_int_expr(&value)) {
-        return alloc_typed_int_atom(TYPE_INTEGER, value, find_type("int"));
-    }
-    set_token_pos(pos);
-    return 0;
-}
-
 int parse_string() {
     char *s;
     if (expect_string(&s)) {
@@ -166,7 +57,11 @@ int parse_string() {
 }
 
 int parse_int_literal() {
-    return parse_int_expr();
+    int v=0;
+    if(expect_int_unary(&v)) {
+        return alloc_typed_int_atom(TYPE_INTEGER, v, find_type("int"));
+    }
+    return 0;
 }
 
 int parse_literal() {
@@ -1225,12 +1120,19 @@ type_t *parse_var_array_declare(type_t *t) {
         return t;
     }
 
-    int length = 0;
-    expect_int_expr(&length);
+    int length_pos = parse_expr();
     if (!expect(T_RBRACKET)) {
         error("array declarator doesn't have closing ]");
     }
 
+    int length;
+    if (length_pos == 0) {
+        length = 0;
+    } else if (program[length_pos].type == TYPE_INTEGER) {
+        length = program[length_pos].int_value;
+    } else {
+        error("array length is not contant");
+    }
     return add_array_type(parse_var_array_declare(t), length);
 }
 
@@ -1468,14 +1370,14 @@ var_t *parse_func_arg_declare() {
 }
 
 int parse_global_var_initializer() {
-    int num = 0;
-    if (expect_int_expr(&num)) {
-        return num;
-    }
-
     char *str = (void *)0;
     if (expect_string(&str)) {
         return add_global_string(str);
+    }
+
+    int num_pos = parse_expr();
+    if (num_pos && program[num_pos].type == TYPE_INTEGER) {
+        return program[num_pos].int_value;
     }
 
     error("invalid initializer for global variable");
