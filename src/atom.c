@@ -330,7 +330,38 @@ int alloc_offset_atom(int base_pos, type_t *offset_t, int offset) {
     return pos2;
 }
 
+int calculate_if_constant_ops(int type, int lpos, int rpos) {
+    if (program[lpos].type == TYPE_INTEGER && program[rpos].type == TYPE_INTEGER) {
+        int l_int = program[lpos].int_value;
+        int r_int = program[rpos].int_value;
+        switch (type) {
+            case TYPE_ADD: l_int += r_int; break;
+            case TYPE_SUB: l_int -= r_int; break;
+            case TYPE_MUL: l_int *= r_int; break;
+            case TYPE_DIV: l_int /= r_int; break;
+            case TYPE_MOD: l_int %= r_int; break;
+            case TYPE_LSHIFT: l_int <<= r_int; break;
+            case TYPE_RSHIFT: l_int >>= r_int; break;
+            case TYPE_AND: l_int &= r_int; break;
+            case TYPE_OR: l_int |= r_int; break;
+            case TYPE_XOR: l_int ^= r_int; break;
+            case TYPE_LOG_AND: l_int = l_int && r_int; break;
+            case TYPE_LOG_OR: l_int = l_int || r_int; break;
+            case TYPE_EQ_EQ: l_int = l_int == r_int; break;
+            case TYPE_EQ_GE: l_int = l_int >= r_int; break;
+            case TYPE_EQ_GT: l_int = l_int > r_int; break;
+            case TYPE_EQ_LE: l_int = l_int <= r_int; break;
+            case TYPE_EQ_LT: l_int = l_int < r_int; break;
+        }
+        return alloc_typed_int_atom(TYPE_INTEGER, l_int, find_type("int"));
+    }
+    return 0;
+}
+
 int alloc_binop_atom(int type, int lpos, int rpos) {
+    int const_pos = calculate_if_constant_ops(type, lpos, rpos);
+    if (const_pos) return const_pos;
+
     int pos = alloc_atom(2);
     build_pos_atom(pos, type, lpos);
 

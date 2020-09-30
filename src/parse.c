@@ -344,6 +344,10 @@ int parse_bitwise_not() {
         if (!pos) {
             error("Invalid '~'");
         }
+        pos = atom_to_rvalue(pos);
+        if (program[pos].type == TYPE_INTEGER) {
+            return alloc_typed_int_atom(TYPE_INTEGER, ~(program[pos].int_value), find_type("int"));
+        }
         return alloc_typed_pos_atom(TYPE_NEG, atom_to_rvalue(pos), find_type("int"));
     }
     return 0;
@@ -356,7 +360,11 @@ int parse_logical_not() {
         if (!pos) {
             error("Invalid '!'");
         }
-        return alloc_typed_pos_atom(TYPE_LOG_NOT, atom_to_rvalue(pos), find_type("int"));
+        pos = atom_to_rvalue(pos);
+        if (program[pos].type == TYPE_INTEGER) {
+            return alloc_typed_int_atom(TYPE_INTEGER, !(program[pos].int_value), find_type("int"));
+        }
+        return alloc_typed_pos_atom(TYPE_LOG_NOT, pos, find_type("int"));
     }
     return 0;
 }
