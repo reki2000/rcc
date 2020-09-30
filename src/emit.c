@@ -875,11 +875,7 @@ void compile_func(func *f) {
     out("pushq	%rbp");
     out("movq	%rsp, %rbp");
 
-    int variadic_offset = 0;
-    if (f->is_variadic && f->argc < 6) {
-        variadic_offset = (6 - f->argc) * 8;
-    }
-    out_int("subq	$", align(f->max_offset + variadic_offset, 16), ", %rsp");
+    out_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
