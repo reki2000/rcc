@@ -121,7 +121,8 @@
 - [ ] signed char/int/long
 - [ ] unsigned char/int/long
 
-- [ ] ifdef
+- [ ] #ifdef, #ifndef, #else, #endif
+- [ ] #define macro
 
 - [ ] global multiple variable definition
 
@@ -136,9 +137,15 @@
 - [x] function call with > 6 args
 - [ ] function call ABI stack 16bytes alignment
 
-- [ ] function with va_args
+- [x] variadic function call/def
+- [ ] va_list type, va_start, va_args, va_end macro
 
-- [ ] static
+- [ ] 'static' variables in function
+- [ ] 'static' global variables
+
+- [ ] struct assignment - memcpy(&a,&b,sizeof(a))
+- [ ] struct argument
+- [ ] struct return value
 
 ## Refactorings
 
@@ -146,8 +153,5 @@
  - use atom_t * instead of pos
  - rename TYPE_ to K_(KIND_) / C_(CLASS_) / N_(NODE_) ...
 
-- [ ] struct assignment - memcpy(&a,&b,sizeof(a))
-- [ ] struct argument
-- [ ] struct return value
 
 - [ ] remove print statement, replace with `void print(int i) { printf("%d\n",i); }`

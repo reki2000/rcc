@@ -1628,21 +1628,22 @@ var_t *parse_funcion_prototype_arg() {
     return add_var(ident, t);
 }
 
-int parse_funcion_prototype_arg_seq() {
-    int argc = 0;
-
+// returns TRUE if variadic arg is found
+bool parse_funcion_prototype_arg_seq() { 
     if (!parse_funcion_prototype_arg()) {
         return 0;
     }
-    argc++;
 
     while (expect(T_COMMA)) {
-        if (!parse_funcion_prototype_arg()) {
+        if (parse_funcion_prototype_arg()) {
+            continue;
+        }
+        if (!expect(T_3DOT)) {
             error("Invalid argv");
         }
-        argc++;
+        return TRUE;
     }
-    return argc;
+    return FALSE;
 }
 
 int parse_function_prototype(type_t *t, bool is_external) {
@@ -1666,8 +1667,7 @@ int parse_function_prototype(type_t *t, bool is_external) {
     reset_var_max_offset();
     enter_function_args_var_frame();
 
-    bool is_variadic = FALSE;
-    parse_funcion_prototype_arg_seq();
+    bool is_variadic = parse_funcion_prototype_arg_seq();
 
     if (!expect(T_RPAREN)) {
         error("parse_function: no ')'");
@@ -1687,21 +1687,22 @@ int parse_function_prototype(type_t *t, bool is_external) {
     return 1;
 }
 
-int parse_func_args() {
-    int argc = 0;
-
+// returns TRUE if variadic argment is found
+bool parse_func_args() {
     if (!parse_func_arg_declare()) {
         return 0;
     }
-    argc++;
 
     while (expect(T_COMMA)) {
-        if (!parse_func_arg_declare()) {
+        if (parse_func_arg_declare()) {
+            continue;
+        }
+        if (!expect(T_3DOT)) {
             error("Invalid argv");
         }
-        argc++;
+        return TRUE;
     }
-    return argc;
+    return FALSE;
 }
 
 int parse_function_definition(type_t *t) {
@@ -1725,8 +1726,7 @@ int parse_function_definition(type_t *t) {
     reset_var_max_offset();
     enter_function_args_var_frame();
 
-    parse_func_args();
-    bool is_variadic = FALSE;
+    bool is_variadic = parse_func_args();;
 
     if (!expect(T_RPAREN)) {
         error("parse_function: no ')'");

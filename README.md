@@ -15,14 +15,13 @@ This is an tiny subset of C language compiler inspired by [9cc](https://github.c
 
 ## Language features *NOT* supported yet
 
-- function arguments more than 6 (needs pass-by-stack on x64 ABI)
-- variadic functions
-- #ifdef, #else, #endif
+- #ifdef, #else, #endif, #define macro
 - unsigned types (all numeric variables are handled as signed)
-- long / long long types, long numeric literals (0L)
+- long numeric literals (0L)
 - floating point types
-- handling for invalid syntax source codes
+- error handling for invalid syntax source codes
 - stack alignment (16 bytes) before function call
+- struct type arguments / return value for functions
 - etc.
 
 ## How to build and test

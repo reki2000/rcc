@@ -874,16 +874,23 @@ void compile_func(func *f) {
     out_label(f->name);
     out("pushq	%rbp");
     out("movq	%rsp, %rbp");
-    out_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
-    if (f->is_variadic) {
-        error("variadic function is not supported yet!");
+    int variadic_offset = 0;
+    if (f->is_variadic && f->argc < 6) {
+        variadic_offset = (6 - f->argc) * 8;
     }
+    out_int("subq	$", align(f->max_offset + variadic_offset, 16), ", %rsp");
+
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
         switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
         if (i<6) {
             emit_var_arg_init(i, v->offset, type_size(v->t));
+        }
+    }
+    if (f->is_variadic) {
+        for (int i=f->argc; i<6; i++) {
+            emit_var_arg_init(i, i*8+4, 8);
         }
     }
 
