@@ -18,7 +18,6 @@ int parse_unary();
 type_t *parse_type_declaration();
 type_t *parse_pointer(type_t *t);
 int parse_local_variable_declaration();
-bool expect_int_expr(int *v);
 
 bool expect_enum_member(int *v) {
     int pos = get_token_pos();
@@ -48,114 +47,6 @@ bool expect_int_unary(int *v) {
     return expect_enum_member(v);
 }
 
-bool expect_int_factor(int *v) {
-    int pos = get_token_pos();
-    if (expect(T_LPAREN)) {
-        int v2;
-        if (!expect_int_expr(&v2)) {
-            set_token_pos(pos);
-            return FALSE;
-        }
-        if (!expect(T_RPAREN)) {
-            error("invalid end of constant expression");
-        }
-        *v = v2;
-        return TRUE;
-    }
-
-    if (expect(T_PLUS)) {
-        return expect_int_unary(v);
-    }
-    
-    if (expect(T_MINUS)) {
-        int v2;
-        if(!expect_int_unary(&v2)) {
-            set_token_pos(pos);
-            return FALSE;
-        }
-        *v = -v2;
-        return TRUE;
-    }
-    return expect_int_unary(v);
-}
-
-bool expect_int_term(int *v) {
-    int pos = get_token_pos();
-    if (!expect_int_factor(v)) {
-        set_token_pos(pos);
-        return FALSE;
-    }
-
-    pos = get_token_pos();
-    for (;;) {
-        int op;
-        if (expect(T_ASTERISK)) {
-            op = 0;
-        } else if (expect(T_SLASH)) {
-            op = 1;
-        } else if (expect(T_PERCENT)) {
-            op = 2;
-        } else {
-            break;
-        }
-        int v2;
-        if (!expect_int_factor(&v2)) {
-            set_token_pos(pos);
-            return TRUE;
-        }
-        if (op == 0) {
-            *v *= v2;
-        } else if (op == 1) {
-            *v /= v2;
-        } else if (op == 2) {
-            *v %= v2;
-        }
-    }
-    return TRUE;
-}
-
-bool expect_int_expr(int *v) {
-    int pos = get_token_pos();
-    if (!expect_int_term(v)) {
-        set_token_pos(pos);
-        return FALSE;
-    }
-
-    pos = get_token_pos();
-    for (;;) {
-        bool op_is_plus = TRUE;
-        if (expect(T_MINUS)) {
-            op_is_plus = FALSE;
-        } else if (!expect(T_PLUS)) {
-            break;
-        }
-        int v2;
-        if (!expect_int_term(&v2)) {
-            set_token_pos(pos);
-            return TRUE;
-        }
-        debug_i("found added constant:", *v);
-        debug_i("found added constant:", v2);
-        if (op_is_plus) {
-            *v += v2;
-        } else {
-            *v -= v2;
-        }
-        debug_i("found added constant:", *v);
-    }
-    return TRUE;
-}
-
-int parse_int_expr() {
-    int value;
-    int pos = get_token_pos();
-    if (expect_int_expr(&value)) {
-        return alloc_typed_int_atom(TYPE_INTEGER, value, find_type("int"));
-    }
-    set_token_pos(pos);
-    return 0;
-}
-
 int parse_string() {
     char *s;
     if (expect_string(&s)) {
@@ -166,7 +57,11 @@ int parse_string() {
 }
 
 int parse_int_literal() {
-    return parse_int_expr();
+    int v=0;
+    if(expect_int_unary(&v)) {
+        return alloc_typed_int_atom(TYPE_INTEGER, v, find_type("int"));
+    }
+    return 0;
 }
 
 int parse_literal() {
@@ -249,7 +144,6 @@ func *parse_func_name() {
 }
 
 int parse_apply_func() {
-    int pos;
     func *f = parse_func_name();
     if (!f) {
         return 0;
@@ -258,19 +152,25 @@ int parse_apply_func() {
         error("no '(' after func name");
     }
 
-    pos = alloc_func_atom(f);
-    for (int i=1; i<f->argc + 1; i++) {
-        int arg_pos;
-        if (i != 1 && !expect(T_COMMA)) {
+    int num_args=0;
+    int args[200];
+    while (!expect(T_RPAREN)) {
+        if (num_args > 0 && !expect(T_COMMA)) {
             error("no comma between args");
         }
-        arg_pos = parse_expr();
-        build_pos_atom(pos+i, TYPE_ARG, atom_to_rvalue(arg_pos));
+        int expr = parse_expr();
+        if (!expr) {
+            error("invalid arg expr");
+        }
+        args[num_args] = atom_to_rvalue(expr);
+        num_args++;
     }
 
-    if (!expect(T_RPAREN)) {
-        error("too much args or no ')' after func name");
+    if (!f->is_variadic && f->argc != num_args) {
+        error_s("invalid number of arguments at calling: ", f->name);
     }
+
+    int pos = alloc_func_atom(f, num_args, args);
     return pos;
 }
 
@@ -444,6 +344,10 @@ int parse_bitwise_not() {
         if (!pos) {
             error("Invalid '~'");
         }
+        pos = atom_to_rvalue(pos);
+        if (program[pos].type == TYPE_INTEGER) {
+            return alloc_typed_int_atom(TYPE_INTEGER, ~(program[pos].int_value), find_type("int"));
+        }
         return alloc_typed_pos_atom(TYPE_NEG, atom_to_rvalue(pos), find_type("int"));
     }
     return 0;
@@ -456,7 +360,11 @@ int parse_logical_not() {
         if (!pos) {
             error("Invalid '!'");
         }
-        return alloc_typed_pos_atom(TYPE_LOG_NOT, atom_to_rvalue(pos), find_type("int"));
+        pos = atom_to_rvalue(pos);
+        if (program[pos].type == TYPE_INTEGER) {
+            return alloc_typed_int_atom(TYPE_INTEGER, !(program[pos].int_value), find_type("int"));
+        }
+        return alloc_typed_pos_atom(TYPE_LOG_NOT, pos, find_type("int"));
     }
     return 0;
 }
@@ -1220,12 +1128,19 @@ type_t *parse_var_array_declare(type_t *t) {
         return t;
     }
 
-    int length = 0;
-    expect_int_expr(&length);
+    int length_pos = parse_expr();
     if (!expect(T_RBRACKET)) {
         error("array declarator doesn't have closing ]");
     }
 
+    int length;
+    if (length_pos == 0) {
+        length = 0;
+    } else if (program[length_pos].type == TYPE_INTEGER) {
+        length = program[length_pos].int_value;
+    } else {
+        error("array length is not contant");
+    }
     return add_array_type(parse_var_array_declare(t), length);
 }
 
@@ -1463,14 +1378,14 @@ var_t *parse_func_arg_declare() {
 }
 
 int parse_global_var_initializer() {
-    int num = 0;
-    if (expect_int_expr(&num)) {
-        return num;
-    }
-
     char *str = (void *)0;
     if (expect_string(&str)) {
         return add_global_string(str);
+    }
+
+    int num_pos = parse_expr();
+    if (num_pos && program[num_pos].type == TYPE_INTEGER) {
+        return program[num_pos].int_value;
     }
 
     error("invalid initializer for global variable");
@@ -1713,21 +1628,22 @@ var_t *parse_funcion_prototype_arg() {
     return add_var(ident, t);
 }
 
-int parse_funcion_prototype_arg_seq() {
-    int argc = 0;
-
+// returns TRUE if variadic arg is found
+bool parse_funcion_prototype_arg_seq() { 
     if (!parse_funcion_prototype_arg()) {
         return 0;
     }
-    argc++;
 
     while (expect(T_COMMA)) {
-        if (!parse_funcion_prototype_arg()) {
+        if (parse_funcion_prototype_arg()) {
+            continue;
+        }
+        if (!expect(T_3DOT)) {
             error("Invalid argv");
         }
-        argc++;
+        return TRUE;
     }
-    return argc;
+    return FALSE;
 }
 
 int parse_function_prototype(type_t *t, bool is_external) {
@@ -1749,9 +1665,9 @@ int parse_function_prototype(type_t *t, bool is_external) {
     }
 
     reset_var_max_offset();
-    enter_var_frame();
+    enter_function_args_var_frame();
 
-    parse_funcion_prototype_arg_seq();
+    bool is_variadic = parse_funcion_prototype_arg_seq();
 
     if (!expect(T_RPAREN)) {
         error("parse_function: no ')'");
@@ -1765,27 +1681,28 @@ int parse_function_prototype(type_t *t, bool is_external) {
     }
 
     frame_t *frame = get_top_frame();
-    add_function(ident, t, is_external, frame->num_vars, frame->vars);
+    add_function(ident, t, is_external, is_variadic, frame->num_vars, frame->vars);
 
     exit_var_frame();
     return 1;
 }
 
-int parse_func_args() {
-    int argc = 0;
-
+// returns TRUE if variadic argment is found
+bool parse_func_args() {
     if (!parse_func_arg_declare()) {
         return 0;
     }
-    argc++;
 
     while (expect(T_COMMA)) {
-        if (!parse_func_arg_declare()) {
+        if (parse_func_arg_declare()) {
+            continue;
+        }
+        if (!expect(T_3DOT)) {
             error("Invalid argv");
         }
-        argc++;
+        return TRUE;
     }
-    return argc;
+    return FALSE;
 }
 
 int parse_function_definition(type_t *t) {
@@ -1807,16 +1724,16 @@ int parse_function_definition(type_t *t) {
     }
 
     reset_var_max_offset();
-    enter_var_frame();
+    enter_function_args_var_frame();
 
-    parse_func_args();
+    bool is_variadic = parse_func_args();;
 
     if (!expect(T_RPAREN)) {
         error("parse_function: no ')'");
     }
 
     frame_t *frame = get_top_frame();
-    func *f = add_function(ident, t, FALSE, frame->num_vars, frame->vars);
+    func *f = add_function(ident, t, FALSE, is_variadic, frame->num_vars, frame->vars);
 
     int body_pos = parse_block();
     if (!body_pos) {

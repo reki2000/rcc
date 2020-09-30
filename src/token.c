@@ -480,6 +480,8 @@ void tokenize() {
             add_token(T_COLON);
         } else if (accept_char(';')) {
             add_token(T_SEMICOLON);
+        } else if (accept_string("...")) {
+            add_token(T_3DOT);
         } else if (accept_char('.')) {
             add_token(T_PERIOD);
         } else if (accept_char(',')) {

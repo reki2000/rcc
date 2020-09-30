@@ -17,12 +17,14 @@ typedef struct {
     var_t *vars;
     int num_vars;
     int offset;
+    bool is_function_args;
 } frame_t;
 
 extern frame_t env[];
 extern int env_top;
 
 extern void enter_var_frame();
+extern void enter_function_args_var_frame();
 extern void exit_var_frame();
 extern frame_t *get_top_frame();
 extern var_t *add_var(char *, type_t *);

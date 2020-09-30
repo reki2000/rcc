@@ -218,22 +218,10 @@ void emit_pop_argv(int no) {
     out_str("popq	", reg(no, 8), "");
 }
 
-void emit_call(char *name) {
+void emit_call(char *name, int num_stack_args, char *plt) {
     out("movb $0, %al");
-    out_str("call	", name, "");
-    out("pushq	%rax");
-}
-
-void emit_plt_call(char *name) {
-    out("movq %rsp, %rax");
-    // out("andq $0xfffffffffffffff0, %rsp");
-    // out("pushq %rax");
-    // out("pushq %rax");
-    out("movb $0, %al");
-    out_str("call	", name, "@PLT");
-    // out("popq %rdx");
-    // out("popq %rdx");
-    // out("movq %rdx, %rsp");
+    out_str("call	", name, plt);
+    out_int("addq $", num_stack_args * 8, ", %rsp");
     out("pushq	%rax");
 }
 
@@ -248,7 +236,7 @@ void emit_deref(int size) {
 }
 
 void emit_var_ref(int i) {
-    out_int("lea	-", i, "(%rbp), %rax");
+    out_int("lea	", -i, "(%rbp), %rax");
     out("pushq	%rax");
 }
 
@@ -803,18 +791,21 @@ void compile(int pos) {
             break;
 
         case TYPE_APPLY: {
+            dump_atom_tree(pos,0);
             func *f = (func *)(p->ptr_value);
-            for (int i=f->argc-1; i>=0; i--) {
-                compile((p+i+1)->atom_pos);
+            int argc = (p+1)->int_value;
+
+            for (int i=argc-1; i>=0; i--) {
+                compile((p+i+2)->atom_pos);
             }
-            for (int i=0; i<f->argc; i++) {
+
+            int num_reg_args = argc > ABI_NUM_REGISTER_PASS ? ABI_NUM_REGISTER_PASS : argc;
+            int num_stack_args = argc > ABI_NUM_REGISTER_PASS ? argc - ABI_NUM_REGISTER_PASS : 0;
+
+            for (int i=0; i<num_reg_args; i++) {
                 emit_pop_argv(i);
             }
-            if (f->is_external) {
-                emit_plt_call(f->name);
-            } else {
-                emit_call(f->name);
-            }
+            emit_call(f->name, num_stack_args, f->is_external ? "@PLT" : "");
         }
             break;
         
@@ -883,17 +874,24 @@ void compile_func(func *f) {
     out_label(f->name);
     out("pushq	%rbp");
     out("movq	%rsp, %rbp");
-    out_int("subq	$", align(f->max_offset, 16), ", %rsp");
+
+    int variadic_offset = 0;
+    if (f->is_variadic && f->argc < 6) {
+        variadic_offset = (6 - f->argc) * 8;
+    }
+    out_int("subq	$", align(f->max_offset + variadic_offset, 16), ", %rsp");
 
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
-        // char buf[RCC_BUF_SIZE] = {0};
-        // strcat(buf, v->name);
-        // strcat(buf, " t:");
-        // dump_type(buf, v->t);
-        // debug_s("emitting func var:", buf);
         switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
-        emit_var_arg_init(i, v->offset, type_size(v->t));
+        if (i<6) {
+            emit_var_arg_init(i, v->offset, type_size(v->t));
+        }
+    }
+    if (f->is_variadic) {
+        for (int i=f->argc; i<6; i++) {
+            emit_var_arg_init(i, i*8+4, 8);
+        }
     }
 
     compile(f->body_pos);

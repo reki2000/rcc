@@ -116,7 +116,7 @@ void dump_atom_tree(int pos, int indent) {
         case TYPE_ARRAY_INDEX:
             dump_atom_tree(a->atom_pos, indent + 1);
             dump_atom_tree((a+1)->atom_pos, indent + 1);
-            dump_atom_tree((a+2)->atom_pos, indent + 1);
+            dump_atom2(a+2, indent + 1, pos+2);
             break;
         case TYPE_WHILE:
         case TYPE_DO_WHILE:
@@ -134,6 +134,12 @@ void dump_atom_tree(int pos, int indent) {
             dump_atom_tree(a->atom_pos, indent + 1);
             dump_atom_tree((a+1)->atom_pos, indent + 1);
             dump_atom_tree((a+2)->atom_pos, indent + 1);
+            break;
+        case TYPE_APPLY:
+            dump_atom2(++a, indent + 1, pos);
+            for (a++; a->type == TYPE_ARG; a++) {
+                dump_atom_tree(a->atom_pos, indent + 1);
+            }
             break;
         case TYPE_SWITCH:
             dump_atom_tree(a->atom_pos, indent + 1);
@@ -261,10 +267,17 @@ int alloc_postincdec_atom(int type, int target) {
     return alloc_typed_pos_atom(type, target, t->ptr_to);
 }
 
-int alloc_func_atom(func *f) {
-    int pos = alloc_atom(f->argc + 1);
+int alloc_func_atom(func *f, int num_args, int *args) {
+    int pos = alloc_atom(2+num_args);
+
     build_ptr_atom(pos, TYPE_APPLY, (void *)f);
     atom_set_type(pos, f->ret_type);
+
+    build_int_atom(pos+1, TYPE_ARG, num_args); 
+
+    for (int i=0; i<num_args; i++) {
+        build_pos_atom(pos+2+i, TYPE_ARG, args[i]);
+    }
     return pos;
 }
 
@@ -317,7 +330,38 @@ int alloc_offset_atom(int base_pos, type_t *offset_t, int offset) {
     return pos2;
 }
 
+int calculate_if_constant_ops(int type, int lpos, int rpos) {
+    if (program[lpos].type == TYPE_INTEGER && program[rpos].type == TYPE_INTEGER) {
+        int l_int = program[lpos].int_value;
+        int r_int = program[rpos].int_value;
+        switch (type) {
+            case TYPE_ADD: l_int += r_int; break;
+            case TYPE_SUB: l_int -= r_int; break;
+            case TYPE_MUL: l_int *= r_int; break;
+            case TYPE_DIV: l_int /= r_int; break;
+            case TYPE_MOD: l_int %= r_int; break;
+            case TYPE_LSHIFT: l_int <<= r_int; break;
+            case TYPE_RSHIFT: l_int >>= r_int; break;
+            case TYPE_AND: l_int &= r_int; break;
+            case TYPE_OR: l_int |= r_int; break;
+            case TYPE_XOR: l_int ^= r_int; break;
+            case TYPE_LOG_AND: l_int = l_int && r_int; break;
+            case TYPE_LOG_OR: l_int = l_int || r_int; break;
+            case TYPE_EQ_EQ: l_int = l_int == r_int; break;
+            case TYPE_EQ_GE: l_int = l_int >= r_int; break;
+            case TYPE_EQ_GT: l_int = l_int > r_int; break;
+            case TYPE_EQ_LE: l_int = l_int <= r_int; break;
+            case TYPE_EQ_LT: l_int = l_int < r_int; break;
+        }
+        return alloc_typed_int_atom(TYPE_INTEGER, l_int, find_type("int"));
+    }
+    return 0;
+}
+
 int alloc_binop_atom(int type, int lpos, int rpos) {
+    int const_pos = calculate_if_constant_ops(type, lpos, rpos);
+    if (const_pos) return const_pos;
+
     int pos = alloc_atom(2);
     build_pos_atom(pos, type, lpos);
 
