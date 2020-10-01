@@ -1734,8 +1734,9 @@ int parse_function_definition(type_t *t) {
 
     frame_t *frame = get_top_frame();
     func *f = add_function(ident, t, FALSE, is_variadic, frame->num_vars, frame->vars);
-    if (is_variadic && frame->num_vars < ABI_NUM_REGISTER_PASS) {
-        frame->offset += ALIGN_OF_STACK * (ABI_NUM_REGISTER_PASS - frame->num_vars); // reserve local stack areas for register passed var-args
+    if (is_variadic) {
+        frame->offset = align(frame->offset, ALIGN_OF_STACK);
+        frame->offset += ALIGN_OF_STACK * (ABI_NUM_REGISTER_PASS + ABI_NUM_FP_REGISTER_PASS); // reserve local stack areas for register-passed var-args
     }
 
     int body_pos = parse_block();

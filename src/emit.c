@@ -877,16 +877,18 @@ void compile_func(func *f) {
 
     out_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
+    int vardiac_offset = 8;
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
         switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
         if (i<6) {
             emit_var_arg_init(i, v->offset, type_size(v->t));
+            vardiac_offset = v->offset + type_size(v->t);
         }
     }
     if (f->is_variadic) {
-        for (int i=f->argc; i<6; i++) {
-            emit_var_arg_init(i, i*8+4, 8);
+        for (int i=0; i<6; i++) {
+            emit_var_arg_init(i, (6-i)*8 + align(vardiac_offset, ALIGN_OF_STACK), 8);
         }
     }
 

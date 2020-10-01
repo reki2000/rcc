@@ -1,11 +1,10 @@
 int add(int num, ...) {
-    int result = 0;
 
-    char *_pp = (char *)&num;
-    char *_pp2 = _pp + sizeof(num) + 8 + 8;
+    char *_p = (char *)&num - (8 - sizeof(num));
+    char *_pp2 = (char *)&num + sizeof(num) + 8 + 8; // stack args
     int _i = 6 - 1;
-    char *_p = (_i > 0)? _pp : _pp2;
 
+    int result = 0;
     for (int i=0; i<num; i++) {
         _p = (_i>0)? _p-8 : (_i==0)? _pp2 : _p+8; _i--;
         result += *(int *)_p;
