@@ -1172,7 +1172,7 @@ type_t *parse_enum_type() {
                     error_s("invalid value for enum member: ", member_name);
                 }
                 t->enum_of->next_value = value + 1;
-                debug_i("enum value assigned: ", value);
+                debug("enum value assigned: %d", value);
             }
             add_constant_int(member_name, t, value);
 
@@ -1343,8 +1343,7 @@ var_t *add_var_with_check(type_t *t, char *name) {
         v->t = t; // declaring 'a[100]' can overwrite 'a[]' or '*a'
         return v;
     }
-    debug_i("", v->t->array_length);
-    error_i("variable is already declared with different size: ", t->array_length);
+    error("incompatible variable size:%d original:%d", t->array_length, v->t->array_length);
     return 0;
 }
 
@@ -1400,7 +1399,7 @@ int parse_global_var_array_initializer(var_t *v, int array_length) {
     int index;
     int pos = alloc_global_array();
     for (index = 0; array_length == 0 || index < array_length; index++) {
-        debug_i("parsing array initializer at index:", index);
+        debug("parsing array initializer at index:%d", index);
         int val = parse_global_var_initializer();
         add_global_array(pos, val);
         if (!expect(T_COMMA)) {
@@ -1461,7 +1460,7 @@ int parse_array_initializer(var_t *v, int array, int array_length) {
     int pos = 0;
 
     for (index = 0; array_length == 0 || index < array_length; index++) {
-        debug_i("parsing array initializer at index:", index);
+        debug("parsing array initializer at index:%d", index);
         int lval = alloc_index_atom(array, alloc_typed_int_atom(TYPE_INTEGER, index, find_type("int")));
         int assign = parse_variable_initializer(lval);
         if (assign) {
@@ -1485,7 +1484,7 @@ int parse_array_initializer(var_t *v, int array, int array_length) {
         int old_offset = v->offset;
 
         type_t *t = add_array_type(v->t->ptr_to, index + 1);
-        debug_i("realloc var with size: ", index + 1);
+        debug("realloc var with size:%d", index + 1);
         var_realloc(v, t);
         int new_offset = v->offset;
 

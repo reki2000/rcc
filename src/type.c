@@ -184,7 +184,7 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
         }
     } else {
         m->offset = st->size;
-        debug_i("added struct member @", m->offset);
+        debug("added struct member @%d", m->offset);
         st->size += t_size;
         s->next_offset += t_size;
     }

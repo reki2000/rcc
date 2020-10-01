@@ -101,7 +101,7 @@ src_t *load_file(char *filename) {
 
     s->len = read(fd, s->body, SIZE_FILE_BUF);
     if (close(fd)) {
-        debug_i("closing fd:", fd);
+        debug("closing fd: %d", fd);
         error_s("error on closing file: ", filename);
     }
 
@@ -216,7 +216,6 @@ int ch() {
     if (is_eof()) {
         return -1;
     }
-    //debug_i("ch: ", src->body[src->pos]);
     return src->body[src->pos];
 }
 

@@ -563,7 +563,7 @@ void tokenize_file(char *filename) {
     tokenize();
     add_token(T_EOF);
     exit_file();
-    debug_i("tokens:", token_len);
+    debug("tokens:%d", token_len);
 }
 
 bool expect(token_id id) {

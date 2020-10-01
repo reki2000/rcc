@@ -18,7 +18,7 @@ int max_offset = 0;
 
 void _enter_var_frame(bool is_function_args) {
     env_top++;
-    debug_i("entering frame:", env_top);
+    debug("entering frame:%d", env_top);
     if (env_top >= NUM_FRAMES) {
         error("Too many frames");
     }
@@ -38,7 +38,7 @@ void enter_var_frame() {
 }
 
 void exit_var_frame() {
-    debug_i("exiting frame:", env_top);
+    debug("exiting frame:%d", env_top);
     if (env_top < 0) {
         error("Invalid frame_t exit");
     }
@@ -74,7 +74,7 @@ var_t *add_constant_int(char *name, type_t*t, int value) {
     v->has_value = TRUE;
     v->int_value = value;
 
-    debug_i("add_constant_int: added ", v->int_value);
+    debug("add_constant_int: added %d", v->int_value);
     return v;
 }
 

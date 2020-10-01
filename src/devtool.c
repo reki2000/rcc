@@ -66,12 +66,6 @@ void debug(char *fmt, ...) {
     _log(DEBUG, buf);
 }
 
-void debug_i(char *str, int val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, str, val, "");
-    debug(buf);
-}
-
 void debug_s(char *str, char *val) {
     char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str);
