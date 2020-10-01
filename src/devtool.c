@@ -6,6 +6,24 @@
 #include "token.h"
 #include "file.h"
 
+typedef struct {
+    int g_offset;
+    int f_offset;
+    char *stack;
+    char *reg;
+    long num_fp;
+} va_list;
+
+void va_start(va_list* va, char *arg1, int size1) {
+    va->stack = arg1 + size1 + 8 + 8;
+    va->reg = arg1 - (8- size1) - 8 * 6;
+    va->g_offset = 8;
+    va->f_offset = 48;
+    va->num_fp = 0;
+}
+
+extern int vsprintf(char *buf, const char *fmt, va_list *v);
+
 typedef enum {
     WARN,
     ERROR,
@@ -39,8 +57,13 @@ void _log(level_e level, char *message) {
     write(2, buf, strlen(buf));
 }
 
-void debug(char *str) {
-    _log(DEBUG, str);
+void debug(char *fmt, ...) {
+    va_list va;
+    va_start(&va, (char *)&fmt, sizeof(fmt));
+
+    char buf[RCC_BUF_SIZE];
+    vsprintf(buf, fmt, &va);
+    _log(DEBUG, buf);
 }
 
 void debug_i(char *str, int val) {
@@ -56,8 +79,13 @@ void debug_s(char *str, char *val) {
     debug(buf);
 }
 
-void error(char *str) {
-    _log(ERROR, str);
+void error(char *fmt, ...) {
+    va_list va;
+    va_start(&va, (char *)&fmt, sizeof(fmt));
+
+    char buf[RCC_BUF_SIZE];
+    vsprintf(buf, fmt, &va);
+    _log(ERROR, buf);
     _log(NONE, "");
     dump_tokens();
     exit(1);
@@ -76,8 +104,13 @@ void error_s(char *str, char *val) {
     error(buf);
 }
 
-void warning(char *str) {
-    _log(WARN, str);
+void warning(char *fmt, ...) {
+    va_list va;
+    va_start(&va, (char *)&fmt, sizeof(fmt));
+
+    char buf[RCC_BUF_SIZE];
+    vsprintf(buf, fmt, &va);
+    _log(WARN, buf);
 }
 
 void warning_i(char *str, int val) {
