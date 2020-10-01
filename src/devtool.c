@@ -23,6 +23,7 @@ void va_start(va_list* va, char *arg1, int size1) {
 }
 
 extern int vsprintf(char *buf, const char *fmt, va_list *v);
+extern int sprintf(char *buf, const char *fmt, ...);
 
 typedef enum {
     WARN,
@@ -44,16 +45,9 @@ void _log(level_e level, char *message) {
     char *color_str[] = {color_red, color_red, "", color_yellow, ""};
     char *level_str[] = {"WARN ", "ERROR", "DEBUG", "INFO ", ""};
 
-    char buf[RCC_BUF_SIZE] = {0};
+    char buf[RCC_BUF_SIZE];
     bool tty = FALSE; // isatty(2);
-    if (tty) { strcat(buf, color_str[level]); }
-    strcat(buf, level_str[level]);
-    strcat(buf, ": ");
-    strcat(buf, message);
-    strcat(buf, "\n");
-    if (tty && color_str[level] != color_white) {
-        strcat(buf, color_white);
-    }
+    sprintf(buf, "%s%s: %s%s\n", tty? color_str[level]:"", level_str[level], message, tty? color_white:"");
     write(2, buf, strlen(buf));
 }
 
