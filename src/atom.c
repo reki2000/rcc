@@ -405,7 +405,7 @@ int atom_convert_type(int p1, int p2) {
     if (!t1->ptr_to && !t1->struct_of && !t1->enum_of && !t2->ptr_to && !t2->struct_of && !t2->enum_of) {
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
-    if (t1->ptr_to && t2->ptr_to && t2->ptr_to == find_type("void")) {
+    if (t1->ptr_to && t2->ptr_to && t2->ptr_to == type_void) {
         char buf[RCC_BUF_SIZE] = {0};
         dump_type(buf, t2);
         strcat(buf, " -> ");
@@ -432,7 +432,7 @@ int NOP_ATOM = 0;
 
 int alloc_nop_atom() {
     if (!NOP_ATOM) {
-        NOP_ATOM = alloc_typed_pos_atom(TYPE_NOP, 0, find_type("void"));
+        NOP_ATOM = alloc_typed_pos_atom(TYPE_NOP, 0, type_void);
     }
     return NOP_ATOM;
 }
