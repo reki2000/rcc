@@ -80,7 +80,7 @@ var_t *add_constant_int(char *name, type_t*t, int value) {
 
 void var_realloc(var_t *v, type_t *t) {
     if (type_size(v->t) != 0) {
-        error_s("cannot realloc variable: ", v->name);
+        error("cannot realloc variable: %s", v->name);
     }
 
     frame_t *f = &env[env_top];

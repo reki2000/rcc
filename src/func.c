@@ -40,7 +40,7 @@ func *find_function(char *name, type_t *ret_type, int argc, var_t *argv) {
             return f;
         }
     }
-    error_s("function is already declared but types are not matched: ", name);
+    error("function is already declared but types are not matched: %s", name);
     return 0;
 }
 

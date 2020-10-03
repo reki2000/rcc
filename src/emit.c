@@ -67,7 +67,7 @@ void out_x(char *fmt, int size) {
             } else if ((c1 == 'a' || c1 == 'b' || c1 == 'c' || c1 == 'd') && c2 == 'x') {
                 *d = c1; *(d+1) = 'l'; *(d+2) = ' '; // '%Zax' -> '%al ' for Zax, Zbx, Zcx, Zdx
             } else {
-                error_s("unknown register name: ", fmt);
+                error("unknown register name: %s", fmt);
             }
             fmt += 2;
             d += 2;
@@ -881,7 +881,7 @@ void compile_func(func *f) {
     int arg_offset = 0;
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
-        switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
+        switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error("invalid size for funciton arg:%s", v->name); }
         if (i<6) {
             emit_var_arg_init(i, v->offset, type_size(v->t));
             arg_offset = align(v->offset, ALIGN_OF_STACK);
@@ -942,7 +942,7 @@ void out_global_constant(var_t *v) {
     } else {
         int filled_size = out_global_constant_by_type(v->t, v->int_value);
         if (!filled_size) {
-            error_s("unknown size for global variable:", v->name);
+            error("unknown size for global variable:%s", v->name);
         }
     }
     out("");

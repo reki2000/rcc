@@ -263,7 +263,7 @@ int parse_apply_func() {
     }
 
     if (!f->is_variadic && f->argc != num_args) {
-        error_s("invalid number of arguments at calling: ", f->name);
+        error("invalid number of arguments at calling: %s", f->name);
     }
 
     int pos = alloc_func_atom(f, num_args, args);
@@ -298,7 +298,7 @@ int parse_struct_member(int pos) {
     type_t *t = program[pos].t->ptr_to;
     member_t *m = find_struct_member(t, name);
     if (!m) {
-        error_s("this type doesn't has member: ", name);
+        error("this type doesn't has member: %s", name);
     }
     return alloc_offset_atom(pos, m->t, m->offset);
 }
@@ -1264,7 +1264,7 @@ type_t *parse_enum_type() {
 
             if (expect(T_EQUAL)) {
                 if (!expect_int(&value)) {
-                    error_s("invalid value for enum member: ", member_name);
+                    error("invalid value for enum member: %s", member_name);
                 }
                 t->enum_of->next_value = value + 1;
                 debug("enum value assigned: %d", value);
@@ -1350,7 +1350,7 @@ type_t *parse_union_or_struct_type() {
         while (parse_struct_member_declare(t) != 0) {
         }
         if (!expect(T_RBLACE)) {
-            error_s("struct/union no close } : ", type_name);
+            error("struct/union no close } : %s", type_name);
         }
     }
 
@@ -1413,7 +1413,7 @@ var_t *add_var_with_check(type_t *t, char *name) {
 
     if (type_is_same(v->t, t)) {
         if (v->has_value) {
-            error_s("variable is already initialized:", v->name);
+            error("variable is already initialized:%s", v->name);
         }
         return v;
     }
@@ -1829,7 +1829,7 @@ int parse_function_definition(type_t *t) {
 
     int body_pos = parse_block();
     if (!body_pos) {
-        error_s("No body for function: ", ident);
+        error("No body for function: %s", ident);
     }
 
     func_set_body(f, frame->num_vars, frame->vars, body_pos, var_max_offset());

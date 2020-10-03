@@ -96,13 +96,13 @@ src_t *load_file(char *filename) {
     }
 
     if (fd == -1) {
-        error_s("cannot open include file: ", filename);
+        error("cannot open include file: %s", filename);
     }
 
     s->len = read(fd, s->body, SIZE_FILE_BUF);
     if (close(fd)) {
         debug("closing fd: %d", fd);
-        error_s("error on closing file: ", filename);
+        error("error on closing file: %s", filename);
     }
 
     src_file_len++;
@@ -115,7 +115,7 @@ bool enter_file(char *filename) {
     src_t *s = load_file(filename);
 
     if (src_file_stack_top >= NUM_FILES) {
-        error_s("too many file stack:", filename);
+        error("too many file stack:%s", filename);
     }
     src_file_id_stack[src_file_stack_top] = s->id;
     src_file_stack_top++;

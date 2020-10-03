@@ -162,7 +162,7 @@ type_t *add_struct_union_type(char *name, bool is_union, bool is_anonymous) {
         }
     }
     if (structs_len >= NUM_STRUCTS) {
-        error_s("Too many structs:", name);
+        error("Too many structs:%s", name);
     }
     struct_t *s = &structs[structs_len++];
     s->name = is_anonymous? "annonymous" : name;
@@ -193,10 +193,10 @@ void copy_union_member_to_struct(type_t *st, type_t *ut) {
 member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
     struct_t *s = st->struct_of;
     if (s == 0) {
-        error_s("adding member to non struct type: ", st->name);
+        error("adding member to non struct type: %s", st->name);
     }
     if (s->num_members > NUM_STRUCT_MEMBERS) {
-        error_s("Too many struct members: ", name);
+        error("Too many struct members: %s", name);
     }
     member_t *m = &(s->members[s->num_members++]);
     m->name = name;
@@ -222,7 +222,7 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
 member_t *find_struct_member(type_t *t, char *name) {
     struct_t *s = t->struct_of;
     if (s == 0) {
-        error_s("this type is not struct: ", t->name);
+        error("this type is not struct: %s", t->name);
     }
     for (int i=0; i<s->num_members; i++) {
         member_t *m = &(s->members[i]);

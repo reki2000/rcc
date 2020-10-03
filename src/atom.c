@@ -45,7 +45,7 @@ void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
     strcat(buf, atom_name[p->type]);
     strcat(buf, "] value:");
     if (!p) {
-        error_s("null atom for:", buf);
+        error("null atom for:%s", buf);
     }
     switch (p->type) {
         case TYPE_APPLY:

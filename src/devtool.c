@@ -62,13 +62,6 @@ void error(char *fmt, ...) {
     exit(1);
 }
 
-void error_s(char *str, char *val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, str);
-    strcat(buf, val);
-    error(buf);
-}
-
 void warning(char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
