@@ -907,7 +907,7 @@ int out_global_constant_by_type(type_t *pt, int value) {
     if (pt == find_type("char")) {
         out_int(".byte\t", value, "");
         filled_size += 1;
-    } else if (pt == find_type("int")) {
+    } else if (pt == type_int) {
         out_int(".long\t", value, "");
         filled_size += 4;
     } else if (pt == find_type("long")) {

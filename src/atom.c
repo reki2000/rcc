@@ -166,7 +166,7 @@ void build_int_atom(int pos, int type, int value) {
     atom_t *a = &program[pos];
     a->type = type;
     a->int_value = value;
-    a->t = find_type("int");
+    a->t = type_int;
 }
 
 void build_ptr_atom(int pos, int type, void *ptr) {
@@ -312,7 +312,7 @@ int alloc_index_atom(int base_pos, int index_pos) {
     index_pos = atom_to_rvalue(index_pos);
     int pos2 = alloc_typed_pos_atom(TYPE_ARRAY_INDEX, pos, t);
     alloc_typed_pos_atom(TYPE_ARG, index_pos, atom_type(index_pos));
-    alloc_typed_int_atom(TYPE_ARG, size, find_type("int"));
+    alloc_typed_int_atom(TYPE_ARG, size, type_int);
     //dump_atom_tree(pos2, 0);
     return pos2;
 }
@@ -325,7 +325,7 @@ int alloc_offset_atom(int base_pos, type_t *offset_t, int offset) {
         error("offset for non-struct atom #%d" , pos);
     }
  
-    int pos2 = alloc_binop_atom(TYPE_MEMBER_OFFSET, pos, alloc_typed_int_atom(TYPE_INTEGER, offset, find_type("int")));
+    int pos2 = alloc_binop_atom(TYPE_MEMBER_OFFSET, pos, alloc_typed_int_atom(TYPE_INTEGER, offset, type_int));
     atom_set_type(pos2, add_pointer_type(offset_t));
     return pos2;
 }
@@ -353,7 +353,7 @@ int calculate_if_constant_ops(int type, int lpos, int rpos) {
             case TYPE_EQ_LE: l_int = l_int <= r_int; break;
             case TYPE_EQ_LT: l_int = l_int < r_int; break;
         }
-        return alloc_typed_int_atom(TYPE_INTEGER, l_int, find_type("int"));
+        return alloc_typed_int_atom(TYPE_INTEGER, l_int, type_int);
     }
     return 0;
 }
@@ -370,7 +370,7 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
         if (atom_type(rpos)->ptr_to != 0) {
             error("Cannot + or - between pointers");
         }
-        int size = alloc_typed_int_atom(TYPE_INTEGER, type_size(lpos_t->ptr_to), find_type("int"));
+        int size = alloc_typed_int_atom(TYPE_INTEGER, type_size(lpos_t->ptr_to), type_int);
         rpos = alloc_binop_atom(TYPE_MUL, rpos, size);
     }
 
@@ -384,7 +384,7 @@ int alloc_assign_op_atom(int type, int lval, int rval) {
     type_t *lval_t = atom_type(lval);
     type_t *rval_t = atom_type(rval);
     if (lval_t->ptr_to && !rval_t->ptr_to && (type == TYPE_ADD || type == TYPE_SUB)) {
-        rval = alloc_typed_pos_atom(TYPE_CONVERT, rval, find_type("int"));
+        rval = alloc_typed_pos_atom(TYPE_CONVERT, rval, type_int);
     } else {
         rval = atom_convert_type(lval_deref, atom_to_rvalue(rval));
     }
@@ -413,7 +413,7 @@ int atom_convert_type(int p1, int p2) {
         warning("implicit pointer conversion:%s", buf);
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
-    if (t1->enum_of && t2 == find_type("int")) {
+    if (t1->enum_of && t2 == type_int) {
         char buf[RCC_BUF_SIZE] = {0};
         dump_type(buf, t2);
         strcat(buf, " -> ");
