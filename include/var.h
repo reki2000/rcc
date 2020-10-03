@@ -30,6 +30,7 @@ extern void exit_var_frame();
 extern frame_t *get_top_frame();
 extern var_t *add_var(char *, type_t *);
 extern var_t *add_constant_int(char *, type_t *, int value);
+extern void add_register_save_area();
 extern int find_var_offset(char *);
 extern var_t *find_var(char *);
 extern var_t *find_var_in_current_frame(char *name);

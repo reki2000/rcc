@@ -1,11 +1,5 @@
-void debug(char *);
-void debug_i(char *, int);
-void debug_s(char *, char *);
-void warning(char *);
-void warning_i(char *, int);
-void warning_s(char *, char *);
-void error(char *);
-void error_i(char *, int);
-void error_s(char *, char *);
+void debug(char *, ...);
+void warning(char *, ...);
+void error(char *, ...);
 char * _slice(char *, int);
 int align(int, int);

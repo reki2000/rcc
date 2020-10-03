@@ -1,8 +1,8 @@
+#include "types.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
 
-#include "types.h"
 #include "type.h"
 #include "var.h"
 #include "func.h"
@@ -18,7 +18,7 @@ int max_offset = 0;
 
 void _enter_var_frame(bool is_function_args) {
     env_top++;
-    debug_i("entering frame:", env_top);
+    debug("entering frame:%d", env_top);
     if (env_top >= NUM_FRAMES) {
         error("Too many frames");
     }
@@ -38,7 +38,7 @@ void enter_var_frame() {
 }
 
 void exit_var_frame() {
-    debug_i("exiting frame:", env_top);
+    debug("exiting frame:%d", env_top);
     if (env_top < 0) {
         error("Invalid frame_t exit");
     }
@@ -74,13 +74,13 @@ var_t *add_constant_int(char *name, type_t*t, int value) {
     v->has_value = TRUE;
     v->int_value = value;
 
-    debug_i("add_constant_int: added ", v->int_value);
+    debug("add_constant_int: added %d", v->int_value);
     return v;
 }
 
 void var_realloc(var_t *v, type_t *t) {
     if (type_size(v->t) != 0) {
-        error_s("cannot realloc variable: ", v->name);
+        error("cannot realloc variable: %s", v->name);
     }
 
     frame_t *f = &env[env_top];
@@ -91,6 +91,14 @@ void var_realloc(var_t *v, type_t *t) {
     }
     v->offset = f->offset;
     v->t = t;
+}
+
+void add_register_save_area() {
+    frame_t *f = &env[env_top];
+    f->offset = align(f->offset, ALIGN_OF_STACK) + ABI_REG_SAVE_AREA_SIZE;
+    if (f->offset > max_offset) {
+        max_offset = f->offset;
+    }
 }
 
 var_t *add_var(char *name, type_t *t) {
@@ -106,8 +114,8 @@ var_t *add_var(char *name, type_t *t) {
     if (env_top == 0) {
         v->offset = 0;
         v->is_global = TRUE;
-    } else  if (f->is_function_args && f->num_vars > ABI_NUM_REGISTER_PASS) {
-        v->offset = -ALIGN_OF_STACK * (2 + f->num_vars - ABI_NUM_REGISTER_PASS - 1); // 2 : return address, %rbp
+    } else  if (f->is_function_args && f->num_vars > ABI_NUM_GP) {
+        v->offset = -ALIGN_OF_STACK * (2 + f->num_vars - ABI_NUM_GP - 1); // 2 : return address, %rbp
         v->is_global = FALSE;
     } else {
         f->offset += align(type_size(t), 4);
@@ -127,7 +135,7 @@ var_t *add_var(char *name, type_t *t) {
     _strcat3(buf, "' frame[", env_top, "] ");
     _strcat3(buf, "offset:", v->offset, " type:");
     dump_type(buf, t);
-    debug_s("add_var:", buf);
+    debug("add_var:%s", buf);
 
     return v;
 }
@@ -175,12 +183,12 @@ void dump_env() {
         _strcat3(buf, "env[", pos, "] ");
         _strcat3(buf, "vars:", env[pos].num_vars, "");
         _strcat3(buf, " offset:", env[pos].offset, "");
-        debug_s("", buf);
+        debug("", buf);
         for (var_ptr = env[pos].vars; var_ptr->name != 0; var_ptr++) {
             char buf[RCC_BUF_SIZE] = {0};
             strcat(buf, var_ptr->name);
             _strcat3(buf, "=", var_ptr->offset, "\n");
-            debug_s("", buf);
+            debug("", buf);
         }
     }
 }

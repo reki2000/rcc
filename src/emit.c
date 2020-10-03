@@ -1,7 +1,7 @@
+#include "types.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
-#include "types.h"
 
 #include "token.h"
 
@@ -44,8 +44,7 @@ void out(char *str) {
  */
 void out_x(char *fmt, int size) {
     if (size != 8 && size != 4 && size != 1) {
-        debug_s(" ", fmt);
-        error_i("unknown size:", size);
+        error("fmt:%s unknown size:%d", fmt, size);
     }
     char buf[RCC_BUF_SIZE] = {0};
     char *d = &buf[0];
@@ -68,7 +67,7 @@ void out_x(char *fmt, int size) {
             } else if ((c1 == 'a' || c1 == 'b' || c1 == 'c' || c1 == 'd') && c2 == 'x') {
                 *d = c1; *(d+1) = 'l'; *(d+2) = ' '; // '%Zax' -> '%al ' for Zax, Zbx, Zcx, Zdx
             } else {
-                error_s("unknown register name: ", fmt);
+                error("unknown register name: %s", fmt);
             }
             fmt += 2;
             d += 2;
@@ -192,7 +191,7 @@ char *reg(int no, int size) {
         case 8: return regs8[no];
         case 4: return regs4[no];
         case 1: return regs1[no];
-        default: error_i("invalid size for reg:", size); return (void *)0;
+        default: error("invalid size for reg:%d", size); return (void *)0;
     }
 }
 
@@ -221,7 +220,9 @@ void emit_pop_argv(int no) {
 void emit_call(char *name, int num_stack_args, char *plt) {
     out("movb $0, %al");
     out_str("call	", name, plt);
-    out_int("addq $", num_stack_args * 8, ", %rsp");
+    if (num_stack_args > 0) {
+        out_int("addq $", num_stack_args * 8, ", %rsp");
+    }
     out("pushq	%rax");
 }
 
@@ -236,12 +237,12 @@ void emit_deref(int size) {
 }
 
 void emit_var_ref(int i) {
-    out_int("lea	", -i, "(%rbp), %rax");
+    out_int("leaq	", -i, "(%rbp), %rax");
     out("pushq	%rax");
 }
 
 void emit_global_var_ref(char *name) {
-    out_str("lea	", name, "(%rip), %rax");
+    out_str("leaq	", name, "(%rip), %rax");
     out("pushq	%rax");
 }
 
@@ -545,7 +546,7 @@ void compile(int pos) {
 
     char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
-    debug_s("compiling atom_t: ", ast_text);
+    debug("compiling atom_t: %s", ast_text);
     //dump_token_by_id(p->token_pos);
 
     switch (p->type) {
@@ -799,8 +800,8 @@ void compile(int pos) {
                 compile((p+i+2)->atom_pos);
             }
 
-            int num_reg_args = argc > ABI_NUM_REGISTER_PASS ? ABI_NUM_REGISTER_PASS : argc;
-            int num_stack_args = argc > ABI_NUM_REGISTER_PASS ? argc - ABI_NUM_REGISTER_PASS : 0;
+            int num_reg_args = argc > ABI_NUM_GP ? ABI_NUM_GP : argc;
+            int num_stack_args = argc > ABI_NUM_GP ? argc - ABI_NUM_GP : 0;
 
             for (int i=0; i<num_reg_args; i++) {
                 emit_pop_argv(i);
@@ -860,7 +861,7 @@ void compile(int pos) {
             error("Invalid program");
     }
     out_comment(ast_text);
-    debug_s("compiled ", ast_text);
+    debug("compiled %s", ast_text);
 }
 
 void compile_func(func *f) {
@@ -877,16 +878,18 @@ void compile_func(func *f) {
 
     out_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
+    int arg_offset = 0;
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
-        switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
+        switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error("invalid size for funciton arg:%s", v->name); }
         if (i<6) {
             emit_var_arg_init(i, v->offset, type_size(v->t));
+            arg_offset = align(v->offset, ALIGN_OF_STACK);
         }
     }
     if (f->is_variadic) {
-        for (int i=f->argc; i<6; i++) {
-            emit_var_arg_init(i, i*8+4, 8);
+        for (int i=0; i<6; i++) {
+            emit_var_arg_init(5-i, 8 + i*8 + arg_offset + 8*16, 8);
         }
     }
 
@@ -939,7 +942,7 @@ void out_global_constant(var_t *v) {
     } else {
         int filled_size = out_global_constant_by_type(v->t, v->int_value);
         if (!filled_size) {
-            error_s("unknown size for global variable:", v->name);
+            error("unknown size for global variable:%s", v->name);
         }
     }
     out("");
@@ -992,7 +995,7 @@ void emit(int fd) {
     func *f = &functions[0];
     while (f->name != 0) {
         if (f->body_pos != 0) {
-            debug_s(f->name, " --------------------- ");
+            debug("%s --------------------- ", f->name);
             //dump_atom_tree(f->body_pos, 0);
             compile_func(f);
         }

@@ -1,7 +1,7 @@
+#include "types.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
-#include "types.h"
 #include "file.h"
 #include "macro.h"
 #include "token.h"
@@ -175,7 +175,7 @@ bool tokenize_char(char *retval) {
         next();
     }
     if (ch() != '\'') {
-        error_i("invalid char literal", ch());
+        error("invalid char literal:%d", ch());
     }
     next();
     *retval = c;
@@ -285,16 +285,7 @@ void add_ident_token(char *s) {
 
 void dump_token(int pos, token *t) {
     src_t *s = file_info(t->src_id);
-
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, "#:", pos, " ");
-    _strcat3(buf, "id:", t->id, " ");
-    _strcat3(buf, "src_id:", t->src_id, " ");
-    strcat(buf, s->filename);
-    _strcat3(buf, ":", t->src_line, "");
-    _strcat3(buf, ":", t->src_column, "\n");
-    strcat(buf, dump_file2(t->src_id, t->src_pos, t->src_end_pos));
-    debug_s("token:", buf);
+    debug("token:#%d: id:%d src_id:%d %s:%d:%d\n%s", pos, t->id, t->src_id, s->filename, t->src_line, t->src_column, dump_file2(t->src_id, t->src_pos, t->src_end_pos));
 }
 
 void dump_token_simple(char *buf, int pos) {
@@ -524,6 +515,12 @@ void tokenize() {
             add_token(T_ENUM);
         } else if (accept_ident("while")) {
             add_token(T_WHILE);
+        } else if (accept_ident("__builtin_va_start")) {
+            add_token(T_VA_START);
+        } else if (accept_ident("__builtin_va_end")) {
+            add_token(T_VA_END);
+        } else if (accept_ident("__builtin_va_arg")) {
+            add_token(T_VA_ARG);
         } else {
             int i;
             char c;
@@ -563,7 +560,7 @@ void tokenize_file(char *filename) {
     tokenize();
     add_token(T_EOF);
     exit_file();
-    debug_i("tokens:", token_len);
+    debug("tokens:%d", token_len);
 }
 
 bool expect(token_id id) {

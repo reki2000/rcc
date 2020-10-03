@@ -124,3 +124,33 @@ INDEX(
     index:3,
     type:{*int}
 )
+
+
+## va_list
+
+  -0xd0: va_list.gp_offset (-208) va_list
+  -0xcc: va_list.fp_offset (-204)
+  -0xc8: va_list.reg_save_area (-200)
+  -0xc0: va_list.overflow_arg_area (-192)
+  -0xb8: va_list va; (*struct __buitin_va_list) (-184)
+  -0xb0: gp_save_area: %rdi (-176)
+  -0xa8: gp_save_area: %rsi (-168)
+  -0xa0: gp_save_area: %rdx
+  -0x98: gp_save_area: %rcx 
+  -0x90: gp_save_area: %r8
+  -0x88: gp_save_area: %r9 (-132)
+  -0x80: fp_save_area: xmm0 (-128)
+  -0x70: fp_save_area: xmm1
+  -0x60: fp_save_area: xmm2
+  -0x50: fp_save_area: xmm3
+  -0x40: fp_save_area: xmm4
+  -0x30: fp_save_area: xmm5
+  -0x20: fp_save_area: xmm6
+  -0x10: fp_save_area: xmm7
+  -0x08: alignment
+- -0x04: first arg 
+-     0: pushed %rbp  <-- initial %rbp
+- +0x08: callar_address
+- +0x10: pushed args
+
+

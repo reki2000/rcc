@@ -1,3 +1,4 @@
+#include "types.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
@@ -43,7 +44,7 @@ int alloc_global_array() {
 void add_global_array(int pos, int value) {
     int new_pos = pos + global_array[pos] + 1;
     if (global_array_len > new_pos) {
-        error_i("size of the global array already fixed: ", pos);
+        error("size of the global array already fixed:%d", pos);
     }
     global_array[pos]++;
     global_array[new_pos] = value;
@@ -52,17 +53,17 @@ void add_global_array(int pos, int value) {
 
 int get_global_array_length(int pos) {
     if (pos >= global_array_len) {
-        error_i("global array index out of range: ", pos);
+        error("global array index out of range:%d", pos);
     }
     return global_array[pos];
 }
 
 int get_global_array(int pos, int offset) {
     if (pos + offset + 1 >= global_array_len) {
-        error_i("global array index out of range: ", pos);
+        error("global array index out of range:%d", pos);
     }
     if (offset >= global_array[pos]) {
-        error_i("global array index out of range:" , pos);
+        error("global array index out of range:%d", pos);
     }
     return global_array[pos + offset + 1];
 }

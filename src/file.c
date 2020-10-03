@@ -59,7 +59,7 @@ int open_include_file(char *filename) {
         if (fd >= 0) {
             return fd;
         }
-        debug_s("include file not found at:", path);
+        debug("include file not found at:%s", path);
     };
     return -1;
 }
@@ -96,18 +96,18 @@ src_t *load_file(char *filename) {
     }
 
     if (fd == -1) {
-        error_s("cannot open include file: ", filename);
+        error("cannot open include file: %s", filename);
     }
 
     s->len = read(fd, s->body, SIZE_FILE_BUF);
     if (close(fd)) {
-        debug_i("closing fd:", fd);
-        error_s("error on closing file: ", filename);
+        debug("closing fd: %d", fd);
+        error("error on closing file: %s", filename);
     }
 
     src_file_len++;
 
-    debug_s("loaded: ", s->filename);
+    debug("loaded: %s", s->filename);
     return s;
 }
 
@@ -115,7 +115,7 @@ bool enter_file(char *filename) {
     src_t *s = load_file(filename);
 
     if (src_file_stack_top >= NUM_FILES) {
-        error_s("too many file stack:", filename);
+        error("too many file stack:%s", filename);
     }
     src_file_id_stack[src_file_stack_top] = s->id;
     src_file_stack_top++;
@@ -196,16 +196,14 @@ char *dump_file3(int id, int start_pos, int end_pos) {
 
 src_t *file_info(int id) {
     if (id < 0 || id >= src_file_len) {
-        error_i("invalid file id:", id);
+        error("invalid file id:%d", id);
     }
     return &src_files[id];
 }
 
 void dump_src() {
-    char buf[RCC_BUF_SIZE] = {0};
     src_t *s = file_info(0);
-    strcat(buf, s->filename);
-    debug_s("files:\n", buf);
+    debug("files:\n%s", s->filename);
 }
 
 bool is_eof() {
@@ -216,7 +214,6 @@ int ch() {
     if (is_eof()) {
         return -1;
     }
-    //debug_i("ch: ", src->body[src->pos]);
     return src->body[src->pos];
 }
 

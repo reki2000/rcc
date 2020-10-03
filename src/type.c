@@ -1,6 +1,7 @@
+#include "types.h"
 #include "rstring.h"
 #include "devtool.h"
-#include "types.h"
+
 #include "type.h"
 
 #define NUM_TYPES 1024
@@ -11,12 +12,31 @@
 type_t types[NUM_TYPES];
 int types_pos = 0;
 
+type_t *type_int;
+type_t *type_void;
+type_t *type_char;
+type_t *type_long;
+type_t *type_void_ptr;
+type_t *type_char_ptr;
+
+type_t *type_builtin_va_list;
+
 void init_types() {
     add_type("$*", 8, 0, -1);    // for pointer
-    add_type("void", 0, 0, -1);
-    add_type("int", 4, 0, -1);
-    add_type("char", 1, 0, -1);
-    add_type("long", 8, 0, -1);
+    type_void = add_type("void", 0, 0, -1);
+    type_int = add_type("int", 4, 0, -1);
+    type_char = add_type("char", 1, 0, -1);
+    type_long = add_type("long", 8, 0, -1);
+
+    type_void_ptr = add_pointer_type(type_void);
+    type_char_ptr = add_pointer_type(type_char);
+
+    type_builtin_va_list = add_struct_type("", TRUE);
+    add_struct_member(type_builtin_va_list, "gp_offset", type_int, FALSE);
+    add_struct_member(type_builtin_va_list, "fp_offset", type_int, FALSE);
+    add_struct_member(type_builtin_va_list, "overflow_arg_area", type_char_ptr, FALSE);
+    add_struct_member(type_builtin_va_list, "reg_save_area", type_char_ptr, FALSE);
+    add_typedef("__builtin_va_list", add_pointer_type(type_builtin_va_list));
 }
 
 void dump_type(char *buf, type_t *t) {
@@ -69,6 +89,14 @@ type_t *add_type(char* name, int size, type_t *prt_to, int array_length) {
     debug(buf);
 
     return p;
+}
+
+type_t *add_typedef(char *name, type_t* t) {
+    type_t *defined_type = add_type(name, type_size(t), t->ptr_to, t->array_length);
+    defined_type->struct_of = t->struct_of;
+    defined_type->enum_of = t->enum_of;
+    defined_type->typedef_of = t;
+    return defined_type;
 }
 
 type_t *find_pointer(type_t *ptr_to, int array_length) {
@@ -135,7 +163,7 @@ type_t *add_struct_union_type(char *name, bool is_union, bool is_anonymous) {
         }
     }
     if (structs_len >= NUM_STRUCTS) {
-        error_s("Too many structs:", name);
+        error("Too many structs:%s", name);
     }
     struct_t *s = &structs[structs_len++];
     s->name = is_anonymous? "annonymous" : name;
@@ -166,10 +194,10 @@ void copy_union_member_to_struct(type_t *st, type_t *ut) {
 member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
     struct_t *s = st->struct_of;
     if (s == 0) {
-        error_s("adding member to non struct type: ", st->name);
+        error("adding member to non struct type: %s", st->name);
     }
     if (s->num_members > NUM_STRUCT_MEMBERS) {
-        error_s("Too many struct members: ", name);
+        error("Too many struct members: %s", name);
     }
     member_t *m = &(s->members[s->num_members++]);
     m->name = name;
@@ -184,7 +212,7 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
         }
     } else {
         m->offset = st->size;
-        debug_i("added struct member @", m->offset);
+        debug("added struct member %s @%d", name, m->offset);
         st->size += t_size;
         s->next_offset += t_size;
     }
@@ -195,7 +223,7 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
 member_t *find_struct_member(type_t *t, char *name) {
     struct_t *s = t->struct_of;
     if (s == 0) {
-        error_s("this type is not struct: ", t->name);
+        error("this type is not struct: %s", t->name);
     }
     for (int i=0; i<s->num_members; i++) {
         member_t *m = &(s->members[i]);
@@ -240,7 +268,7 @@ type_t *add_enum_type(char *name) {
     enum_t *e = &enums[enums_len++];
     e->next_value = 0;
     e->name = name;
-    debug_s("added new enum type: ", name);
+    debug("added new enum type: ", name);
 
     t = add_type("$e", 4, 0, -1);
     t->enum_of = e;

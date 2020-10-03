@@ -1,6 +1,6 @@
+#include "types.h"
 #include "devtool.h"
 #include "rstring.h"
-#include "types.h"
 
 extern int open(const char*, int, int);
 extern int close(int);
@@ -32,12 +32,12 @@ int main(int argc, char **argv) {
             if (arg_index < argc) {
                 output_fd = open(argv[arg_index], O_CREAT | O_TRUNC | O_WRONLY, 0644);
                 if (output_fd == -1) {
-                    error_s("cannot open output file: ", argv[arg_index]);
+                    error("cannot open output file: %s", argv[arg_index]);
                 }
             } else {
                 error("specified -o option without file name");
             }
-            debug_s("write output to file:", argv[arg_index]);
+            debug("write output to file:%s", argv[arg_index]);
             continue;
         }
         break;

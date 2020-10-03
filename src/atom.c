@@ -1,8 +1,8 @@
+#include "types.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
 
-#include "types.h"
 #include "type.h"
 #include "var.h"
 #include "func.h"
@@ -45,7 +45,7 @@ void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
     strcat(buf, atom_name[p->type]);
     strcat(buf, "] value:");
     if (!p) {
-        error_s("null atom for:", buf);
+        error("null atom for:%s", buf);
     }
     switch (p->type) {
         case TYPE_APPLY:
@@ -68,7 +68,7 @@ void dump_atom(int pos, int indent) {
 void dump_atom2(atom_t *p, int indent, int pos) {
     char buf[RCC_BUF_SIZE] = {0};
     dump_atom3(buf, p, indent, pos);
-    debug_s("", buf);
+    debug("%s", buf);
 }
 
 void dump_atom_all() {
@@ -157,7 +157,7 @@ int atom_set_type(int pos, type_t *t) {
 
 type_t *atom_type(int pos) {
     if (program[pos].t == 0) {
-        error_i("Null type at atom_t #", pos);
+        error("Null type at atom_t #%d", pos);
     }
     return program[pos].t;
 }
@@ -288,7 +288,7 @@ int alloc_index_atom(int base_pos, int index_pos) {
     if (t->array_length >= 0) { // base is an array
         char buf[RCC_BUF_SIZE] = {0};
         dump_type(buf, t);
-        debug_s("alloc array index for array: ", buf);
+        debug("alloc array index for array: %s", buf);
         //dump_atom_tree(base_pos, 0);
         t = t->ptr_to;
         size = type_size(t);
@@ -300,14 +300,14 @@ int alloc_index_atom(int base_pos, int index_pos) {
         //dump_atom_tree(base_pos, 0);
         char buf[RCC_BUF_SIZE] = {0};
         dump_type(buf, t);
-        warning_s("implicit convertion from pointer to array: ", buf);
+        warning("implicit convertion from pointer to array:%s", buf);
         pos = alloc_deref_atom(pos);
         t = t->ptr_to;
         size = type_size(t->ptr_to);
     } else {
         dump_atom_tree(base_pos, 0);
         dump_atom_tree(index_pos, 0);
-        error_i("index for non-array atom #" , pos);
+        error("index for non-array atom #%d", pos);
     }
     index_pos = atom_to_rvalue(index_pos);
     int pos2 = alloc_typed_pos_atom(TYPE_ARRAY_INDEX, pos, t);
@@ -322,7 +322,7 @@ int alloc_offset_atom(int base_pos, type_t *offset_t, int offset) {
     type_t *t = atom_type(pos);
     if (!t->ptr_to->struct_of) {
         dump_atom_tree(base_pos, 0);
-        error_i("offset for non-struct atom #" , pos);
+        error("offset for non-struct atom #%d" , pos);
     }
  
     int pos2 = alloc_binop_atom(TYPE_MEMBER_OFFSET, pos, alloc_typed_int_atom(TYPE_INTEGER, offset, find_type("int")));
@@ -410,7 +410,7 @@ int atom_convert_type(int p1, int p2) {
         dump_type(buf, t2);
         strcat(buf, " -> ");
         dump_type(buf, t1);
-        warning_s("implicit pointer conversion: ", buf);
+        warning("implicit pointer conversion:%s", buf);
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
     if (t1->enum_of && t2 == find_type("int")) {
@@ -418,7 +418,7 @@ int atom_convert_type(int p1, int p2) {
         dump_type(buf, t2);
         strcat(buf, " -> ");
         dump_type(buf, t1);
-        debug_s("implicit enum conversion: ", buf);
+        debug("implicit enum conversion: %s", buf);
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
     debug("not compatible type");

@@ -1,7 +1,7 @@
 
+#include "types.h"
 #include "rsys.h"
 #include "rstring.h"
-#include "types.h"
 
 #include "token.h"
 #include "file.h"
@@ -26,71 +26,40 @@ void _log(level_e level, char *message) {
     char *color_str[] = {color_red, color_red, "", color_yellow, ""};
     char *level_str[] = {"WARN ", "ERROR", "DEBUG", "INFO ", ""};
 
-    char buf[RCC_BUF_SIZE] = {0};
+    char buf[RCC_BUF_SIZE];
     bool tty = FALSE; // isatty(2);
-    if (tty) { strcat(buf, color_str[level]); }
-    strcat(buf, level_str[level]);
-    strcat(buf, ": ");
-    strcat(buf, message);
-    strcat(buf, "\n");
-    if (tty && color_str[level] != color_white) {
-        strcat(buf, color_white);
-    }
+    snprintf(buf, RCC_BUF_SIZE, "%s%s: %s%s\n", tty? color_str[level]:"", level_str[level], message, tty? color_white:"");
     write(2, buf, strlen(buf));
 }
 
-void debug(char *str) {
-    _log(DEBUG, str);
+void debug(char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    char buf[RCC_BUF_SIZE];
+    vsnprintf(buf, RCC_BUF_SIZE, fmt, va);
+    va_end(va);
+    _log(DEBUG, buf);
 }
 
-void debug_i(char *str, int val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, str, val, "");
-    debug(buf);
-}
-
-void debug_s(char *str, char *val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, str);
-    strcat(buf, val);
-    debug(buf);
-}
-
-void error(char *str) {
-    _log(ERROR, str);
+void error(char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    char buf[RCC_BUF_SIZE];
+    vsnprintf(buf, RCC_BUF_SIZE, fmt, va);
+    va_end(va);
+    _log(ERROR, buf);
     _log(NONE, "");
     dump_tokens();
     exit(1);
 }
 
-void error_i(char *str, int val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, str, val, "");
-    error(buf);
-}
-
-void error_s(char *str, char *val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, str);
-    strcat(buf, val);
-    error(buf);
-}
-
-void warning(char *str) {
-    _log(WARN, str);
-}
-
-void warning_i(char *str, int val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, str, val, "");
-    warning(buf);
-}
-
-void warning_s(char *str, char *val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, str);
-    strcat(buf, val);
-    warning(buf);
+void warning(char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    char buf[RCC_BUF_SIZE];
+    vsnprintf(buf, RCC_BUF_SIZE, fmt, va);
+    va_end(va);
+    _log(WARN, buf);
 }
 
 char *_slice(char *src, int count) {
