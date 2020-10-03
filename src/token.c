@@ -285,7 +285,7 @@ void add_ident_token(char *s) {
 
 void dump_token(int pos, token *t) {
     src_t *s = file_info(t->src_id);
-    debug("token:#: id:%d src_id:%d %s:%d:%d\n%s", pos, t->id, t->src_id, s->filename, t->src_line, t->src_column, dump_file2(t->src_id, t->src_pos, t->src_end_pos));
+    debug("token:#%d: id:%d src_id:%d %s:%d:%d\n%s", pos, t->id, t->src_id, s->filename, t->src_line, t->src_column, dump_file2(t->src_id, t->src_pos, t->src_end_pos));
 }
 
 void dump_token_simple(char *buf, int pos) {
@@ -515,6 +515,12 @@ void tokenize() {
             add_token(T_ENUM);
         } else if (accept_ident("while")) {
             add_token(T_WHILE);
+        } else if (accept_ident("__builtin_va_start")) {
+            add_token(T_VA_START);
+        } else if (accept_ident("__builtin_va_end")) {
+            add_token(T_VA_END);
+        } else if (accept_ident("__builtin_va_arg")) {
+            add_token(T_VA_ARG);
         } else {
             int i;
             char c;

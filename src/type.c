@@ -28,11 +28,12 @@ void init_types() {
     type_void_ptr = add_pointer_type(type_void);
     type_char_ptr = add_pointer_type(type_char);
 
-    type_t *va_list = add_struct_type("__builtin_va_list", TRUE);
+    type_t *va_list = add_struct_type("", TRUE);
     add_struct_member(va_list, "gp_offset", type_int, FALSE);
     add_struct_member(va_list, "fp_offset", type_int, FALSE);
     add_struct_member(va_list, "overflow_arg_area", type_char_ptr, FALSE);
     add_struct_member(va_list, "reg_save_area", type_char_ptr, FALSE);
+    add_typedef("__builtin_va_list", va_list);
 }
 
 void dump_type(char *buf, type_t *t) {
@@ -85,6 +86,14 @@ type_t *add_type(char* name, int size, type_t *prt_to, int array_length) {
     debug(buf);
 
     return p;
+}
+
+type_t *add_typedef(char *name, type_t* t) {
+    type_t *defined_type = add_type(name, type_size(t), t->ptr_to, t->array_length);
+    defined_type->struct_of = t->struct_of;
+    defined_type->enum_of = t->enum_of;
+    defined_type->typedef_of = t;
+    return defined_type;
 }
 
 type_t *find_pointer(type_t *ptr_to, int array_length) {

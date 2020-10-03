@@ -1276,12 +1276,7 @@ type_t *parse_typedef() {
         error("no type name for typedef");
     }
 
-    type_t *defined_type = add_type(type_name, type_size(t), t->ptr_to, t->array_length);
-    defined_type->struct_of = t->struct_of;
-    defined_type->enum_of = t->enum_of;
-    defined_type->typedef_of = t;
-
-    return defined_type;
+    return add_typedef(type_name, t);
 }
 
 type_t *parse_defined_type() {
