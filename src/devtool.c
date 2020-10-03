@@ -6,21 +6,11 @@
 #include "token.h"
 #include "file.h"
 
-typedef struct {
-    int g_offset;
-    int f_offset;
-    char *stack;
-    char *reg;
-    long num_fp;
-} va_list;
+typedef __builtin_va_list va_list;
 
-void va_start(va_list* va, char *arg1, int size1) {
-    va->stack = arg1 + size1 + 8 + 8;
-    va->reg = arg1 - (8- size1) - 8 * 6;
-    va->g_offset = 8;
-    va->f_offset = 48;
-    va->num_fp = 0;
-}
+#define va_start __builtin_va_start
+#define va_end __builtin_va_end
+#define va_args __builtin_va_arg
 
 extern int vsprintf(char *buf, const char *fmt, va_list *v);
 extern int sprintf(char *buf, const char *fmt, ...);
@@ -53,26 +43,19 @@ void _log(level_e level, char *message) {
 
 void debug(char *fmt, ...) {
     va_list va;
-    va_start(&va, (char *)&fmt, sizeof(fmt));
-
+    va_start(va, fmt);
     char buf[RCC_BUF_SIZE];
     vsprintf(buf, fmt, &va);
+    va_end(va);
     _log(DEBUG, buf);
-}
-
-void debug_s(char *str, char *val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, str);
-    strcat(buf, val);
-    debug(buf);
 }
 
 void error(char *fmt, ...) {
     va_list va;
-    va_start(&va, (char *)&fmt, sizeof(fmt));
-
+    va_start(va, fmt);
     char buf[RCC_BUF_SIZE];
     vsprintf(buf, fmt, &va);
+    va_end(va);
     _log(ERROR, buf);
     _log(NONE, "");
     dump_tokens();
@@ -94,10 +77,10 @@ void error_s(char *str, char *val) {
 
 void warning(char *fmt, ...) {
     va_list va;
-    va_start(&va, (char *)&fmt, sizeof(fmt));
-
+    va_start(va, fmt);
     char buf[RCC_BUF_SIZE];
     vsprintf(buf, fmt, &va);
+    va_end(va);
     _log(WARN, buf);
 }
 

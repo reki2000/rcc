@@ -11,12 +11,28 @@
 type_t types[NUM_TYPES];
 int types_pos = 0;
 
+type_t *type_int;
+type_t *type_void;
+type_t *type_char;
+type_t *type_long;
+type_t *type_void_ptr;
+type_t *type_char_ptr;
+
 void init_types() {
     add_type("$*", 8, 0, -1);    // for pointer
-    add_type("void", 0, 0, -1);
-    add_type("int", 4, 0, -1);
-    add_type("char", 1, 0, -1);
-    add_type("long", 8, 0, -1);
+    type_int = add_type("void", 0, 0, -1);
+    type_void = add_type("int", 4, 0, -1);
+    type_char = add_type("char", 1, 0, -1);
+    type_long = add_type("long", 8, 0, -1);
+
+    type_void_ptr = add_pointer_type(type_void);
+    type_char_ptr = add_pointer_type(type_char);
+
+    type_t *va_list = add_struct_type("__builtin_va_list", TRUE);
+    add_struct_member(va_list, "gp_offset", type_int, FALSE);
+    add_struct_member(va_list, "fp_offset", type_int, FALSE);
+    add_struct_member(va_list, "overflow_arg_area", type_char_ptr, FALSE);
+    add_struct_member(va_list, "reg_save_area", type_char_ptr, FALSE);
 }
 
 void dump_type(char *buf, type_t *t) {
@@ -240,7 +256,7 @@ type_t *add_enum_type(char *name) {
     enum_t *e = &enums[enums_len++];
     e->next_value = 0;
     e->name = name;
-    debug_s("added new enum type: ", name);
+    debug("added new enum type: ", name);
 
     t = add_type("$e", 4, 0, -1);
     t->enum_of = e;

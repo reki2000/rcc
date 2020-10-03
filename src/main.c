@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
             } else {
                 error("specified -o option without file name");
             }
-            debug_s("write output to file:", argv[arg_index]);
+            debug("write output to file:%s", argv[arg_index]);
             continue;
         }
         break;

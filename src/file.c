@@ -59,7 +59,7 @@ int open_include_file(char *filename) {
         if (fd >= 0) {
             return fd;
         }
-        debug_s("include file not found at:", path);
+        debug("include file not found at:%s", path);
     };
     return -1;
 }
@@ -107,7 +107,7 @@ src_t *load_file(char *filename) {
 
     src_file_len++;
 
-    debug_s("loaded: ", s->filename);
+    debug("loaded: %s", s->filename);
     return s;
 }
 
@@ -202,10 +202,8 @@ src_t *file_info(int id) {
 }
 
 void dump_src() {
-    char buf[RCC_BUF_SIZE] = {0};
     src_t *s = file_info(0);
-    strcat(buf, s->filename);
-    debug_s("files:\n", buf);
+    debug("files:\n%s", s->filename);
 }
 
 bool is_eof() {

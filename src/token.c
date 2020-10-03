@@ -285,16 +285,7 @@ void add_ident_token(char *s) {
 
 void dump_token(int pos, token *t) {
     src_t *s = file_info(t->src_id);
-
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, "#:", pos, " ");
-    _strcat3(buf, "id:", t->id, " ");
-    _strcat3(buf, "src_id:", t->src_id, " ");
-    strcat(buf, s->filename);
-    _strcat3(buf, ":", t->src_line, "");
-    _strcat3(buf, ":", t->src_column, "\n");
-    strcat(buf, dump_file2(t->src_id, t->src_pos, t->src_end_pos));
-    debug_s("token:", buf);
+    debug("token:#: id:%d src_id:%d %s:%d:%d\n%s", pos, t->id, t->src_id, s->filename, t->src_line, t->src_column, dump_file2(t->src_id, t->src_pos, t->src_end_pos));
 }
 
 void dump_token_simple(char *buf, int pos) {

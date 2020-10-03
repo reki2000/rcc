@@ -68,7 +68,7 @@ void dump_atom(int pos, int indent) {
 void dump_atom2(atom_t *p, int indent, int pos) {
     char buf[RCC_BUF_SIZE] = {0};
     dump_atom3(buf, p, indent, pos);
-    debug_s("", buf);
+    debug("%s", buf);
 }
 
 void dump_atom_all() {
@@ -288,7 +288,7 @@ int alloc_index_atom(int base_pos, int index_pos) {
     if (t->array_length >= 0) { // base is an array
         char buf[RCC_BUF_SIZE] = {0};
         dump_type(buf, t);
-        debug_s("alloc array index for array: ", buf);
+        debug("alloc array index for array: %s", buf);
         //dump_atom_tree(base_pos, 0);
         t = t->ptr_to;
         size = type_size(t);
@@ -418,7 +418,7 @@ int atom_convert_type(int p1, int p2) {
         dump_type(buf, t2);
         strcat(buf, " -> ");
         dump_type(buf, t1);
-        debug_s("implicit enum conversion: ", buf);
+        debug("implicit enum conversion: %s", buf);
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
     debug("not compatible type");

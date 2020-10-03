@@ -35,6 +35,12 @@ typedef struct type_t {
     type_t *typedef_of;
 } type_t;
 
+extern type_t *type_int;
+extern type_t *type_void;
+extern type_t *type_char;
+extern type_t *type_long;
+extern type_t *type_void_ptr;
+extern type_t *type_char_ptr;
 
 extern void init_types();
 extern type_t *add_type(char *, int , type_t *, int );

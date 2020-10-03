@@ -93,6 +93,14 @@ void var_realloc(var_t *v, type_t *t) {
     v->t = t;
 }
 
+void add_register_save_area() {
+    frame_t *f = &env[env_top];
+    f->offset = align(f->offset, ALIGN_OF_STACK) + ABI_SZ_REGISTER_AREA;
+    if (f->offset > max_offset) {
+        max_offset = f->offset;
+    }
+}
+
 var_t *add_var(char *name, type_t *t) {
     var_t *v;
     frame_t *f = &env[env_top];
@@ -127,7 +135,7 @@ var_t *add_var(char *name, type_t *t) {
     _strcat3(buf, "' frame[", env_top, "] ");
     _strcat3(buf, "offset:", v->offset, " type:");
     dump_type(buf, t);
-    debug_s("add_var:", buf);
+    debug("add_var:", buf);
 
     return v;
 }
@@ -175,12 +183,12 @@ void dump_env() {
         _strcat3(buf, "env[", pos, "] ");
         _strcat3(buf, "vars:", env[pos].num_vars, "");
         _strcat3(buf, " offset:", env[pos].offset, "");
-        debug_s("", buf);
+        debug("", buf);
         for (var_ptr = env[pos].vars; var_ptr->name != 0; var_ptr++) {
             char buf[RCC_BUF_SIZE] = {0};
             strcat(buf, var_ptr->name);
             _strcat3(buf, "=", var_ptr->offset, "\n");
-            debug_s("", buf);
+            debug("", buf);
         }
     }
 }

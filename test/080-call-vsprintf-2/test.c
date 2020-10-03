@@ -8,18 +8,17 @@ extern int vsprintf(char *buf, const char *fmt, va_list *v);
 extern int strlen(const char *);
 extern int write(int fd, const char *buf, int size);
 
-void x(int num, ...) {
+void x(char *fmt, ...) {
     va_list va;
 
-    va_start(va, num);
+    va_start(va, fmt);
 
     char buf[200];
-    vsprintf(buf, "%s %d %s %d %d %d %d %d\n", va);
-    write(1, buf, strlen(buf));
-
+    int a = 1 + vsprintf(buf, "%s %d %s %d %d %d %d %d\n", va);
     va_end(va);
+    write(1, buf, strlen(buf));
 }
 
 int main(int argc, char **argv) {
-    x(8, "1",2,"3",4,5,6,7,8);
+    x("", "1",2,"3",4,5,6,7,8);
 }

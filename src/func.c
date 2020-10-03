@@ -58,7 +58,7 @@ func *add_function(char *name, type_t *ret_type, bool is_external, bool is_varia
         f->is_external = is_external;
         f->is_variadic = is_variadic;
     }
-    debug_s("added function: ", f->name);
+    debug("added function: %s", f->name);
     return f;
 }
 
@@ -67,7 +67,7 @@ func *func_set_body(func *f, int argc, var_t *argv, int pos, int max_offset) {
     f->argv = argv;
     f->body_pos = pos;
     f->max_offset = max_offset;
-    debug_s("added function body: ", f->name);
+    debug("added function body: %s", f->name);
     return f;
 }
 

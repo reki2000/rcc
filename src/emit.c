@@ -44,8 +44,7 @@ void out(char *str) {
  */
 void out_x(char *fmt, int size) {
     if (size != 8 && size != 4 && size != 1) {
-        debug_s(" ", fmt);
-        error_i("unknown size:", size);
+        error("fmt:%s unknown size:%d", fmt, size);
     }
     char buf[RCC_BUF_SIZE] = {0};
     char *d = &buf[0];
@@ -545,7 +544,7 @@ void compile(int pos) {
 
     char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
-    debug_s("compiling atom_t: ", ast_text);
+    debug("compiling atom_t: %s", ast_text);
     //dump_token_by_id(p->token_pos);
 
     switch (p->type) {
@@ -860,7 +859,7 @@ void compile(int pos) {
             error("Invalid program");
     }
     out_comment(ast_text);
-    debug_s("compiled ", ast_text);
+    debug("compiled %s", ast_text);
 }
 
 void compile_func(func *f) {
@@ -877,18 +876,18 @@ void compile_func(func *f) {
 
     out_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
-    int vardiac_offset = 8;
+    int arg_offset = 0;
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
         switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error_s("invalid size for funciton arg:", v->name); }
         if (i<6) {
             emit_var_arg_init(i, v->offset, type_size(v->t));
-            vardiac_offset = v->offset + type_size(v->t);
+            arg_offset = align(v->offset, ALIGN_OF_STACK);
         }
     }
     if (f->is_variadic) {
         for (int i=0; i<6; i++) {
-            emit_var_arg_init(i, (6-i)*8 + align(vardiac_offset, ALIGN_OF_STACK), 8);
+            emit_var_arg_init(5-i, 8 + i*8 + arg_offset + 8*8, 8);
         }
     }
 
@@ -994,7 +993,7 @@ void emit(int fd) {
     func *f = &functions[0];
     while (f->name != 0) {
         if (f->body_pos != 0) {
-            debug_s(f->name, " --------------------- ");
+            debug("%s --------------------- ", f->name);
             //dump_atom_tree(f->body_pos, 0);
             compile_func(f);
         }

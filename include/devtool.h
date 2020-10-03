@@ -1,5 +1,4 @@
 void debug(char *, ...);
-void debug_s(char *, char *);
 void warning(char *, ...);
 void warning_i(char *, int);
 void warning_s(char *, char *);

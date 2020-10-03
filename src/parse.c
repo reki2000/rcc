@@ -136,7 +136,7 @@ func *parse_func_name() {
     }
     func *f = find_func_name(ident);
     if (!f) {
-        debug_s("function not declared: ", ident);
+        debug("function not declared: %s", ident);
         set_token_pos(pos);
         return 0;
     }
@@ -1116,7 +1116,7 @@ type_t *parse_primitive_type() {
         return 0;
     }
     if (0 == (t = find_type(type_name))) {
-        debug_s("parse_primitive_type: not type name: ", type_name);
+        debug("parse_primitive_type: not type name: %s", type_name);
         set_token_pos(pos);
         return 0;
     };
@@ -1159,7 +1159,7 @@ type_t *parse_enum_type() {
     }
 
     if (expect(T_LBLACE)) {
-        debug_s("parsing members for enum : ", t->enum_of->name);
+        debug("parsing members for enum : %s", t->enum_of->name);
         for (;;) {
             char *member_name;
             if (!expect_ident(&member_name)) {
@@ -1439,7 +1439,7 @@ int parse_global_variable(type_t *t, bool is_external) {
 
     if (expect(T_EQUAL)) {
         if (v->is_external) {
-            debug_s("variable is initialized but delcared as 'extern':", v->name);
+            debug("variable is initialized but delcared as 'extern':%s", v->name);
         }
         if (v->t->array_length >= 0) {
             v->int_value = parse_global_var_array_initializer(v, v->t->array_length);
@@ -1732,11 +1732,10 @@ int parse_function_definition(type_t *t) {
     }
 
     frame_t *frame = get_top_frame();
-    func *f = add_function(ident, t, FALSE, is_variadic, frame->num_vars, frame->vars);
     if (is_variadic) {
-        frame->offset = align(frame->offset, ALIGN_OF_STACK);
-        frame->offset += ALIGN_OF_STACK * (ABI_NUM_REGISTER_PASS + ABI_NUM_FP_REGISTER_PASS); // reserve local stack areas for register-passed var-args
+        add_register_save_area();
     }
+    func *f = add_function(ident, t, FALSE, is_variadic, frame->num_vars, frame->vars);
 
     int body_pos = parse_block();
     if (!body_pos) {
