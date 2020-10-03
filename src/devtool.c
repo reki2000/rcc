@@ -12,8 +12,8 @@ typedef __builtin_va_list va_list;
 #define va_end __builtin_va_end
 #define va_args __builtin_va_arg
 
-extern int vsprintf(char *buf, const char *fmt, va_list *v);
-extern int sprintf(char *buf, const char *fmt, ...);
+extern int vsnprintf(char *buf, long size, const char *fmt, va_list v);
+extern int snprintf(char *buf, long size, const char *fmt, ...);
 
 typedef enum {
     WARN,
@@ -37,7 +37,7 @@ void _log(level_e level, char *message) {
 
     char buf[RCC_BUF_SIZE];
     bool tty = FALSE; // isatty(2);
-    sprintf(buf, "%s%s: %s%s\n", tty? color_str[level]:"", level_str[level], message, tty? color_white:"");
+    snprintf(buf, RCC_BUF_SIZE, "%s%s: %s%s\n", tty? color_str[level]:"", level_str[level], message, tty? color_white:"");
     write(2, buf, strlen(buf));
 }
 
@@ -45,7 +45,7 @@ void debug(char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     char buf[RCC_BUF_SIZE];
-    vsprintf(buf, fmt, &va);
+    vsnprintf(buf, RCC_BUF_SIZE, fmt, va);
     va_end(va);
     _log(DEBUG, buf);
 }
@@ -54,7 +54,7 @@ void error(char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     char buf[RCC_BUF_SIZE];
-    vsprintf(buf, fmt, &va);
+    vsnprintf(buf, RCC_BUF_SIZE, fmt, va);
     va_end(va);
     _log(ERROR, buf);
     _log(NONE, "");
@@ -79,7 +79,7 @@ void warning(char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     char buf[RCC_BUF_SIZE];
-    vsprintf(buf, fmt, &va);
+    vsnprintf(buf, RCC_BUF_SIZE, fmt, va);
     va_end(va);
     _log(WARN, buf);
 }
