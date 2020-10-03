@@ -220,7 +220,9 @@ void emit_pop_argv(int no) {
 void emit_call(char *name, int num_stack_args, char *plt) {
     out("movb $0, %al");
     out_str("call	", name, plt);
-    out_int("addq $", num_stack_args * 8, ", %rsp");
+    if (num_stack_args > 0) {
+        out_int("addq $", num_stack_args * 8, ", %rsp");
+    }
     out("pushq	%rax");
 }
 
@@ -235,12 +237,12 @@ void emit_deref(int size) {
 }
 
 void emit_var_ref(int i) {
-    out_int("lea	", -i, "(%rbp), %rax");
+    out_int("leaq	", -i, "(%rbp), %rax");
     out("pushq	%rax");
 }
 
 void emit_global_var_ref(char *name) {
-    out_str("lea	", name, "(%rip), %rax");
+    out_str("leaq	", name, "(%rip), %rax");
     out("pushq	%rax");
 }
 
@@ -798,8 +800,8 @@ void compile(int pos) {
                 compile((p+i+2)->atom_pos);
             }
 
-            int num_reg_args = argc > ABI_NUM_REGISTER_PASS ? ABI_NUM_REGISTER_PASS : argc;
-            int num_stack_args = argc > ABI_NUM_REGISTER_PASS ? argc - ABI_NUM_REGISTER_PASS : 0;
+            int num_reg_args = argc > ABI_NUM_GP ? ABI_NUM_GP : argc;
+            int num_stack_args = argc > ABI_NUM_GP ? argc - ABI_NUM_GP : 0;
 
             for (int i=0; i<num_reg_args; i++) {
                 emit_pop_argv(i);
@@ -887,7 +889,7 @@ void compile_func(func *f) {
     }
     if (f->is_variadic) {
         for (int i=0; i<6; i++) {
-            emit_var_arg_init(5-i, 8 + i*8 + arg_offset + 8*8, 8);
+            emit_var_arg_init(5-i, 8 + i*8 + arg_offset + 8*16, 8);
         }
     }
 

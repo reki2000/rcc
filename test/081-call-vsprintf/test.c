@@ -12,12 +12,11 @@ void x(int num, ...) {
     va_list va;
 
     va_start(va, num);
-
     char buf[200];
-    vsprintf(buf, "%s %d %s %d %d %d %d %d\n", va);
-    write(1, buf, strlen(buf));
-
+    1 + vsprintf(buf, "%s %d %s %d %d %d %d %d\n", va);
     va_end(va);
+
+    write(1, buf, strlen(buf));
 }
 
 int main(int argc, char **argv) {

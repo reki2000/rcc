@@ -107,7 +107,7 @@ int parse_var() {
 
 int _alloc_bind_into_var_offset(int offset, int rval_pos, type_t *t) {
     int pos = alloc_typed_pos_atom(TYPE_VAR_REF, offset, t);
-    return alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, alloc_binop_atom(TYPE_BIND, rval_pos, pos), type_void); 
+    return alloc_binop_atom(TYPE_BIND, rval_pos, pos); 
 }
 
 int _alloc_int_atom(int val) {
@@ -115,7 +115,7 @@ int _alloc_int_atom(int val) {
 }
 
 int _alloc_andthen(int cur, int next) {
-    return alloc_binop_atom(TYPE_ANDTHEN, cur, next);
+    return alloc_binop_atom(TYPE_ANDTHEN, alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, cur, type_void), next);
 }
 
 int parse_builtin_va_start() {
@@ -141,7 +141,7 @@ int parse_builtin_va_start() {
      */
     int size_first_arg = type_size(first_arg->t);
     int overflow_arg_area_offset = size_first_arg + 8 * 2;
-    int reg_save_area_offset = (ALIGN_OF_STACK-size_first_arg) + 8 * ABI_NUM_REGISTER_PASS + 8 * ABI_NUM_FP_REGISTER_PASS;
+    int reg_save_area_offset = (ALIGN_OF_STACK-size_first_arg) + ABI_REG_SAVE_AREA_SIZE;
 
     int first_arg_ptr_pos = alloc_typed_pos_atom(TYPE_CAST, alloc_ptr_atom(alloc_var_atom(first_arg)), type_char_ptr);
 
@@ -161,7 +161,7 @@ int parse_builtin_va_end() {
     if (expect(T_LPAREN)) {
         var_t *va = parse_var_name();
         if (va && type_is_same(va->t, find_type("va_list")) && expect(T_RPAREN)) {
-            return alloc_nop_atom(); // this compiler doesn't allocate any dynamic area for va_list in 'va_start', we doen't need to free it.
+            return _alloc_int_atom(0); // this compiler doesn't allocate any dynamic area for va_list in 'va_start', we doen't need to free it.
         }
     } else {
         error("va_end: invalid syntax");

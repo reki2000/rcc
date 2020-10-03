@@ -95,7 +95,7 @@ void var_realloc(var_t *v, type_t *t) {
 
 void add_register_save_area() {
     frame_t *f = &env[env_top];
-    f->offset = align(f->offset, ALIGN_OF_STACK) + ABI_SZ_REGISTER_AREA;
+    f->offset = align(f->offset, ALIGN_OF_STACK) + ABI_REG_SAVE_AREA_SIZE;
     if (f->offset > max_offset) {
         max_offset = f->offset;
     }
@@ -114,8 +114,8 @@ var_t *add_var(char *name, type_t *t) {
     if (env_top == 0) {
         v->offset = 0;
         v->is_global = TRUE;
-    } else  if (f->is_function_args && f->num_vars > ABI_NUM_REGISTER_PASS) {
-        v->offset = -ALIGN_OF_STACK * (2 + f->num_vars - ABI_NUM_REGISTER_PASS - 1); // 2 : return address, %rbp
+    } else  if (f->is_function_args && f->num_vars > ABI_NUM_GP) {
+        v->offset = -ALIGN_OF_STACK * (2 + f->num_vars - ABI_NUM_GP - 1); // 2 : return address, %rbp
         v->is_global = FALSE;
     } else {
         f->offset += align(type_size(t), 4);
