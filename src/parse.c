@@ -782,7 +782,7 @@ int parse_postfix_assignment(int pos) {
     
     int expr_pos = parse_expr();
     if (!pos) {
-        error_i("no expr after assignment postfix", pos);
+        error("no expr after assignment postfix:%d", pos);
     }
     return alloc_assign_op_atom(op, pos, atom_to_rvalue(expr_pos));
 }

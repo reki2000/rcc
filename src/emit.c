@@ -191,7 +191,7 @@ char *reg(int no, int size) {
         case 8: return regs8[no];
         case 4: return regs4[no];
         case 1: return regs1[no];
-        default: error_i("invalid size for reg:", size); return (void *)0;
+        default: error("invalid size for reg:%d", size); return (void *)0;
     }
 }
 

@@ -62,12 +62,6 @@ void error(char *fmt, ...) {
     exit(1);
 }
 
-void error_i(char *str, int val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, str, val, "");
-    error(buf);
-}
-
 void error_s(char *str, char *val) {
     char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str);

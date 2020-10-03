@@ -196,7 +196,7 @@ char *dump_file3(int id, int start_pos, int end_pos) {
 
 src_t *file_info(int id) {
     if (id < 0 || id >= src_file_len) {
-        error_i("invalid file id:", id);
+        error("invalid file id:%d", id);
     }
     return &src_files[id];
 }

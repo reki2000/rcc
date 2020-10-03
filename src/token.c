@@ -175,7 +175,7 @@ bool tokenize_char(char *retval) {
         next();
     }
     if (ch() != '\'') {
-        error_i("invalid char literal", ch());
+        error("invalid char literal:%d", ch());
     }
     next();
     *retval = c;

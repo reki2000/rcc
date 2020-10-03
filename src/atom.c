@@ -157,7 +157,7 @@ int atom_set_type(int pos, type_t *t) {
 
 type_t *atom_type(int pos) {
     if (program[pos].t == 0) {
-        error_i("Null type at atom_t #", pos);
+        error("Null type at atom_t #%d", pos);
     }
     return program[pos].t;
 }
@@ -307,7 +307,7 @@ int alloc_index_atom(int base_pos, int index_pos) {
     } else {
         dump_atom_tree(base_pos, 0);
         dump_atom_tree(index_pos, 0);
-        error_i("index for non-array atom #" , pos);
+        error("index for non-array atom #%d", pos);
     }
     index_pos = atom_to_rvalue(index_pos);
     int pos2 = alloc_typed_pos_atom(TYPE_ARRAY_INDEX, pos, t);
@@ -322,7 +322,7 @@ int alloc_offset_atom(int base_pos, type_t *offset_t, int offset) {
     type_t *t = atom_type(pos);
     if (!t->ptr_to->struct_of) {
         dump_atom_tree(base_pos, 0);
-        error_i("offset for non-struct atom #" , pos);
+        error("offset for non-struct atom #%d" , pos);
     }
  
     int pos2 = alloc_binop_atom(TYPE_MEMBER_OFFSET, pos, alloc_typed_int_atom(TYPE_INTEGER, offset, find_type("int")));
