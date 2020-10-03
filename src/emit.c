@@ -904,7 +904,7 @@ void compile_func(func *f) {
 
 int out_global_constant_by_type(type_t *pt, int value) {
     int filled_size = 0;
-    if (pt == find_type("char")) {
+    if (pt == type_char) {
         out_int(".byte\t", value, "");
         filled_size += 1;
     } else if (pt == type_int) {
