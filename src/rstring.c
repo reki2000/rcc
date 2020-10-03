@@ -1,5 +1,5 @@
-#include "rstring.h"
 #include "types.h"
+#include "rstring.h"
 
 void _strcati(char *dst, int i) {
     char buf[100];

@@ -131,14 +131,15 @@
 
 - [ ] goto
 
-- [ ] float, double, double double, short, long, long long
+- [ ] float, double, double double, short, long long
 
 - [x] function declaration for > 6 args
 - [x] function call with > 6 args
 - [ ] function call ABI stack 16bytes alignment
 
 - [x] variadic function call/def
-- [ ] va_list type, va_start, va_args, va_end macro
+- [x] va_list type, va_start, va_end macro
+- [ ] va_arg
 
 - [ ] 'static' variables in function
 - [ ] 'static' global variables

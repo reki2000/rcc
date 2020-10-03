@@ -1,7 +1,7 @@
+#include "types.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
-#include "types.h"
 #include "file.h"
 #include "macro.h"
 #include "token.h"

@@ -1,19 +1,10 @@
 
+#include "types.h"
 #include "rsys.h"
 #include "rstring.h"
-#include "types.h"
 
 #include "token.h"
 #include "file.h"
-
-typedef __builtin_va_list va_list;
-
-#define va_start __builtin_va_start
-#define va_end __builtin_va_end
-#define va_args __builtin_va_arg
-
-extern int vsnprintf(char *buf, long size, const char *fmt, va_list v);
-extern int snprintf(char *buf, long size, const char *fmt, ...);
 
 typedef enum {
     WARN,

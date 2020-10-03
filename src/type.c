@@ -1,6 +1,7 @@
+#include "types.h"
 #include "rstring.h"
 #include "devtool.h"
-#include "types.h"
+
 #include "type.h"
 
 #define NUM_TYPES 1024

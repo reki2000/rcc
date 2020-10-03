@@ -1,6 +1,6 @@
+#include "types.h"
 #include "devtool.h"
 #include "rstring.h"
-#include "types.h"
 
 extern int open(const char*, int, int);
 extern int close(int);
