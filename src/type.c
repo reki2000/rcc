@@ -18,22 +18,24 @@ type_t *type_long;
 type_t *type_void_ptr;
 type_t *type_char_ptr;
 
+type_t *type_builtin_va_list;
+
 void init_types() {
     add_type("$*", 8, 0, -1);    // for pointer
-    type_int = add_type("void", 0, 0, -1);
-    type_void = add_type("int", 4, 0, -1);
+    type_void = add_type("void", 0, 0, -1);
+    type_int = add_type("int", 4, 0, -1);
     type_char = add_type("char", 1, 0, -1);
     type_long = add_type("long", 8, 0, -1);
 
     type_void_ptr = add_pointer_type(type_void);
     type_char_ptr = add_pointer_type(type_char);
 
-    type_t *va_list = add_struct_type("", TRUE);
-    add_struct_member(va_list, "gp_offset", type_int, FALSE);
-    add_struct_member(va_list, "fp_offset", type_int, FALSE);
-    add_struct_member(va_list, "overflow_arg_area", type_char_ptr, FALSE);
-    add_struct_member(va_list, "reg_save_area", type_char_ptr, FALSE);
-    add_typedef("__builtin_va_list", va_list);
+    type_builtin_va_list = add_struct_type("", TRUE);
+    add_struct_member(type_builtin_va_list, "gp_offset", type_int, FALSE);
+    add_struct_member(type_builtin_va_list, "fp_offset", type_int, FALSE);
+    add_struct_member(type_builtin_va_list, "overflow_arg_area", type_char_ptr, FALSE);
+    add_struct_member(type_builtin_va_list, "reg_save_area", type_char_ptr, FALSE);
+    add_typedef("__builtin_va_list", add_pointer_type(type_builtin_va_list));
 }
 
 void dump_type(char *buf, type_t *t) {
@@ -209,7 +211,7 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
         }
     } else {
         m->offset = st->size;
-        debug("added struct member @%d", m->offset);
+        debug("added struct member %s @%d", name, m->offset);
         st->size += t_size;
         s->next_offset += t_size;
     }

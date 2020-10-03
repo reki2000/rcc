@@ -105,9 +105,105 @@ int parse_var() {
     return 0;
 }
 
+int _alloc_bind_into_var_offset(int offset, int rval_pos, type_t *t) {
+    int pos = alloc_typed_pos_atom(TYPE_VAR_REF, offset, t);
+    return alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, alloc_binop_atom(TYPE_BIND, rval_pos, pos), type_void); 
+}
+
+int _alloc_int_atom(int val) {
+    return alloc_typed_int_atom(TYPE_INTEGER, val, type_int);
+}
+
+int _alloc_andthen(int cur, int next) {
+    return alloc_binop_atom(TYPE_ANDTHEN, cur, next);
+}
+
+int parse_builtin_va_start() {
+    if (!expect(T_VA_START)) return 0;
+
+    if (!expect(T_LPAREN)) error("va_start: need first argument");
+
+    var_t *va_ptr = parse_var_name();
+    if (!va_ptr || !type_is_same(va_ptr->t, find_type("va_list"))) error("va_start: first arg should be va_list type");
+    if (!expect(T_COMMA)) error("va_start: need second argument");
+
+    var_t *first_arg = parse_var_name();
+    if (!first_arg) error("va_start: need second argument");
+    if (!expect(T_RPAREN)) error("va_start: too many arguments");
+
+    /*
+        struct __builtin_va_list va;
+        va.gp_offset = 8;
+        va.fp_offset = 48;
+        va.overflow_arg_area = &first_arg + sizeof(first_arg) + 16; // 8*2 - pushed %rsp and callar address
+        va.reg_save_area = &first_arg - (8-sizeof(first_arg)) - 112 // 8*6 - save area for 6 general regs + 8 fp regs 
+        va_ptr = &v;
+     */
+    int size_first_arg = type_size(first_arg->t);
+    int overflow_arg_area_offset = size_first_arg + 8 * 2;
+    int reg_save_area_offset = (ALIGN_OF_STACK-size_first_arg) + 8 * ABI_NUM_REGISTER_PASS + 8 * ABI_NUM_FP_REGISTER_PASS;
+
+    int first_arg_ptr_pos = alloc_typed_pos_atom(TYPE_CAST, alloc_ptr_atom(alloc_var_atom(first_arg)), type_char_ptr);
+
+    var_t *va = add_var("$valist", type_builtin_va_list);
+    int gp_offset_pos = _alloc_bind_into_var_offset(va->offset - 0, _alloc_int_atom(8), type_int);
+    int fp_offset_pos = _alloc_bind_into_var_offset(va->offset - 4, _alloc_int_atom(48), type_int);
+    int overflow_arg_area_pos = _alloc_bind_into_var_offset(va->offset - 8, alloc_binop_atom(TYPE_ADD, first_arg_ptr_pos, _alloc_int_atom(overflow_arg_area_offset)), type_char_ptr);
+    int reg_save_area_pos = _alloc_bind_into_var_offset(va->offset - 16, alloc_binop_atom(TYPE_SUB, first_arg_ptr_pos, _alloc_int_atom(reg_save_area_offset)), type_char_ptr);
+    int bind_va_ptr_pos = _alloc_bind_into_var_offset(va_ptr->offset, alloc_ptr_atom(alloc_var_atom(va)), va_ptr->t);
+
+    return _alloc_andthen(_alloc_andthen(_alloc_andthen(_alloc_andthen(gp_offset_pos, fp_offset_pos), overflow_arg_area_pos), reg_save_area_pos), bind_va_ptr_pos);
+}
+
+int parse_builtin_va_end() {
+    if (!expect(T_VA_END)) return 0;
+
+    if (expect(T_LPAREN)) {
+        var_t *va = parse_var_name();
+        if (va && type_is_same(va->t, find_type("va_list")) && expect(T_RPAREN)) {
+            return alloc_nop_atom(); // this compiler doesn't allocate any dynamic area for va_list in 'va_start', we doen't need to free it.
+        }
+    } else {
+        error("va_end: invalid syntax");
+    }
+    return 0;
+}
+
+int parse_builtin_va_arg() {
+    if (!expect(T_VA_END)) return 0;
+
+    if (expect(T_LPAREN)) {
+        var_t *va = parse_var_name();
+        if (va && type_is_same(va->t, find_type("va_list")) && expect(T_RPAREN)) {
+            return alloc_typed_int_atom(TYPE_INTEGER, 0, type_char_ptr); // TODO
+        }
+    } else {
+        error("va_arg: invalid syntax");
+    }
+    return 0;
+}
+
+int parse_builtin_functions() {
+    int pos;
+    pos = parse_builtin_va_start();
+    if (pos) return pos;
+
+    pos = parse_builtin_va_end();
+    if (pos) return pos;
+
+    pos = parse_builtin_va_arg();
+    if (pos) return pos;
+
+    return 0;
+}
+
 int parse_primary() {
     int pos;
     int start_pos = get_token_pos();
+
+    pos = parse_builtin_functions();
+    if (pos) return pos;
+
     pos = parse_literal();
     if (pos) return pos;
 
@@ -1012,7 +1108,6 @@ int parse_do_while_statement() {
     }
     return 0;
 }
-
 
 int parse_print_statement() {
     int pos;

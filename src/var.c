@@ -135,7 +135,7 @@ var_t *add_var(char *name, type_t *t) {
     _strcat3(buf, "' frame[", env_top, "] ");
     _strcat3(buf, "offset:", v->offset, " type:");
     dump_type(buf, t);
-    debug("add_var:", buf);
+    debug("add_var:%s", buf);
 
     return v;
 }

@@ -13,8 +13,8 @@ void x(char *fmt, ...) {
 
     va_start(va, fmt);
 
-    char buf[200];
-    int a = 1 + vsprintf(buf, "%s %d %s %d %d %d %d %d\n", va);
+    char buf[200] = {0};
+     int a = 1 + vsprintf(buf, "%s %d %s %d %d %d %d %d\n", va);
     va_end(va);
     write(1, buf, strlen(buf));
 }
