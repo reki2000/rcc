@@ -300,7 +300,7 @@ int alloc_index_atom(int base_pos, int index_pos) {
         //dump_atom_tree(base_pos, 0);
         char buf[RCC_BUF_SIZE] = {0};
         dump_type(buf, t);
-        warning_s("implicit convertion from pointer to array: ", buf);
+        warning("implicit convertion from pointer to array:%s", buf);
         pos = alloc_deref_atom(pos);
         t = t->ptr_to;
         size = type_size(t->ptr_to);
@@ -410,7 +410,7 @@ int atom_convert_type(int p1, int p2) {
         dump_type(buf, t2);
         strcat(buf, " -> ");
         dump_type(buf, t1);
-        warning_s("implicit pointer conversion: ", buf);
+        warning("implicit pointer conversion:%s", buf);
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
     if (t1->enum_of && t2 == find_type("int")) {

@@ -78,19 +78,6 @@ void warning(char *fmt, ...) {
     _log(WARN, buf);
 }
 
-void warning_i(char *str, int val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, str, val, "");
-    warning(buf);
-}
-
-void warning_s(char *str, char *val) {
-    char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, str);
-    strcat(buf, val);
-    warning(buf);
-}
-
 char *_slice(char *src, int count) {
     char *ret = malloc(count + 1);
     char *d = ret;
