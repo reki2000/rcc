@@ -910,10 +910,10 @@ int out_global_constant_by_type(type_t *pt, int value) {
     } else if (pt == type_int) {
         out_int(".long\t", value, "");
         filled_size += 4;
-    } else if (pt == find_type("long")) {
+    } else if (pt == type_long) {
         out_int(".quad\t", value, "");
         filled_size += 4;
-    } else if (pt == add_pointer_type(find_type("char"))) {
+    } else if (pt == type_char_ptr) {
         out_int(".quad\t.G", value, "");
         filled_size += 8;
     }

@@ -51,7 +51,7 @@ int parse_string() {
     char *s;
     if (expect_string(&s)) {
         int index = add_global_string(s);
-        return alloc_typed_int_atom(TYPE_STRING, index, add_pointer_type(find_type("char")));
+        return alloc_typed_int_atom(TYPE_STRING, index, type_char_ptr);
     }
     return 0;
 }
