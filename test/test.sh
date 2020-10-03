@@ -53,10 +53,10 @@ function check_error {
 
 function run {
     local t=$1
-    echo "test: $t ------------------"
+    echo -n "test $t: "
     clean
     $COMPILE $t/test.c && check_result $t/expect.txt || check_error $t/expect-error.txt
-    echo "success"
+    echo "OK"
 }
 
 set -e
@@ -64,7 +64,7 @@ set -e
 CC=../bin/rcc
 GCC=gcc
 DEBUG_LOG=out/debug.log
-DEBUG_BIN=out/test.out
+DEBUG_BIN=out/t
 DEBUG_OBJ=out/test.o
 DEBUG_ASM=out/test.s
 
