@@ -201,11 +201,6 @@ src_t *file_info(int id) {
     return &src_files[id];
 }
 
-void dump_src() {
-    src_t *s = file_info(0);
-    debug("files:\n%s", s->filename);
-}
-
 bool is_eof() {
     return src->pos >= src->len;
 }
