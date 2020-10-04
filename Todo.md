@@ -129,7 +129,7 @@
 - [ ] __FILE__, __LINE__
 - [ ] __VA_ARGS__ # C99
 
-- [ ] global multiple variable definition
+- [ ] multiple global variable definition
 
 - [ ] long literal (10000L)
 - [ ] concatinate sequence of string literal 

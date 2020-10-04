@@ -159,29 +159,39 @@ int parse_builtin_va_start() {
 int parse_builtin_va_end() {
     if (!expect(T_VA_END)) return 0;
 
-    if (expect(T_LPAREN)) {
-        var_t *va = parse_var_name();
-        if (va && type_is_same(va->t, find_type("va_list")) && expect(T_RPAREN)) {
-            return _alloc_int_atom(0); // this compiler doesn't allocate any dynamic area for va_list in 'va_start', we doen't need to free it.
-        }
-    } else {
-        error("va_end: invalid syntax");
-    }
-    return 0;
+    if (!expect(T_LPAREN)) error("va_end: requires argment");
+    var_t *va = parse_var_name();
+    if (!va || !type_is_same(va->t, find_type("va_list"))) error("va_end: first arguments is not va_list type");
+    
+    if (!expect(T_RPAREN)) error("va_end: too much arguments");
+    return _alloc_int_atom(0); // this compiler doesn't allocate any dynamic area for va_list in 'va_start', we doen't need to free it.
 }
 
 int parse_builtin_va_arg() {
     if (!expect(T_VA_END)) return 0;
 
-    if (expect(T_LPAREN)) {
-        var_t *va = parse_var_name();
-        if (va && type_is_same(va->t, find_type("va_list")) && expect(T_RPAREN)) {
-            return alloc_typed_int_atom(TYPE_INTEGER, 0, type_char_ptr); // TODO
-        }
-    } else {
-        error("va_arg: invalid syntax");
-    }
-    return 0;
+    if (!expect(T_LPAREN)) error("va_arg: requires argment");
+    var_t *va = parse_var_name();
+    if (!va || !type_is_same(va->t, find_type("va_list"))) error("va_arg: first arguments is not va_list type");
+    if (!expect(T_COMMA)) error("va_arg: requires type name");
+    type_t *ret_type = parse_type_declaration();
+    if (!ret_type) error("va_arg: requires type name");
+    if (!expect(T_RPAREN)) error("va_arg: too much arguments");
+
+    /*
+       #define va_arg(va,ret_type) \
+         *(ret_type *)((va->gp_offset < 48 ? va->reg_save_area : va->overflow_area) + va->gp_offset+=8 - 8);
+     */
+    int va_pos = alloc_typed_pos_atom(TYPE_PTR_DEREF, alloc_var_atom(va), type_builtin_va_list);
+    int gp_offset_pos = alloc_offset_atom(va_pos, type_int, 0);
+    int overflow_arg_area_pos = alloc_offset_atom(va_pos, type_char_ptr, 8);
+    int reg_save_area_pos = alloc_offset_atom(va_pos, type_char_ptr, 16);
+    int base_pos = alloc_atom(3);
+    build_pos_atom(base_pos, TYPE_TERNARY, alloc_binop_atom(TYPE_EQ_LT, gp_offset_pos, _alloc_int_atom(48)));
+    build_pos_atom(base_pos+1, TYPE_ARG, reg_save_area_pos);
+    build_pos_atom(base_pos+2, TYPE_ARG, overflow_arg_area_pos);
+    int over8_pos = alloc_binop_atom(TYPE_ADD, base_pos, _alloc_bind_into_var_offset(va->offset, alloc_binop_atom(TYPE_ADD, gp_offset_pos, _alloc_int_atom(8)), type_char_ptr));
+    return alloc_typed_pos_atom(TYPE_PTR_DEREF, alloc_binop_atom(TYPE_SUB, over8_pos, _alloc_int_atom(8)), ret_type);
 }
 
 int parse_builtin_functions() {
