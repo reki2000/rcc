@@ -133,37 +133,12 @@ bool exit_file() {
     return TRUE;
 }
 
-char *dump_file2(int id, int start_pos, int end_pos) {
+/*
+ * display the part of the file in 1-line style, sorrounded by '=>' and '<='
+ */
+char *dump_file(int id, int start_pos, int end_pos) {
     if (start_pos > end_pos) {
-        return "*invalid pos for dump_file2*";
-    }
-    int line_start_pos = start_pos;
-    char *body = src_files[id].body;
-
-    while (line_start_pos > 0 && body[line_start_pos-1] != '\n') {
-        line_start_pos--;
-    }
-
-    int line_end_pos = end_pos;
-    while (line_end_pos < src_files[id].len && body[line_end_pos] != '\n') {
-        line_end_pos++;
-    }
-
-    int line_size = line_end_pos - line_start_pos + 1;
-
-    char *buf = calloc(1, line_size * 2 + 1);
-    int i=0;
-    for (int p = line_start_pos; p <= line_end_pos; i++, p++) {
-        buf[i] = body[p];
-        buf[i+line_size] = (p >= start_pos && p <= end_pos) ? '^' : ' ';
-    }
-    buf[i+line_size - 1] = 0;
-    return buf;
-}
-
-char *dump_file3(int id, int start_pos, int end_pos) {
-    if (start_pos > end_pos) {
-        return "*invalid pos for dump_file2*";
+        return "* invalid pos for dump_file *";
     }
     int line_start_pos = start_pos;
     char *body = src_files[id].body;
@@ -183,13 +158,11 @@ char *dump_file3(int id, int start_pos, int end_pos) {
     char *buf = calloc(1, line_size + 3 + 5 + 5 + 2);
     char *p = buf;
     int i = line_start_pos;
-    strcat(p, " | "); p+=3;
     while (i < start_pos) { *p++ = body[i++]; }
-    strcat(p, " <$ "); p+=4;
+    strcat(p, " => "); p+=4;
     while (i <= end_pos) { *p++ = body[i++]; }
-    strcat(p, " $> "); p+=4;
+    strcat(p, " <= "); p+=4;
     while (i < line_end_pos) { *p++ = body[i++]; }
-    strcat(p, " |");
 
     return buf;
 }
