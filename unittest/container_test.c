@@ -1,0 +1,46 @@
+#include "container.h"
+
+extern int puts(const char *);
+extern int printf(const char *, ...);
+extern int strcmp(const char *, const char *);
+extern void exit(int);
+
+void assert_eq_str(const char *a, const char *b) {
+    if (strcmp(a,b) != 0) {
+        printf("expected:%s actual:%s\n", a, b);
+        exit(-1);
+    }
+}
+
+void assert_eq_int(int a, int b) {
+    if (a != b) {
+        printf("expected:%d actual:%d\n", a, b);
+        exit(-1);
+    }
+}
+
+int main() {
+    cplist *a = cplist_new();
+    cplist_push(a, "xyz");
+    for (int i=0; i<100; i++) cplist_push(a, "abc");
+
+    assert_eq_int(101, a->len);
+    assert_eq_int(128, a->cap);
+    assert_eq_str("abc", cplist_top(a));
+
+    cplist_set(a, 100, "xyz");
+    assert_eq_str("xyz", cplist_top(a));
+    assert_eq_str("xyz", cplist_get(a,100));
+
+    assert_eq_str("xyz", cplist_pop(a));
+    assert_eq_str("abc", cplist_pop(a));
+
+    for (int i=0; i<98; i++) {
+        char *x = cplist_pop(a);
+        assert_eq_int(98-i, a->len);
+        assert_eq_str("abc", x);
+    }
+
+    assert_eq_str("xyz", cplist_top(a));
+    assert_eq_int(1, a->len);
+}
