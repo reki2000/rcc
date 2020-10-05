@@ -7,6 +7,39 @@
 #include "token.h"
 #include "gstr.h"
 
+
+#define NUM_IFDEF 1000
+bool _ifdef_skip[NUM_IFDEF];
+int ifdef_top = -1;
+
+void ifdef_start(bool skip) {
+    if (ifdef_top >= NUM_IFDEF) {
+        error("too many #ifdef nest");
+    }
+    ifdef_top++;
+    _ifdef_skip[ifdef_top] = skip;
+}
+
+void ifdef_else() {
+    if (ifdef_top < 0) {
+        error("found #else without #ifdef/ifndef");
+    }
+    _ifdef_skip[ifdef_top] = !_ifdef_skip[ifdef_top];
+}
+
+bool ifdef_skip() {
+    if (ifdef_top < 0) return FALSE;
+    return _ifdef_skip[ifdef_top];
+}
+
+void ifdef_end() {
+    if (ifdef_top < 0) {
+        error("found #endif without #ifdef/ifndef");
+    }
+    ifdef_top--;
+}
+
+
 #define NUM_TOKENS  (1024*128)
 
 token tokens[NUM_TOKENS];
@@ -17,6 +50,10 @@ void set_src_pos() {
     src->prev_column = src->column;
     src->prev_pos = src->pos;
     src->prev_line = src->line;
+}
+
+void to_eol() {
+    while (ch() != '\n') next();
 }
 
 void skip() {
@@ -333,14 +370,7 @@ void directive_define() {
     if (tokenize_ident(&name)) {
         skip();
         int start_pos = src->pos;
-        char prev_ch = 0;
-        for (;;) {
-            if (ch() == '\n' && prev_ch != '\\') {
-                    break;
-            }
-            prev_ch = ch();
-            next();
-        }
+        to_eol();
         int end_pos = src->pos;
         add_macro(name, start_pos, end_pos);
     } else {
@@ -349,21 +379,60 @@ void directive_define() {
 }
 
 void preprocess() {
-    if (accept_ident("include")) {
-        directive_include();
-    } else if (accept_ident("define")) {
-        directive_define();
-    } else {
-        error("unknown directive");
+    if (accept_ident("ifdef")) {
+        bool skip = FALSE;
+        if (!ifdef_skip()) {
+            char *name;
+            if (!tokenize_ident(&name)) error("#ifdef needs a identifier");
+            skip = !find_macro(name);
+        }
+        ifdef_start(skip);
+    } else if (accept_ident("ifndef")) {
+        bool skip = FALSE;
+        if (!ifdef_skip()) {
+            char *name;
+            if (!tokenize_ident(&name)) error("#ifndef needs a identifier");
+            skip = find_macro(name) != 0;
+        }
+        ifdef_start(skip);
+    } else if (accept_ident("else")) {
+        ifdef_else();
+    } else if (accept_ident("endif")) {
+        ifdef_end();
+    } else if (!ifdef_skip()) {
+        if (accept_ident("include")) {
+            directive_include();
+        } else if (accept_ident("define")) {
+            directive_define();
+        } else {
+            error("unknown directive");
+        }
     }
     set_src_pos();
 }
 
 void tokenize() {
     while (!is_eof()) {
-        if (accept_string("\\\n")) {
-        } else if (accept_char('#')) {
+        if (accept_char('#')) {
             preprocess();
+
+        } else if (ifdef_skip()) {
+            to_eol();
+            set_src_pos();
+
+        } else if (accept_string("//")) {
+            debug("scanning //...");
+            to_eol();
+            set_src_pos();
+        } else if (accept_string("/*")) {
+            debug("scanning /*...");
+            while (!accept_string("*/")) {
+                if (!next()) {
+                    error("invalid eof in comment block");
+                }
+            }
+            set_src_pos();
+
         } else if (accept_string("!=")) {
             add_token(T_NE);
         } else if (accept_char('!')) {
@@ -414,22 +483,6 @@ void tokenize() {
             add_token(T_ASTERISK_EQUAL);
         } else if (accept_char('*')) {
             add_token(T_ASTERISK);
-        } else if (accept_string("//")) {
-            debug("scanning //...");
-            while (ch() != '\n') {
-                if (!next()) {
-                    break;
-                }
-            }
-            set_src_pos();
-        } else if (accept_string("/*")) {
-            debug("scanning /*...");
-            while (!accept_string("*/")) {
-                if (!next()) {
-                    error("invalid eof in comment block");
-                }
-            }
-            set_src_pos();
         } else if (accept_string("/=")) {
             add_token(T_SLASH_EQUAL);
         } else if (accept_char('/')) {
@@ -536,16 +589,10 @@ void tokenize() {
                     add_ident_token(str);
                 }
             } else {
-                char buf[RCC_BUF_SIZE] = {0};
-                strcat(buf, "Invalid token: ");
-                strcat(buf, src->filename);
-                _strcat3(buf, ":", src->line, "");
-                _strcat3(buf, ":", src->column, " ");
-                _strcat3(buf, "[", ch(), "]\n");
-                strcat(buf, _slice(&(src->body[(src->pos > 20) ? src->pos - 20 : 0]), 20));
-                strcat(buf, " --> ");
-                strcat(buf, _slice(&(src->body[src->pos]), 20));
-                error(buf);
+                error("invalid_token: %s:%d:%d [%d] %s => %s", 
+                    src->filename, src->line, src->column, ch(), 
+                    _slice(&(src->body[max(src->pos - 20, 0)]), 20),
+                    _slice(&(src->body[src->pos]), 20));
             }
         }
         skip();

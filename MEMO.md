@@ -155,6 +155,7 @@ INDEX(
 
 ## Pre processor specification
 
+- '\' at the end of line is 'transparent eol - all C source including pre-processor cannot understand this as an EOL
 - /* .. */ comment (cannot be nested)
 - // comment 
 - '#' should be the first character of the line. only whole the line is its body. the last '\' in the line tells that the next line is the continuing the previous line.

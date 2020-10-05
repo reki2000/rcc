@@ -185,15 +185,26 @@ int ch() {
     return src->body[src->pos];
 }
 
+int ch_next() {
+    if (src->pos+1 >= src->len) {
+        return -1;
+    }
+    return src->body[src->pos+1];
+}
+
 bool next() {
+    if (is_eof()) return FALSE;
     if (ch() == '\n') {
         src->column = 1;
         src->line++;
     }
-    if (is_eof()) {
-        return FALSE;
-    }
     src->pos++;
     src->column++;
+
+    if (ch() == '\\' && ch_next() == '\n') {
+        src->pos+=2;
+        src->line++;
+        src->column = 1;
+    }
     return TRUE;
 }
