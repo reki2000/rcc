@@ -19,7 +19,7 @@ void add_macro(const char *name, int start_pos, int end_pos) {
     m->start_pos = start_pos;
     m->end_pos = end_pos;
 
-    debug("added macro:\n%s" , dump_file2(src->id, start_pos, end_pos));
+    debug("added macro: |%s|" , dump_file(src->id, start_pos, end_pos));
 }
 
 macro_t *find_macro(const char *name) {

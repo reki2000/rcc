@@ -16,10 +16,8 @@ extern src_t *src;
 
 bool enter_file(char *);
 bool exit_file();
-char *dump_file2(int, int, int);
-char *dump_file3(int id, int start_pos, int end_pos);
+char *dump_file(int id, int start_pos, int end_pos);
 src_t *file_info(int id);
-void dump_src();
 
 int ch();
 bool next();

@@ -148,9 +148,19 @@ INDEX(
   -0x20: fp_save_area: xmm6
   -0x10: fp_save_area: xmm7
   -0x08: alignment
-- -0x04: first arg 
+- -0x04: first arg  (int)
 -     0: pushed %rbp  <-- initial %rbp
 - +0x08: callar_address
 - +0x10: pushed args
 
+## Pre processor specification
+
+- '\' at the end of line is 'transparent eol - all C source including pre-processor cannot understand this as an EOL
+- /* .. */ comment (cannot be nested)
+- // comment 
+- '#' should be the first character of the line. only whole the line is its body. the last '\' in the line tells that the next line is the continuing the previous line.
+- #ifdef .. #else ... #endif  can be nested
+```
+define: start_of_line '#' 'define' IDENT ( '(' IDENT ( ',' IDENT )* ) ')' )? ( tokens )* end_of_line
+```
 
