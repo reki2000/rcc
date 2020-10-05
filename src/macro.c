@@ -1,6 +1,8 @@
 #include "types.h"
 #include "devtool.h"
 #include "rstring.h"
+#include "container.h"
+
 #include "file.h"
 #include "macro.h"
 
@@ -9,7 +11,7 @@
 macro_t macros[NUM_MACROS];
 int macro_len = 0;
 
-void add_macro(const char *name, int start_pos, int end_pos) {
+void add_macro(const char *name, int start_pos, int end_pos, cplist *vars) {
     if (macro_len >= NUM_MACROS) {
         error("too many macros");
     }
@@ -18,8 +20,12 @@ void add_macro(const char *name, int start_pos, int end_pos) {
     m->src = src;
     m->start_pos = start_pos;
     m->end_pos = end_pos;
+    m->vars = vars;
 
     debug("added macro: |%s|" , dump_file(src->id, start_pos, end_pos));
+    for (int i=0; i<m->vars->len; i++) {
+        debug(" args:%d %s", i, m->vars->items[i],i);
+    }
 }
 
 macro_t *find_macro(const char *name) {

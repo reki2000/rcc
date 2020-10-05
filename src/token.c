@@ -1,7 +1,9 @@
 #include "types.h"
+#include "container.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
+
 #include "file.h"
 #include "macro.h"
 #include "token.h"
@@ -367,15 +369,23 @@ void directive_include() {
 
 void directive_define() {
     char *name;
-    if (tokenize_ident(&name)) {
-        skip();
-        int start_pos = src->pos;
-        to_eol();
-        int end_pos = src->pos;
-        add_macro(name, start_pos, end_pos);
-    } else {
-        error("no identifier for define directive");
+    if (!tokenize_ident(&name)) error("no identifier for define directive");
+
+    cplist *vars = cplist_new();
+    if (accept_char('(')) {
+        while (vars->len == 0 || accept_char(',')) {
+            char *var_name;
+            if (!tokenize_ident(&var_name)) error("invalid macro arg declaration");
+            cplist_push(vars, var_name);
+        }
+        if (!accept_char(')')) error("stray macro args end");
     }
+
+    skip();
+    int start_pos = src->pos;
+    to_eol();
+    int end_pos = src->pos - 1;
+    add_macro(name, start_pos, end_pos, vars);
 }
 
 void preprocess() {

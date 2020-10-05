@@ -3,11 +3,12 @@ typedef struct {
     src_t *src;
     int start_pos;
     int end_pos;
+    cplist *vars;
 } macro_t;
 
 extern macro_t macros[];
 
-void add_macro(const char *name, int start_pos, int end_pos);
+void add_macro(const char *name, int start_pos, int end_pos, cplist *vars);
 macro_t *find_macro(const char *name);
 bool enter_macro(const char *name);
 bool exit_macro();
