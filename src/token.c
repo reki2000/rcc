@@ -335,12 +335,11 @@ void dump_token_simple(char *buf, int pos) {
 }
 
 void dump_tokens() {
-    for (int i = token_pos - 2; i >= 0 && i <= token_pos; i++) {
-        if (i<0 || i>=token_len) {
-            continue;
-        }
-        dump_token(i, &tokens[i]);
+    int i = token_pos;
+    if (i<0 || i>=token_len) {
+        return;
     }
+    dump_token(i, &tokens[i]);
 }
 
 void tokenize();

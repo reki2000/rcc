@@ -48,7 +48,6 @@ void error(char *fmt, ...) {
     vsnprintf(buf, RCC_BUF_SIZE, fmt, va);
     va_end(va);
     _log(ERROR, buf);
-    _log(NONE, "");
     dump_tokens();
     exit(1);
 }
