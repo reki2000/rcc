@@ -12,6 +12,7 @@
 #include "gstr.h"
 
 int parse_expr();
+int parse_expr_sequence();
 int parse_primary();
 int parse_prefix();
 int parse_unary();
@@ -211,7 +212,7 @@ int parse_primary() {
     if (pos) return pos;
 
     if (expect(T_LPAREN)) {
-        pos = parse_expr();
+        pos = parse_expr_sequence();
         if (!pos) {
             set_token_pos(start_pos);
             return 0;
@@ -272,7 +273,7 @@ int parse_apply_func() {
 
 int parse_postfix_array(int pos) {
     if(expect(T_LBRACKET)) {
-        int index = parse_expr();
+        int index = parse_expr_sequence();
         if (!index) {
             error("invalid array index");
         }
