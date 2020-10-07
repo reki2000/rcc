@@ -1,5 +1,5 @@
 #include "types.h"
-#include "container.h"
+#include "vec.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
@@ -371,12 +371,12 @@ void directive_define() {
     char *name;
     if (!tokenize_ident(&name)) error("no identifier for define directive");
 
-    cplist *vars = cplist_new();
+    char_p_vec *vars = char_p_vec_new();
     if (accept_char('(')) {
         while (vars->len == 0 || accept_char(',')) {
             char *var_name;
             if (!tokenize_ident(&var_name)) error("invalid macro arg declaration");
-            cplist_push(vars, var_name);
+            char_p_vec_push(vars, var_name);
         }
         if (!accept_char(')')) error("stray macro args end");
     }
@@ -595,6 +595,9 @@ void tokenize() {
                 if (enter_macro(str)) {
                     tokenize();
                     exit_macro();
+                } else if (enter_macro_arg(str)) {
+                    tokenize();
+                    exit_macro_arg();
                 } else {
                     add_ident_token(str);
                 }

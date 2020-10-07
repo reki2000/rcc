@@ -16,3 +16,4 @@ typedef __builtin_va_list va_list;
 #define ABI_REG_SAVE_AREA_SIZE (8*ABI_NUM_GP + 16*ABI_NUM_FP)
 #define ALIGN_OF_STACK 8
 
+#define NULL ((void *)0)
