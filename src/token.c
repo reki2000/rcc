@@ -421,6 +421,8 @@ void preprocess() {
 }
 
 void tokenize() {
+    int concat_start_token_pos = -1;
+
     while (!is_eof()) {
         if (accept_char('#')) {
             preprocess();
@@ -607,8 +609,40 @@ void tokenize() {
                     _slice(&(src->body[src->pos]), 20));
             }
         }
+
+        // do macro string concatination
+        if (accept_string("##")) {
+            if (concat_start_token_pos == -1) {
+                concat_start_token_pos = token_len - 1;
+            }
+            token *t = &tokens[token_len - 1];
+            debug("found ## @ start_token_pos:%d [%s]", concat_start_token_pos, file_get_part(t->src_id, t->src_pos, t->src_end_pos));
+        } else if (concat_start_token_pos != -1) {
+            char *buf = calloc(RCC_BUF_SIZE, 1);
+            for (int i = concat_start_token_pos; i < token_len; i++) {
+                token *t = &tokens[i];
+                strcat(buf, file_get_part(t->src_id, t->src_pos, t->src_end_pos));
+                // debug("contatinating buf: %s, added %s, token:%d", buf, file_get_part(t->src_id, t->src_pos, t->src_end_pos), i);
+            }
+            buf = realloc(buf, strlen(buf));
+
+            token_len = concat_start_token_pos; // reset concatinated tokens!
+            concat_start_token_pos = -1;
+
+            enter_buffer_as_file(buf, src->filename);
+            tokenize();
+            exit_file();
+        }
         skip();
     }
+
+    // debug("start dump token %s ---------------", src->filename);
+    // for(int i=0; i<token_len; i++) {
+    //     token *t = &tokens[i];
+    //     dump_token(i, t);
+    // }
+    // debug("end dump token %s ---------------", src->filename);
+
 }
 
 void tokenize_file(char *filename) {

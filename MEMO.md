@@ -164,3 +164,13 @@ INDEX(
 define: start_of_line '#' 'define' IDENT ( '(' IDENT ( ',' IDENT )* ) ')' )? ( tokens )* end_of_line
 ```
 
+### how to handle ##?
+- in tokeniner, 
+  - when find '##' and it's during a macro expantion,
+    - move previous token to 'concat_stack'
+        -  just setting set 'concat_start_token_pos' for previous token
+  - else if 'concat_stack' is not empty (concat_start_token_pos != -1), do concatination as follows:
+    - while concat_stack is not empty (concat_start_token_pos++ != current_pos)
+        - prepare a buffer
+        - pop the stack, fill the buffer with its original char sequence
+        - do tokenization against the buffer

@@ -180,10 +180,6 @@ bool enter_macro_arg(const char *name) {
     return FALSE;
 }
 
-bool exit_macro_arg() {
-    return exit_macro(); // for this time, the same code
-}
-
 bool enter_macro(const char *name) {
     if (macro_frames == NULL) {
         macro_frames = macro_frame_p_vec_new();
@@ -203,4 +199,8 @@ bool enter_macro(const char *name) {
 bool exit_macro() {
     macro_frame_p_vec_pop(macro_frames);
     return exit_file();
+}
+
+bool exit_macro_arg() {
+    return exit_macro(); // for this time, the same code
 }

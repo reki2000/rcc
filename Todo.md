@@ -124,7 +124,7 @@
 - [x] #ifdef, #ifndef, #else, #endif
 - [x] #define macro
 - [ ] #undef
-- [ ] ## operator
+- [*] ## operator
 - [ ] # operator
 - [ ] __FILE__, __LINE__
 - [ ] __VA_ARGS__ # C99
