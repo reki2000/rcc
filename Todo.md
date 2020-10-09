@@ -121,12 +121,18 @@
 - [ ] signed char/int/long
 - [ ] unsigned char/int/long
 
-- [ ] #ifdef, #ifndef, #else, #endif
-- [ ] #define macro
+- [x] #ifdef, #ifndef, #else, #endif
+- [x] #define macro
+- [ ] #undef
+- [ ] ## operator
+- [ ] # operator
+- [ ] __FILE__, __LINE__
+- [ ] __VA_ARGS__ # C99
 
 - [ ] global multiple variable definition
 
 - [ ] long literal (10000L)
+- [ ] concatinate sequence of string literal 
 - [x] hex literal (ex:0x0000), octal literal(ex:0100)
 
 - [ ] goto
