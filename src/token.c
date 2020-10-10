@@ -55,14 +55,38 @@ void set_src_pos() {
 }
 
 void to_eol() {
-    while (ch() != '\n') next();
+    while (ch() != '\n' && !is_eof()) next();
 }
 
 void skip() {
-    int c = ch();
-    while (c == ' ' || c == '\t' || c == '\n') {
+    while (!is_eof()) {
+        int c = ch();
+        if (c == '/') { // scan comment
+            int pos = src->pos;
+            next();
+            if (ch() == '/') {
+                debug("scanning //...");
+                to_eol();
+            } else if (ch() == '*') {
+                next();
+                debug("scanning /*...");
+                while (!is_eof()) {
+                    if (ch() == '*') {
+                        next();
+                        if (ch() == '/') {
+                            break;
+                        }
+                    }
+                    next();
+                }
+            } else {
+                src->pos = pos;
+                break;
+            }
+        } else if (c != ' ' && c != '\t' && c != '\n') {
+            break;
+        }
         next();
-        c = ch();
     }
     set_src_pos();
 }
@@ -371,7 +395,8 @@ void directive_define() {
     if (!tokenize_ident(&name)) error("no identifier for define directive");
 
     char_p_vec *vars = char_p_vec_new();
-    if (accept_char('(')) {
+    if (ch() == ('(')) {
+        next();
         while (vars->len == 0 || accept_char(',')) {
             char *var_name;
             if (!tokenize_ident(&var_name)) error("invalid macro arg declaration");
@@ -429,19 +454,6 @@ void tokenize() {
 
         } else if (ifdef_skip()) {
             to_eol();
-            set_src_pos();
-
-        } else if (accept_string("//")) {
-            debug("scanning //...");
-            to_eol();
-            set_src_pos();
-        } else if (accept_string("/*")) {
-            debug("scanning /*...");
-            while (!accept_string("*/")) {
-                if (!next()) {
-                    error("invalid eof in comment block");
-                }
-            }
             set_src_pos();
 
         } else if (accept_string("!=")) {
@@ -628,8 +640,8 @@ void tokenize() {
 
             token_len = concat_start_token_pos; // reset concatinated tokens!
             concat_start_token_pos = -1;
-
-            enter_buffer_as_file(buf, src->filename);
+            
+            enter_new_file(src->filename, buf, 0, strlen(buf), 1, 1);
             tokenize();
             exit_file();
         }

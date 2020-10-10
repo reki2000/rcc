@@ -15,7 +15,7 @@ typedef struct {
 extern src_t *src;
 
 bool enter_file(char *filename);
-bool enter_buffer_as_file(char *buf, char *filename);
+bool enter_new_file(char *filename, char *body, int pos, int len, int line, int column);
 bool exit_file();
 char *dump_file(int id, int start_pos, int end_pos);
 char *file_get_part(int id, int start_pos, int end_pos);

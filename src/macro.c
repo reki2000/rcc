@@ -97,34 +97,6 @@ void read_macro_arg(bool is_last_arg) {
     }
 }
 
-void enter_macro_file(macro_t *m) {
-    if (src_file_len >= 100) {
-        error("too much include files");
-    }
-
-    src_t *s = &src_files[src_file_len];
-
-    s->filename = m->name;
-
-    s->id = src_file_len;
-    s->body = m->src->body;
-
-    s->pos = m->start_pos;
-    s->len = m->end_pos + 1;
-    s->line = 1;
-    s->column = 1;
-
-    s->prev_line = s->line;
-    s->prev_column = s->column;
-    s->prev_pos = s->pos;
-
-    src_file_len++;
-
-    src_file_id_stack[src_file_stack_top] = s->id;
-    src_file_stack_top++;
-    src = get_current_file();
-}
-
 void build_macro_env(macro_t *m) {
 
     macro_frame_t *frame = (macro_frame_t *)malloc(sizeof(macro_frame_t));
@@ -158,7 +130,7 @@ void build_macro_env(macro_t *m) {
 
     macro_frame_p_vec_push(macro_frames, frame);
 
-    enter_macro_file(m);
+    enter_new_file(m->name, m->src->body, m->start_pos, m->end_pos + 1, 1, 1);
 
     debug("entering macro: %s", src->filename);
 }

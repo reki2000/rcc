@@ -95,7 +95,7 @@ char *load_file(char *filename) {
     return buf;
 }
 
-bool enter_buffer_as_file(char *buf, char *filename) {
+bool enter_new_file(char *filename, char *body, int pos, int len, int line, int column) {
     if (src_file_len >= NUM_FILES) {
         error("too much include files");
     }
@@ -104,12 +104,12 @@ bool enter_buffer_as_file(char *buf, char *filename) {
 
     s->id = src_file_len;
     s->filename = filename;
-    s->body = buf;
+    s->body = body;
 
-    s->pos = 0;
-    s->len = strlen(buf);
-    s->line = 1;
-    s->column = 1;
+    s->pos = pos;
+    s->len = len;
+    s->line = line;
+    s->column = column;
 
     s->prev_line = 1;
     s->prev_column = 1;
@@ -126,31 +126,33 @@ bool enter_buffer_as_file(char *buf, char *filename) {
     src = get_current_file();
 
     debug("entered to file:%s", src->filename);
-    for(int i=0; i<src_file_stack_top; i++) {
-        int id = src_file_id_stack[i];
-        debug("stack:%d id:%d name:%s %d, %s", i, id, src_files[id].filename, &src_files[id], src == &src_files[id] ? "<--" : "");
-    }
+    //dump_file_stack();
 
     return TRUE;
 }
 
 bool enter_file(char *filename) {
     char *buf = load_file(filename);
-    return enter_buffer_as_file(buf, filename);
+    return enter_new_file(filename, buf, 0, strlen(buf), 1, 1);
 }
 
 bool exit_file() {
     if (src_file_stack_top == 0) {
         error("invalid exit from the root file");
     }
-    debug("exiting file %d - %d: %s", src_file_stack_top, src->id, src->filename);
+    debug("exiting file %s", src->filename);
+    //dump_file_stack();
+
+    src_file_stack_top--;
+    src = get_current_file();
+    return TRUE;
+}
+
+void dump_file_stack() {
     for(int i=0; i<src_file_stack_top; i++) {
         int id = src_file_id_stack[i];
         debug("stack:%d id:%d name:%s %d, %s", i, id, src_files[id].filename, &src_files[id], src == &src_files[id] ? "<--" : "");
     }
-    src_file_stack_top--;
-    src = get_current_file();
-    return TRUE;
 }
 
 /*
@@ -224,6 +226,7 @@ int ch_next() {
 
 bool next() {
     if (is_eof()) return FALSE;
+
     if (ch() == '\n') {
         src->column = 1;
         src->line++;
@@ -231,7 +234,7 @@ bool next() {
     src->pos++;
     src->column++;
 
-    if (ch() == '\\' && ch_next() == '\n') {
+    while (ch() == '\\' && ch_next() == '\n') {
         src->pos+=2;
         src->line++;
         src->column = 1;
