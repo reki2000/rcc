@@ -145,7 +145,7 @@
 
 - [x] variadic function call/def
 - [x] va_list type, va_start, va_end macro
-- [ ] va_arg
+- [x] va_arg
 
 - [ ] 'static' variables in function
 - [ ] 'static' global variables
@@ -153,6 +153,8 @@
 - [ ] struct assignment - memcpy(&a,&b,sizeof(a))
 - [ ] struct argument
 - [ ] struct return value
+
+- [ ] bug / expression sequence - evaluated result should have the last expression
 
 ## Refactorings
 

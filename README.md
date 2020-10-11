@@ -15,14 +15,12 @@ This is an tiny subset of C language compiler inspired by [9cc](https://github.c
 
 ## Language features *NOT* supported yet
 
-- #ifdef, #else, #endif, #define macro
 - unsigned types (all numeric variables are handled as signed)
 - long numeric literals (0L)
 - floating point types
-- va_arg (va_list, va_start, va_end are supported)
 - error handling for invalid syntax source codes
 - stack alignment (16 bytes) before function call
-- struct type arguments / return value for functions
+- struct type assignment / pass-by-value struct type arguments / struct type return value
 - etc.
 
 ## How to build and test
