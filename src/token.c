@@ -412,6 +412,13 @@ void directive_define() {
     add_macro(name, start_pos, end_pos, vars);
 }
 
+void directive_undef() {
+    char *name;
+    if (!tokenize_ident(&name)) error("no identifier for define directive");
+
+    delete_macro(name);
+}
+
 void preprocess() {
     if (accept_ident("ifdef")) {
         bool skip = FALSE;
@@ -438,6 +445,8 @@ void preprocess() {
             directive_include();
         } else if (accept_ident("define")) {
             directive_define();
+        } else if (accept_ident("undef")) {
+            directive_undef();
         } else {
             error("unknown directive");
         }

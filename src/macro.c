@@ -29,6 +29,14 @@ void add_macro(const char *name, int start_pos, int end_pos, char_p_vec *vars) {
     }
 }
 
+void delete_macro(const char *name) {
+    macro_t *m = find_macro(name);
+    if (!m) {
+        error("delete_macro: not found %s", name);
+    }
+    m->name = "";
+}
+
 macro_t *find_macro(const char *name) {
     for (int i=0; i<macro_len; i++) {
         if (strcmp(macros[i].name, name) == 0) {
