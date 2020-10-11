@@ -607,10 +607,7 @@ void tokenize() {
             } else if (tokenize_ident(&str)) {
                 if (enter_macro(str)) {
                     tokenize();
-                    exit_macro();
-                } else if (enter_macro_arg(str)) {
-                    tokenize();
-                    exit_macro_arg();
+                    exit_file();
                 } else {
                     add_ident_token(str);
                 }
@@ -640,7 +637,7 @@ void tokenize() {
 
             token_len = concat_start_token_pos; // reset concatinated tokens!
             concat_start_token_pos = -1;
-            
+
             enter_new_file(src->filename, buf, 0, strlen(buf), 1, 1);
             tokenize();
             exit_file();

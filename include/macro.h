@@ -13,6 +13,4 @@ macro_t *find_macro(const char *name);
 
 bool enter_macro(const char *name);
 bool exit_macro();
-
-bool enter_macro_arg(const char *name);
-bool exit_macro_arg();
+void extract_macro(char *buf);
