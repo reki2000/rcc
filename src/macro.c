@@ -47,6 +47,7 @@ extern src_t *get_current_file();
 
 extern bool tokenize_ident(char **p);
 extern bool skip();
+extern bool accept_string(char *);
 
 VEC_HEADER(macro_t *, macro_p_vec)
 VEC_BODY(macro_t *, macro_p_vec)
@@ -198,21 +199,11 @@ void extract_macro(char *buf) {
 
         // process '##' (string concatination) - if there, stop inserting delimiter
 
-        *p++= ' ';
-        skip();
-        if (ch() == '#') {
-            next();
-            if (ch() == '#') {
-                p--;
-                next();
-                skip();
-            } else {
-                *p++ = '#';
-            }
-            continue;
+        if (accept_string("##")) {
+            skip();
+        } else {
+            *p++ = ' ';
         }
-
-        //debug("buf: [%s] ch:%c", buf, ch());
     }
     *p = '\0';
 }
