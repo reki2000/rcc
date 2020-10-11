@@ -1282,6 +1282,8 @@ type_t *parse_typedef() {
         error("invalid type declaration for typedef");
     }
 
+    t = parse_pointer(t);
+
     char *type_name;
     if (!expect_ident(&type_name)) {
         error("no type name for typedef");
