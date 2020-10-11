@@ -109,7 +109,7 @@ void read_macro_arg(int *spos, int *epos, bool is_last_arg) {
         } else if (is_eof()) {
             error("stray eof while parsing macro args");
         }
-        if (c != ' ' && c != '\t' && c != '\n') {
+        if (!is_space(c)) {
             *epos = src->pos; // update *epos every time to detect the last non-delimiter position
         }
         next();
