@@ -28,8 +28,7 @@ typedef enum {
     T_PIPE, T_HAT,
     T_SWITCH, T_CASE, T_COLON, T_DEFAULT,
     T_QUESTION,
-    T_EXTERN, T_CONST, T_3DOT,
-    T_VA_START, T_VA_END, T_VA_ARG
+    T_EXTERN, T_CONST, T_3DOT
 } token_id;
 
 typedef struct {

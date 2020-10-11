@@ -5,9 +5,10 @@ typedef enum {
 
 typedef __builtin_va_list va_list;
 
-#define va_start __builtin_va_start
-#define va_end __builtin_va_end
-#define va_args __builtin_va_arg
+#define va_start(va,n) __builtin_va_start(va,n)
+#define va_end(va) __builtin_va_end(va)
+#define va_arg(va,ret_type) __builtin_va_arg(va,ret_type)
+extern void *malloc(long);
 
 #define RCC_BUF_SIZE 1024
 

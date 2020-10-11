@@ -588,12 +588,6 @@ void tokenize() {
             add_token(T_ENUM);
         } else if (accept_ident("while")) {
             add_token(T_WHILE);
-        } else if (accept_ident("__builtin_va_start")) {
-            add_token(T_VA_START);
-        } else if (accept_ident("__builtin_va_end")) {
-            add_token(T_VA_END);
-        } else if (accept_ident("__builtin_va_arg")) {
-            add_token(T_VA_ARG);
         } else {
             int i;
             char c;
@@ -656,6 +650,11 @@ void tokenize() {
 
 void tokenize_file(char *filename) {
     enter_file(filename);
+
+    enter_file("rcc/args.h");  // defines __builtin_va_* macros
+    tokenize();
+    exit_file();
+
     tokenize();
     add_token(T_EOF);
     exit_file();
