@@ -1207,11 +1207,9 @@ type_t *parse_primitive_type() {
     int pos = get_token_pos();
 
     if (!expect_ident(&type_name)) {
-        debug("parse_primitive_type: not ident");
         return 0;
     }
     if (0 == (t = find_type(type_name))) {
-        debug("parse_primitive_type: not type name: %s", type_name);
         set_token_pos(pos);
         return 0;
     };

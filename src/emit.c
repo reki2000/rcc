@@ -916,6 +916,9 @@ int out_global_constant_by_type(type_t *pt, int value) {
     } else if (pt == type_char_ptr) {
         out_int(".quad\t.G", value, "");
         filled_size += 8;
+    } else if (pt->ptr_to) {
+        out_int(".quad\t", value, "");
+        filled_size += 8;
     }
     return filled_size;
 }
@@ -942,7 +945,9 @@ void out_global_constant(var_t *v) {
     } else {
         int filled_size = out_global_constant_by_type(v->t, v->int_value);
         if (!filled_size) {
-            error("unknown size for global variable:%s", v->name);
+            char buf[RCC_BUF_SIZE] = {0};
+            dump_type(buf, v->t);
+            error("unknown size for global variable:%s %s", v->name, buf);
         }
     }
     out("");

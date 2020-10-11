@@ -426,7 +426,7 @@ void preprocess() {
         if (!ifdef_skip()) {
             char *name;
             if (!tokenize_ident(&name)) error("#ifndef needs a identifier");
-            skip = find_macro(name) != 0;
+            skip = (find_macro(name) != NULL);
         }
         ifdef_start(skip);
     } else if (accept_ident("else")) {
