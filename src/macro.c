@@ -48,6 +48,7 @@ extern src_t *get_current_file();
 extern bool tokenize_ident(char **p);
 extern bool skip();
 extern bool accept_string(char *);
+extern bool tokenize_string(char **p);
 
 VEC_HEADER(macro_t *, macro_p_vec)
 VEC_BODY(macro_t *, macro_p_vec)
@@ -60,7 +61,7 @@ typedef struct {
 VEC_HEADER(macro_frame_t *, macro_frame_p_vec)
 VEC_BODY(macro_frame_t *, macro_frame_p_vec)
 
-macro_frame_p_vec *macro_frames = NULL;
+macro_frame_p_vec *macro_frames = 0;
 
 bool is_in_expanding(const char *name) {
     for (int i=0; i<macro_frames->len; i++) {
@@ -133,7 +134,7 @@ void build_macro_env(macro_t *m) {
             arg->vars = char_p_vec_new();
             macro_p_vec_push(frame->args, arg);
 
-            debug("scanned args: %s as |%s| %d" , arg->name, dump_file(src->id, spos, epos), arg->src);
+            debug("scanned args: %s as |%s|" , arg->name, dump_file(src->id, spos, epos));
             next();
         }
     }
@@ -150,7 +151,6 @@ void extract_macro(char *buf) {
     char *str;
     while(!is_eof()) {
         if (ch() == '"') {
-            debug("extracting macro: find str");
             // copy string literal in source sequence 
             *p++ = ch();
             next();
@@ -174,7 +174,7 @@ void extract_macro(char *buf) {
             for (int i=0; i<frame->args->len; i++) {
                 macro_t *arg = frame->args->items[i];
                 if (strcmp(arg->name, str) == 0) {
-                    debug("expanding macro arg: %s as %s [%s:%d:%d] %d", str, dump_file(arg->src->id, arg->start_pos, arg->end_pos), arg->src->filename, arg->start_pos, arg->end_pos, arg->src);
+                    debug("expanding macro arg: %s as %s", str, dump_file(arg->src->id, arg->start_pos, arg->end_pos));
                     for (int i=arg->start_pos; i<=arg->end_pos; i++) {
                         *p++ = arg->src->body[i];
                     }
@@ -184,7 +184,6 @@ void extract_macro(char *buf) {
             }
 
             if (!done) {
-                debug("extracting macro: not arg %s", str);
                 for(int i=0; i<strlen(str); i++) {
                     *p++ = str[i];
                 }
@@ -224,9 +223,9 @@ bool enter_macro(const char *name) {
 
     char *macro_ext_buf = calloc(RCC_BUF_SIZE, 1);
     extract_macro(macro_ext_buf);
-    debug("extracted: %s", macro_ext_buf);
+    debug("extracted: [%s] (%d)", macro_ext_buf, strlen(macro_ext_buf));
     exit_macro();
-    macro_ext_buf = realloc(macro_ext_buf, strlen(macro_ext_buf));
+    macro_ext_buf = realloc(macro_ext_buf, strlen(macro_ext_buf)+1);
 
     enter_new_file(src->filename, macro_ext_buf, 0, strlen(macro_ext_buf), 1, 1);
 

@@ -633,7 +633,7 @@ void tokenize() {
                 strcat(buf, file_get_part(t->src_id, t->src_pos, t->src_end_pos));
                 // debug("contatinating buf: %s, added %s, token:%d", buf, file_get_part(t->src_id, t->src_pos, t->src_end_pos), i);
             }
-            buf = realloc(buf, strlen(buf));
+            buf = realloc(buf, strlen(buf)+1);
 
             token_len = concat_start_token_pos; // reset concatinated tokens!
             concat_start_token_pos = -1;

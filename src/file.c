@@ -125,7 +125,7 @@ bool enter_new_file(char *filename, char *body, int pos, int len, int line, int 
 
     src = get_current_file();
 
-    debug("entered to file:%s", src->filename);
+    debug("entered to file:%s len:%d", src->filename, src->len);
     //dump_file_stack();
 
     return TRUE;
@@ -177,12 +177,12 @@ char *dump_file(int id, int start_pos, int end_pos) {
 
     int line_size = line_end_pos - line_start_pos + 1;
 
-    char *buf = calloc(1, line_size + 3 + 5 + 5 + 2);
+    char *buf = calloc(1, line_size + 4 + 4 + 1);
     char *p = buf;
     int i = line_start_pos;
     while (i < start_pos) { *p++ = body[i++]; }
     strcat(p, " => "); p+=4;
-    while (i <= end_pos) { *p++ = body[i++]; }
+    while (i <= end_pos && i < line_end_pos) { *p++ = body[i++]; }
     strcat(p, " <= "); p+=4;
     while (i < line_end_pos) { *p++ = body[i++]; }
 
