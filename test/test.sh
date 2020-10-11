@@ -17,7 +17,7 @@ function fatal {
 }
 
 function compile {
-    $CC -S -I$(dirname $1)/include -o $DEBUG_ASM $1 2>$DEBUG_LOG \
+    $CC -S -I$(dirname $1)/include -I../include -o $DEBUG_ASM $1 2>$DEBUG_LOG \
     && ( $GCC -o $DEBUG_BIN $DEBUG_ASM || fatal " cannot build test program in rcc" )
 }
 
