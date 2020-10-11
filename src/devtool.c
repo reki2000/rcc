@@ -22,13 +22,25 @@ char *color_magenta = "\e[35m";
 char *color_cyan = "\e[36m";
 char *color_white = "\e[37m";
 
+extern int token_pos;
+extern token *tokens;
+extern src_t *src_files;
+
 void _log(level_e level, char *message) {
     char *color_str[] = {color_red, color_red, "", color_yellow, ""};
     char *level_str[] = {"WARN ", "ERROR", "DEBUG", "INFO ", ""};
 
     char buf[RCC_BUF_SIZE];
     bool tty = FALSE; // isatty(2);
-    snprintf(buf, RCC_BUF_SIZE, "%s%s: %s%s\n", tty? color_str[level]:"", level_str[level], message, tty? color_white:"");
+
+    if (src != NULL) {
+        snprintf(buf, RCC_BUF_SIZE, "%s%s: [%s:%d:%d] %s%s\n", tty? color_str[level]:"", level_str[level], src->filename, src->line, src->column, message, tty? color_white:"");
+    // } else if (token_pos != 0) {
+    //     token *t = &tokens[token_pos];
+    //     snprintf(buf, RCC_BUF_SIZE, "%s%s: [%s:%d:%d] %s%s\n", tty? color_str[level]:"", level_str[level], src_files[t->src_id].filename, t->src_line, t->src_column, message, tty? color_white:"");
+    } else {
+        snprintf(buf, RCC_BUF_SIZE, "%s%s: %s%s\n", tty? color_str[level]:"", level_str[level], message, tty? color_white:"");
+    }
     write(2, buf, strlen(buf));
 }
 
@@ -48,7 +60,6 @@ void error(char *fmt, ...) {
     vsnprintf(buf, RCC_BUF_SIZE, fmt, va);
     va_end(va);
     _log(ERROR, buf);
-    _log(NONE, "");
     dump_tokens();
     exit(1);
 }

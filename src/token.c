@@ -1,7 +1,9 @@
 #include "types.h"
+#include "vec.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
+
 #include "file.h"
 #include "macro.h"
 #include "token.h"
@@ -53,14 +55,38 @@ void set_src_pos() {
 }
 
 void to_eol() {
-    while (ch() != '\n') next();
+    while (ch() != '\n' && !is_eof()) next();
 }
 
 void skip() {
-    int c = ch();
-    while (c == ' ' || c == '\t' || c == '\n') {
+    while (!is_eof()) {
+        int c = ch();
+        if (c == '/') { // scan comment
+            int pos = src->pos;
+            next();
+            if (ch() == '/') {
+                debug("scanning //...");
+                to_eol();
+            } else if (ch() == '*') {
+                next();
+                debug("scanning /*...");
+                while (!is_eof()) {
+                    if (ch() == '*') {
+                        next();
+                        if (ch() == '/') {
+                            break;
+                        }
+                    }
+                    next();
+                }
+            } else {
+                src->pos = pos;
+                break;
+            }
+        } else if (c != ' ' && c != '\t' && c != '\n') {
+            break;
+        }
         next();
-        c = ch();
     }
     set_src_pos();
 }
@@ -333,12 +359,11 @@ void dump_token_simple(char *buf, int pos) {
 }
 
 void dump_tokens() {
-    for (int i = token_pos - 2; i >= 0 && i <= token_pos; i++) {
-        if (i<0 || i>=token_len) {
-            continue;
-        }
-        dump_token(i, &tokens[i]);
+    int i = token_pos;
+    if (i<0 || i>=token_len) {
+        return;
     }
+    dump_token(i, &tokens[i]);
 }
 
 void tokenize();
@@ -367,15 +392,31 @@ void directive_include() {
 
 void directive_define() {
     char *name;
-    if (tokenize_ident(&name)) {
-        skip();
-        int start_pos = src->pos;
-        to_eol();
-        int end_pos = src->pos;
-        add_macro(name, start_pos, end_pos);
-    } else {
-        error("no identifier for define directive");
+    if (!tokenize_ident(&name)) error("no identifier for define directive");
+
+    char_p_vec *vars = char_p_vec_new();
+    if (ch() == ('(')) {
+        next();
+        while (vars->len == 0 || accept_char(',')) {
+            char *var_name;
+            if (!tokenize_ident(&var_name)) error("invalid macro arg declaration");
+            char_p_vec_push(vars, var_name);
+        }
+        if (!accept_char(')')) error("stray macro args end");
     }
+
+    skip();
+    int start_pos = src->pos;
+    to_eol();
+    int end_pos = src->pos - 1;
+    add_macro(name, start_pos, end_pos, vars);
+}
+
+void directive_undef() {
+    char *name;
+    if (!tokenize_ident(&name)) error("no identifier for define directive");
+
+    delete_macro(name);
 }
 
 void preprocess() {
@@ -392,7 +433,7 @@ void preprocess() {
         if (!ifdef_skip()) {
             char *name;
             if (!tokenize_ident(&name)) error("#ifndef needs a identifier");
-            skip = find_macro(name) != 0;
+            skip = (bool)(find_macro(name) != NULL);
         }
         ifdef_start(skip);
     } else if (accept_ident("else")) {
@@ -404,6 +445,8 @@ void preprocess() {
             directive_include();
         } else if (accept_ident("define")) {
             directive_define();
+        } else if (accept_ident("undef")) {
+            directive_undef();
         } else {
             error("unknown directive");
         }
@@ -412,25 +455,14 @@ void preprocess() {
 }
 
 void tokenize() {
+    int concat_start_token_pos = -1;
+
     while (!is_eof()) {
         if (accept_char('#')) {
             preprocess();
 
         } else if (ifdef_skip()) {
             to_eol();
-            set_src_pos();
-
-        } else if (accept_string("//")) {
-            debug("scanning //...");
-            to_eol();
-            set_src_pos();
-        } else if (accept_string("/*")) {
-            debug("scanning /*...");
-            while (!accept_string("*/")) {
-                if (!next()) {
-                    error("invalid eof in comment block");
-                }
-            }
             set_src_pos();
 
         } else if (accept_string("!=")) {
@@ -584,7 +616,7 @@ void tokenize() {
             } else if (tokenize_ident(&str)) {
                 if (enter_macro(str)) {
                     tokenize();
-                    exit_macro();
+                    exit_file();
                 } else {
                     add_ident_token(str);
                 }
@@ -595,8 +627,40 @@ void tokenize() {
                     _slice(&(src->body[src->pos]), 20));
             }
         }
+
+        // do macro string concatination
+        if (accept_string("##")) {
+            if (concat_start_token_pos == -1) {
+                concat_start_token_pos = token_len - 1;
+            }
+            token *t = &tokens[token_len - 1];
+            debug("found ## @ start_token_pos:%d [%s]", concat_start_token_pos, file_get_part(t->src_id, t->src_pos, t->src_end_pos));
+        } else if (concat_start_token_pos != -1) {
+            char *buf = calloc(RCC_BUF_SIZE, 1);
+            for (int i = concat_start_token_pos; i < token_len; i++) {
+                token *t = &tokens[i];
+                strcat(buf, file_get_part(t->src_id, t->src_pos, t->src_end_pos));
+                // debug("contatinating buf: %s, added %s, token:%d", buf, file_get_part(t->src_id, t->src_pos, t->src_end_pos), i);
+            }
+            buf = realloc(buf, strlen(buf)+1);
+
+            token_len = concat_start_token_pos; // reset concatinated tokens!
+            concat_start_token_pos = -1;
+
+            enter_new_file(src->filename, buf, 0, strlen(buf), 1, 1);
+            tokenize();
+            exit_file();
+        }
         skip();
     }
+
+    // debug("start dump token %s ---------------", src->filename);
+    // for(int i=0; i<token_len; i++) {
+    //     token *t = &tokens[i];
+    //     dump_token(i, t);
+    // }
+    // debug("end dump token %s ---------------", src->filename);
+
 }
 
 void tokenize_file(char *filename) {

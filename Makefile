@@ -3,6 +3,7 @@
 CC = gcc
 CFLAGS = -g -Wall -Wextra -I./include
 RM = rm -f
+SHELL=bash
 
 GEN1      = bin/rcc
 GEN2      = bin/rcc2
@@ -11,6 +12,9 @@ SRCDIR    = ./src
 SOURCES   = $(wildcard $(SRCDIR)/*.c)
 OBJDIR    = ./out
 OBJECTS   = $(addprefix $(OBJDIR)/, $(notdir $(SOURCES:.c=.o)))
+
+TESTSRCDIR = unittest
+TESTSOURCES   = $(wildcard $(TESTSRCDIR)/*_test.c)
 
 all: $(GEN1)
 
@@ -35,6 +39,11 @@ gen3: $(GEN3)
 
 $(GEN3): $(GEN2)
 	cd gen3 && make
+
+unittest: clean $(OBJECTS) unittests
+
+unittests: $(TESTSOURCES)
+	for f in $^; do $(CC) $(CFLAGS) -Iinclude -o out/test.out $$f $(OBJDIR)/$$(basename $${f/_test.c/.o}); out/test.out; done
 
 test: clean $(GEN1)
 	test/test.sh

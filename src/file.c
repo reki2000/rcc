@@ -64,32 +64,15 @@ int open_include_file(char *filename) {
     return -1;
 }
 
-src_t *load_file(char *filename) {
-    if (src_file_len >= NUM_FILES) {
-        error("too much include files");
-    }
-
-    src_t *s = &src_files[src_file_len];
-
-    s->id = src_file_len;
-    s->filename = filename;
-    s->body = calloc(1, SIZE_FILE_BUF);
-
-    s->pos = 0;
-    s->len = 0;
-    s->line = 1;
-    s->column = 1;
-
-    s->prev_line = 1;
-    s->prev_column = 1;
-    s->prev_pos = 0;
+char *load_file(char *filename) {
+    char *buf = calloc(1, SIZE_FILE_BUF);
 
     int fd;
 
     if (src_file_len == 0) {
-        char *buf = calloc(1, RCC_BUF_SIZE);
-        dirname(buf, filename);
-        add_include_dir(buf);
+        char *b = calloc(1, RCC_BUF_SIZE);
+        dirname(b, filename);
+        add_include_dir(b);
         fd = open(filename, 0);
     } else {
         fd = open_include_file(filename);
@@ -99,20 +82,40 @@ src_t *load_file(char *filename) {
         error("cannot open include file: %s", filename);
     }
 
-    s->len = read(fd, s->body, SIZE_FILE_BUF);
+    int len = read(fd, buf, SIZE_FILE_BUF);
     if (close(fd)) {
         debug("closing fd: %d", fd);
         error("error on closing file: %s", filename);
     }
 
-    src_file_len++;
+    buf = realloc(buf, len + 1);
+    buf[len] = '\0';
 
-    debug("loaded: %s", s->filename);
-    return s;
+    debug("loaded: %s", filename);
+    return buf;
 }
 
-bool enter_file(char *filename) {
-    src_t *s = load_file(filename);
+bool enter_new_file(char *filename, char *body, int pos, int len, int line, int column) {
+    if (src_file_len >= NUM_FILES) {
+        error("too much include files");
+    }
+
+    src_t *s = &src_files[src_file_len];
+
+    s->id = src_file_len;
+    s->filename = filename;
+    s->body = body;
+
+    s->pos = pos;
+    s->len = len;
+    s->line = line;
+    s->column = column;
+
+    s->prev_line = 1;
+    s->prev_column = 1;
+    s->prev_pos = 0;
+
+    src_file_len++;
 
     if (src_file_stack_top >= NUM_FILES) {
         error("too many file stack:%s", filename);
@@ -121,16 +124,35 @@ bool enter_file(char *filename) {
     src_file_stack_top++;
 
     src = get_current_file();
+
+    debug("entered to file:%s len:%d", src->filename, src->len);
+    //dump_file_stack();
+
     return TRUE;
+}
+
+bool enter_file(char *filename) {
+    char *buf = load_file(filename);
+    return enter_new_file(filename, buf, 0, strlen(buf), 1, 1);
 }
 
 bool exit_file() {
     if (src_file_stack_top == 0) {
         error("invalid exit from the root file");
     }
+    debug("exiting file %s", src->filename);
+    //dump_file_stack();
+
     src_file_stack_top--;
     src = get_current_file();
     return TRUE;
+}
+
+void dump_file_stack() {
+    for(int i=0; i<src_file_stack_top; i++) {
+        int id = src_file_id_stack[i];
+        debug("stack:%d id:%d name:%s %d, %s", i, id, src_files[id].filename, &src_files[id], src == &src_files[id] ? "<--" : "");
+    }
 }
 
 /*
@@ -155,15 +177,25 @@ char *dump_file(int id, int start_pos, int end_pos) {
 
     int line_size = line_end_pos - line_start_pos + 1;
 
-    char *buf = calloc(1, line_size + 3 + 5 + 5 + 2);
+    char *buf = calloc(1, line_size + 4 + 4 + 1);
     char *p = buf;
     int i = line_start_pos;
     while (i < start_pos) { *p++ = body[i++]; }
     strcat(p, " => "); p+=4;
-    while (i <= end_pos) { *p++ = body[i++]; }
+    while (i <= end_pos && i < line_end_pos) { *p++ = body[i++]; }
     strcat(p, " <= "); p+=4;
     while (i < line_end_pos) { *p++ = body[i++]; }
 
+    return buf;
+}
+
+char *file_get_part(int id, int start_pos, int end_pos) {
+    char *body = src_files[id].body;
+    int line_size = end_pos - start_pos + 1;
+    char *buf = calloc(1, line_size + 3 + 5 + 5 + 2);
+    char *p = buf;
+    int i = start_pos;
+    while (i <= end_pos) { *p++ = body[i++]; }
     return buf;
 }
 
@@ -194,6 +226,7 @@ int ch_next() {
 
 bool next() {
     if (is_eof()) return FALSE;
+
     if (ch() == '\n') {
         src->column = 1;
         src->line++;
@@ -201,7 +234,7 @@ bool next() {
     src->pos++;
     src->column++;
 
-    if (ch() == '\\' && ch_next() == '\n') {
+    while (ch() == '\\' && ch_next() == '\n') {
         src->pos+=2;
         src->line++;
         src->column = 1;

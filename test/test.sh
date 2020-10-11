@@ -12,7 +12,8 @@ function fatal {
     if [ -n "$2" ]; then
         cat $2
     fi
-    exit 1
+    [ "$EXIT_ON_ERROR" = "1" ] && exit 2
+    true
 }
 
 function compile {
@@ -69,6 +70,7 @@ DEBUG_OBJ=out/test.o
 DEBUG_ASM=out/test.s
 
 COMPILE=compile
+EXIT_ON_ERROR=0
 
 function all {
     for t in 0*; do
@@ -88,6 +90,11 @@ fi
 
 if [ "$1" = "--gcc" ]; then
   COMPILE=compile-gcc
+  shift
+fi
+
+if [ "$1" = "--exit-on-error" ]; then
+  EXIT_ON_ERROR=1
   shift
 fi
 

@@ -12,6 +12,7 @@
 #include "gstr.h"
 
 int parse_expr();
+int parse_expr_sequence();
 int parse_primary();
 int parse_prefix();
 int parse_unary();
@@ -211,13 +212,13 @@ int parse_primary() {
     if (pos) return pos;
 
     if (expect(T_LPAREN)) {
-        pos = parse_expr();
+        pos = parse_expr_sequence();
         if (!pos) {
             set_token_pos(start_pos);
             return 0;
         }
         if (!expect(T_RPAREN)) {
-            error("no ')' after '('");
+            error("missing ')' after '('");
         }
         return pos;
     }
@@ -272,14 +273,14 @@ int parse_apply_func() {
 
 int parse_postfix_array(int pos) {
     if(expect(T_LBRACKET)) {
-        int index = parse_expr();
+        int index = parse_expr_sequence();
         if (!index) {
             error("invalid array index");
         }
         if(!expect(T_RBRACKET)) {
             error("no closing ]");
         }
-        return alloc_index_atom(pos, index);
+        return alloc_index_atom(pos, atom_to_rvalue(index));
     }
     return pos;
 }
@@ -863,13 +864,12 @@ int parse_expr_sequence() {
         return 0;
     }
 
-    lval = atom_to_rvalue(lval);
     while (expect(T_COMMA)) {
         int pos = parse_expr();
         if (!pos) {
             error("no expression after comma");
         }
-        lval = alloc_binop_atom(TYPE_ANDTHEN, lval, atom_to_rvalue(pos));
+        lval = alloc_binop_atom(TYPE_ANDTHEN, lval, pos);
     }
     return lval;
 }
@@ -898,7 +898,7 @@ int parse_if_statement() {
         if (!expect(T_LPAREN)) {
             error("no '(' after if");
         }
-        eq_pos = parse_expr_sequence();
+        eq_pos = atom_to_rvalue(parse_expr_sequence());
         if (eq_pos == 0) {
             error("no expr after if");
         }
@@ -993,7 +993,7 @@ int parse_switch_statement() {
         error("invalid end of 'switch' body");
     }
     int pos2 = alloc_atom(n + 1);
-    build_pos_atom(pos2, TYPE_SWITCH, pos);
+    build_pos_atom(pos2, TYPE_SWITCH, atom_to_rvalue(pos));
     for (int i=1; i<=n; i++) {
         build_pos_atom(pos2+i, TYPE_ARG, body_pos[i]);
     }
@@ -1004,7 +1004,7 @@ int wrap_expr_sequence(int pos) {
     if (!pos) {
         return alloc_nop_atom();
     } else {
-        return  alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, pos, type_void);
+        return  alloc_typed_pos_atom(TYPE_EXPR_STATEMENT, atom_to_rvalue(pos), type_void);
     }
 }
 
@@ -1053,7 +1053,7 @@ int parse_for_statement() {
 
     pos = alloc_atom(4);
     build_pos_atom(pos, TYPE_FOR, body_pos);
-    build_pos_atom(pos+1, TYPE_ARG, cond_pos);
+    build_pos_atom(pos+1, TYPE_ARG, atom_to_rvalue(cond_pos));
     build_pos_atom(pos+2, TYPE_ARG, pre_pos);
     build_pos_atom(pos+3, TYPE_ARG, post_pos);
     return pos;
@@ -1075,7 +1075,7 @@ int parse_while_statement() {
         if (body_pos != 0) {
             pos = alloc_atom(2);
             build_pos_atom(pos, TYPE_WHILE, body_pos);
-            build_pos_atom(pos+1, TYPE_ARG, cond_pos);
+            build_pos_atom(pos+1, TYPE_ARG, atom_to_rvalue(cond_pos));
             return pos;
         }
     }
@@ -1103,7 +1103,7 @@ int parse_do_while_statement() {
         }
         pos = alloc_atom(2);
         build_pos_atom(pos, TYPE_DO_WHILE, body_pos);
-        build_pos_atom(pos+1, TYPE_ARG, cond_pos);
+        build_pos_atom(pos+1, TYPE_ARG, atom_to_rvalue(cond_pos));
         return pos;
     }
     return 0;
@@ -1155,7 +1155,7 @@ int parse_return_statement() {
     if (!expect(T_SEMICOLON)) {
         error("invalid expr for return");
     }
-    return alloc_typed_pos_atom(TYPE_RETURN, pos, type_void);
+    return alloc_typed_pos_atom(TYPE_RETURN, atom_to_rvalue(pos), type_void);
 }
 
 int parse_statement() {
@@ -1207,11 +1207,9 @@ type_t *parse_primitive_type() {
     int pos = get_token_pos();
 
     if (!expect_ident(&type_name)) {
-        debug("parse_primitive_type: not ident");
         return 0;
     }
     if (0 == (t = find_type(type_name))) {
-        debug("parse_primitive_type: not type name: %s", type_name);
         set_token_pos(pos);
         return 0;
     };
