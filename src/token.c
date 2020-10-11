@@ -83,21 +83,12 @@ void skip() {
                 src->pos = pos;
                 break;
             }
-        } else if (c != ' ' && c != '\t' && c != '\n') {
+        } else if (!is_space(c)) {
             break;
         }
         next();
     }
     set_src_pos();
-}
-
-bool is_alpha(int ch) {
-    return (ch >= 'a' && ch <= 'z')
-        || (ch >= 'A' && ch <= 'Z');
-}
-
-bool is_digit(int ch) {
-    return (ch >= '0' && ch <= '9');
 }
 
 bool accept_char(char c) {

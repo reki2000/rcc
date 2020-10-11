@@ -1,6 +1,19 @@
 #include "types.h"
 #include "rstring.h"
 
+bool is_alpha(int ch) {
+    return (ch >= 'a' && ch <= 'z')
+        || (ch >= 'A' && ch <= 'Z');
+}
+
+bool is_digit(int ch) {
+    return (ch >= '0' && ch <= '9');
+}
+
+bool is_space(int c) {
+    return (c == ' ' || c == '\t' || c == '\n');
+}
+
 void _strcati(char *dst, int i) {
     char buf[100];
     int pos = 0;
