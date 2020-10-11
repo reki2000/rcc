@@ -385,7 +385,7 @@ void directive_define() {
     char *name;
     if (!tokenize_ident(&name)) error("no identifier for define directive");
 
-    char_p_vec *vars = char_p_vec_new();
+    char_p_vec vars = char_p_vec_new();
     if (ch() == ('(')) {
         next();
         while (vars->len == 0 || accept_char(',')) {

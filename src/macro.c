@@ -12,7 +12,7 @@
 macro_t macros[NUM_MACROS];
 int macro_len = 0;
 
-void add_macro(const char *name, int start_pos, int end_pos, char_p_vec *vars) {
+void add_macro(const char *name, int start_pos, int end_pos, char_p_vec vars) {
     if (macro_len >= NUM_MACROS) {
         error("too many macros");
     }
@@ -63,13 +63,13 @@ VEC_BODY(macro_t *, macro_p_vec)
 
 typedef struct {
     macro_t *m;
-    macro_p_vec *args;
+    macro_p_vec args;
 } macro_frame_t;
 
 VEC_HEADER(macro_frame_t *, macro_frame_p_vec)
 VEC_BODY(macro_frame_t *, macro_frame_p_vec)
 
-macro_frame_p_vec *macro_frames = 0;
+macro_frame_p_vec macro_frames = 0;
 
 bool is_in_expanding(const char *name) {
     for (int i=0; i<macro_frames->len; i++) {
@@ -81,7 +81,7 @@ bool is_in_expanding(const char *name) {
 }
 
 void read_macro_arg(int *spos, int *epos, bool is_last_arg) {
-    char_vec *paren_stack = char_vec_new();
+    char_vec paren_stack = char_vec_new();
     skip();
     *spos = src->pos;
     *epos = src->pos;

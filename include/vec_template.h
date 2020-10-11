@@ -27,16 +27,16 @@ typedef struct { \
     item_t *items; \
     int len; \
     int cap; \
-} container_t; \
+} * container_t; \
 \
-extern container_t *VEC_CONCAT(container_t,_new)(); \
-extern item_t VEC_CONCAT(container_t,_push)(container_t *p, item_t v);\
-extern item_t VEC_CONCAT(container_t, _pop)(container_t *p);\
-extern item_t VEC_CONCAT(container_t, _top)(container_t *p);\
+extern container_t VEC_CONCAT(container_t,_new)(); \
+extern item_t VEC_CONCAT(container_t,_push)(container_t p, item_t v);\
+extern item_t VEC_CONCAT(container_t, _pop)(container_t p);\
+extern item_t VEC_CONCAT(container_t, _top)(container_t p);\
 
 #define VEC_BODY(item_t, container_t) \
 \
-void VEC_CONCAT(container_t, _extend)(container_t *p) {\
+void VEC_CONCAT(container_t, _extend)(container_t p) {\
     p->len++;\
     if (p->len >= p->cap) {\
         p->cap += (p->cap < VEC_MODERATE_EXTEND) ? p->cap : (p->cap >> 2);\
@@ -44,25 +44,25 @@ void VEC_CONCAT(container_t, _extend)(container_t *p) {\
     }\
 }\
 \
-container_t *VEC_CONCAT(container_t, _new)() {\
-    container_t *p = malloc(sizeof(container_t));\
+container_t VEC_CONCAT(container_t, _new)() {\
+    container_t p = malloc(sizeof(container_t));\
     p->cap = 8;\
     p->len = 0;\
     p->items = malloc(p->cap * sizeof(item_t));\
     return p;\
 }\
 \
-item_t VEC_CONCAT(container_t,_push)(container_t *p, item_t v) {\
+item_t VEC_CONCAT(container_t,_push)(container_t p, item_t v) {\
     VEC_CONCAT(container_t, _extend)(p);\
     p->items[p->len-1] = v;\
     return v;\
 }\
 \
-item_t VEC_CONCAT(container_t, _pop)(container_t *p) {\
+item_t VEC_CONCAT(container_t, _pop)(container_t p) {\
     if (p->len > 0) { item_t x = p->items[p->len-1]; p->len--; return x; } else return (item_t)0;\
 }\
 \
-item_t VEC_CONCAT(container_t, _top)(container_t *p) {\
+item_t VEC_CONCAT(container_t, _top)(container_t p) {\
     return p->len > 0 ? p->items[p->len-1] : (item_t)0;\
 }\
 
