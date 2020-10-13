@@ -9,14 +9,16 @@
 
 #define NUM_MACROS 1000
 
-macro_t macros[NUM_MACROS];
-int macro_len = 0;
+VEC_HEADER(macro_t, macro_vec)
+VEC_BODY(macro_t, macro_vec)
+
+macro_vec macros = 0;
 
 void add_macro(const char *name, int start_pos, int end_pos, char_p_vec vars) {
-    if (macro_len >= NUM_MACROS) {
-        error("too many macros");
+    if (macros == 0) {
+        macros = macro_vec_new();
     }
-    macro_t *m = &macros[macro_len++];
+    macro_t *m = macro_vec_extend(macros, 1);
     m->name = strdup(name);
     m->src = src;
     m->start_pos = start_pos;
@@ -38,9 +40,10 @@ void delete_macro(const char *name) {
 }
 
 macro_t *find_macro(const char *name) {
-    for (int i=0; i<macro_len; i++) {
-        if (strcmp(macros[i].name, name) == 0) {
-            return &macros[i];
+    for (int i=0; i<macro_vec_len(macros); i++) {
+        macro_t *m = macro_vec_get(macros,i);
+        if (strcmp(m->name, name) == 0) {
+            return m;
         }
     }
     return 0;
