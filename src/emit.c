@@ -255,14 +255,34 @@ void emit_postfix_add(int size, int ptr_size) {
 }
 
 void emit_copy(int size) {
-    out("popq	%rax");
-    out("popq	%rdx");
-    if (size == 1) {
-        out("movb	%dl, (%rax)");
+    out("popq	%rdi");
+    out("popq	%rsi");
+    if (size > 8) { // for size > 8, %rdx is an address, not value
+        while (size>=8) {
+            out("movq (%rsi), %rax");
+            out("movq %rax, (%rdi)");
+            out("addq $8, %rsi");
+            out("addq $8, %rdi");
+            size-=8;
+        }
+        while (size>=4) {
+            out("movl (%rsi), %ecx");
+            out("movl %ecx, (%rdi)");
+            out("addq $4, %rsi");
+            out("addq $4, %rdi");
+            size-=4;
+        }
+        while (size>=0) {
+            out("movb (%rsi), %al");
+            out("movb %al, (%rdi)");
+            out("incq %rsi");
+            out("incq %rdi");
+            size-=4;
+        }
     } else {
-        out_x("movX	%Zdx, (%rax)", size);
+        out_x("movX	%Zsi, (%rdi)", size);
     }
-    out("pushq	%rdx");
+    out("pushq	%rsi");
 }
 
 void emit_pop() {

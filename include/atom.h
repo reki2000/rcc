@@ -1,4 +1,4 @@
-enum {
+enum atom_type {
     TYPE_ARG = 0,
     TYPE_INTEGER,
     TYPE_ADD,
