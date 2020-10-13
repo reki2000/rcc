@@ -1,7 +1,6 @@
 # rcc
-## What's this ?
 
-This is an tiny subset of C language compiler inspired by [9cc](https://github.com/rui314/9cc). Supports minimum language features enough to compile itself.
+Rcc is a tiny subset of C language compiler inspired by [9cc](https://github.com/rui314/9cc). Supports minimum language features enough to compile itself.
 
 ## Architecture Overview
 
