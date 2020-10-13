@@ -46,17 +46,11 @@ macro_t *find_macro(const char *name) {
     return 0;
 }
 
-extern int src_file_len;
-extern int src_file_stack_top;
-extern src_t src_files[];
-extern int src_file_id_stack[];
 extern bool exit_file();
-extern src_t *get_current_file();
 
 extern bool tokenize_ident(char **p);
 extern bool skip();
 extern bool accept_string(char *);
-extern bool tokenize_string(char **p);
 
 VEC_HEADER(macro_t *, macro_p_vec)
 VEC_BODY(macro_t *, macro_p_vec)
