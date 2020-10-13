@@ -150,7 +150,7 @@
 - [ ] 'static' variables in function
 - [ ] 'static' global variables
 
-- [ ] struct assignment - memcpy(&a,&b,sizeof(a))
+- [x] struct assignment - memcpy(&a,&b,sizeof(a))
 - [ ] struct argument
 - [ ] struct return value
 

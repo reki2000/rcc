@@ -19,7 +19,7 @@ Rcc is a tiny subset of C language compiler inspired by [9cc](https://github.com
 - floating point types
 - error handling for invalid syntax source codes
 - stack alignment (16 bytes) before function call
-- struct type assignment / pass-by-value struct type arguments / struct type return value
+- pass-by-value struct type arguments / struct type return value
 - etc.
 
 ## How to build and test
