@@ -22,6 +22,8 @@
 #define VEC_MODERATE_EXTEND 1024*1024
 
 #define VEC_CONCAT(a,b) a ## b
+
+
 #define VEC_HEADER(item_t, container_t) \
 typedef struct { \
     item_t *items; \
@@ -30,18 +32,24 @@ typedef struct { \
 } * container_t; \
 \
 extern container_t VEC_CONCAT(container_t,_new)(); \
-extern item_t VEC_CONCAT(container_t,_push)(container_t p, item_t v);\
-extern item_t VEC_CONCAT(container_t, _pop)(container_t p);\
-extern item_t VEC_CONCAT(container_t, _top)(container_t p);\
+extern item_t *VEC_CONCAT(container_t, _extend)(container_t p, int size);\
+extern item_t *VEC_CONCAT(container_t,_push)(container_t p, item_t v);\
+extern item_t *VEC_CONCAT(container_t, _pop)(container_t p);\
+extern item_t *VEC_CONCAT(container_t, _top)(container_t p);\
+extern int VEC_CONCAT(container_t, _len)(container_t p);\
+extern item_t *VEC_CONCAT(container_t, _get)(container_t p, int index);\
+extern item_t *VEC_CONCAT(container_t, _set)(container_t p, int index, item_t v);\
+
 
 #define VEC_BODY(item_t, container_t) \
 \
-void VEC_CONCAT(container_t, _extend)(container_t p) {\
-    p->len++;\
+item_t *VEC_CONCAT(container_t, _extend)(container_t p, int size) {\
+    p->len+=size;\
     if (p->len >= p->cap) {\
         p->cap += (p->cap < VEC_MODERATE_EXTEND) ? p->cap : (p->cap >> 2);\
         p->items = realloc(p->items, p->cap * sizeof(item_t));\
     }\
+    return &(p->items[p->len-1]); \
 }\
 \
 container_t VEC_CONCAT(container_t, _new)() {\
@@ -52,18 +60,39 @@ container_t VEC_CONCAT(container_t, _new)() {\
     return p;\
 }\
 \
-item_t VEC_CONCAT(container_t,_push)(container_t p, item_t v) {\
-    VEC_CONCAT(container_t, _extend)(p);\
+item_t *VEC_CONCAT(container_t,_push)(container_t p, item_t v) {\
+    VEC_CONCAT(container_t, _extend)(p,1);\
     p->items[p->len-1] = v;\
-    return v;\
+    return &(p->items[p->len-1]);\
 }\
 \
-item_t VEC_CONCAT(container_t, _pop)(container_t p) {\
-    if (p->len > 0) { item_t x = p->items[p->len-1]; p->len--; return x; } else return (item_t)0;\
+item_t *VEC_CONCAT(container_t, _pop)(container_t p) {\
+    if (p->len > 0) { \
+        p->len--; \
+        return  &(p->items[p->len]); \
+    } else {\
+        return (item_t *)0;\
+    }\
 }\
 \
-item_t VEC_CONCAT(container_t, _top)(container_t p) {\
-    return p->len > 0 ? p->items[p->len-1] : (item_t)0;\
+item_t *VEC_CONCAT(container_t, _top)(container_t p) {\
+    return p->len > 0 ? &(p->items[p->len-1]) : (item_t *)0;\
 }\
-
+\
+int VEC_CONCAT(container_t, _len)(container_t p) {\
+    return p->len;\
+}\
+\
+item_t *VEC_CONCAT(container_t, _get)(container_t p, int index) {\
+    return (0 <= index && index < p->len) ? &(p->items[index]) : (item_t *)0;\
+}\
+\
+item_t *VEC_CONCAT(container_t, _set)(container_t p, int index, item_t v) {\
+    if (0 <= index && index < p->len) {\
+        p->items[index] = v;\
+        return &(p->items[index]);\
+    } else {\
+        return (item_t *)0;\
+    }\
+}\
 

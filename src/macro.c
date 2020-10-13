@@ -66,14 +66,14 @@ typedef struct {
     macro_p_vec args;
 } macro_frame_t;
 
-VEC_HEADER(macro_frame_t *, macro_frame_p_vec)
-VEC_BODY(macro_frame_t *, macro_frame_p_vec)
+VEC_HEADER(macro_frame_t, macro_frame_vec)
+VEC_BODY(macro_frame_t, macro_frame_vec)
 
-macro_frame_p_vec macro_frames = 0;
+macro_frame_vec macro_frames = 0;
 
 bool is_in_expanding(const char *name) {
-    for (int i=0; i<macro_frames->len; i++) {
-        if (strcmp(macro_frames->items[i]->m->name, name) == 0) {
+    for (int i=0; i<macro_frame_vec_len(macro_frames); i++) {
+        if (strcmp(macro_frame_vec_get(macro_frames,i)->m->name, name) == 0) {
             return TRUE;
         }
     }
@@ -92,10 +92,10 @@ void read_macro_arg(int *spos, int *epos, bool is_last_arg) {
         if (c == '[' || c == '(') {
             char_vec_push(paren_stack, c);
         } else if (c == ']') {
-            if (paren_stack->len == 0 || char_vec_pop(paren_stack) != '[') error("stray ']' in macro args");
+            if (paren_stack->len == 0 || *char_vec_pop(paren_stack) != '[') error("stray ']' in macro args");
         } else if (c == ')') {
             if (paren_stack->len == 0 && is_last_arg) break;
-            if (paren_stack->len == 0 || char_vec_pop(paren_stack) != '(') error("stray ')' in macro args");
+            if (paren_stack->len == 0 || *char_vec_pop(paren_stack) != '(') error("stray ')' in macro args");
         } else if (c == ',') {
             if (paren_stack->len == 0 && !is_last_arg) break;
         } else if (c == '"') {
@@ -118,7 +118,7 @@ void read_macro_arg(int *spos, int *epos, bool is_last_arg) {
 
 void build_macro_env(macro_t *m) {
 
-    macro_frame_t *frame = (macro_frame_t *)malloc(sizeof(macro_frame_t));
+    macro_frame_t *frame = macro_frame_vec_extend(macro_frames, 1);
     frame->m = m;
     frame->args = macro_p_vec_new();
 
@@ -146,8 +146,6 @@ void build_macro_env(macro_t *m) {
             next();
         }
     }
-
-    macro_frame_p_vec_push(macro_frames, frame);
 
     enter_new_file(m->name, m->src->body, m->start_pos, m->end_pos + 1, 1, 1);
 
@@ -178,7 +176,7 @@ void extract_macro(char *buf) {
         } else if (tokenize_ident(&str)) {
             bool done = FALSE;
             // assert(macro_frames_len > 0);
-            macro_frame_t *frame = macro_frame_p_vec_top(macro_frames);
+            macro_frame_t *frame = macro_frame_vec_top(macro_frames);
             for (int i=0; i<frame->args->len; i++) {
                 macro_t *arg = frame->args->items[i];
                 if (strcmp(arg->name, str) == 0) {
@@ -217,7 +215,7 @@ void extract_macro(char *buf) {
 
 bool enter_macro(const char *name) {
     if (macro_frames == NULL) {
-        macro_frames = macro_frame_p_vec_new();
+        macro_frames = macro_frame_vec_new();
     }
 
     macro_t *m = find_macro(name);
@@ -241,6 +239,6 @@ bool enter_macro(const char *name) {
 }
 
 bool exit_macro() {
-    macro_frame_p_vec_pop(macro_frames);
+    macro_frame_vec_pop(macro_frames);
     return exit_file();
 }
