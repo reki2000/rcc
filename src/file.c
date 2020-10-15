@@ -125,7 +125,7 @@ bool enter_new_file(char *filename, char *body, int pos, int len, int line, int 
 
     src = get_current_file();
 
-    debug("entered to file:%s len:%d", src->filename, src->len);
+    debug("entered to file:%s #%d %x len:%d", src->filename, src->id, src->filename, src->len);
     //dump_file_stack();
 
     return TRUE;
@@ -140,7 +140,7 @@ bool exit_file() {
     if (src_file_stack_top == 0) {
         error("invalid exit from the root file");
     }
-    debug("exiting file %s", src->filename);
+    debug("exiting file #%d:%s %x", src->id, src->filename, src->filename);
     //dump_file_stack();
 
     src_file_stack_top--;
@@ -165,26 +165,34 @@ char *dump_file(int id, int start_pos, int end_pos) {
     int line_start_pos = start_pos;
     char *body = src_files[id].body;
 
-    while (line_start_pos >= 0 && body[line_start_pos] != '\n') {
+    while (line_start_pos >= 0 && body[line_start_pos] != '\n' && start_pos - line_start_pos < 40) {
         line_start_pos--;
     }
     line_start_pos++;
 
     int line_end_pos = end_pos;
-    while (line_end_pos < src_files[id].len && body[line_end_pos] != '\n') {
+    while (line_end_pos < src_files[id].len && body[line_end_pos] != '\n' && line_end_pos - end_pos < 40) {
         line_end_pos++;
     }
 
     int line_size = line_end_pos - line_start_pos + 1;
 
-    char *buf = calloc(1, line_size + 4 + 4 + 1);
+    char *buf = calloc(1, line_size + 4 + 4 + 1 + 10);
     char *p = buf;
     int i = line_start_pos;
     while (i < start_pos) { *p++ = body[i++]; }
     strcat(p, " => "); p+=4;
-    while (i <= end_pos && i < line_end_pos) { *p++ = body[i++]; }
+    while (i <= end_pos && i < line_end_pos) { 
+        if (start_pos + 30 < i && i < end_pos - 30) {
+            strcat(p, " ... "); p+=5;
+            while (i < end_pos - 30) i++;
+        } else {
+            *p++ = body[i++]; 
+        }
+    }
     strcat(p, " <= "); p+=4;
     while (i < line_end_pos) { *p++ = body[i++]; }
+    *p = '\0';
 
     return buf;
 }
