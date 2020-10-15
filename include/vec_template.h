@@ -56,7 +56,7 @@ container_t VEC_CONCAT(container_t, _new)() {\
     container_t p = malloc(sizeof(container_t));\
     p->cap = 8;\
     p->len = 0;\
-    p->items = malloc(p->cap * sizeof(item_t));\
+    p->items = calloc(sizeof(item_t), p->cap);\
     return p;\
 }\
 \

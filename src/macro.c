@@ -55,12 +55,9 @@ extern bool tokenize_ident(char **p);
 extern bool skip();
 extern bool accept_string(char *);
 
-VEC_HEADER(macro_t *, macro_p_vec)
-VEC_BODY(macro_t *, macro_p_vec)
-
 typedef struct {
     macro_t *m;
-    macro_p_vec args;
+    macro_vec args;
 } macro_frame_t;
 
 VEC_HEADER(macro_frame_t, macro_frame_vec)
@@ -117,7 +114,7 @@ void build_macro_env(macro_t *m) {
 
     macro_frame_t *frame = macro_frame_vec_extend(macro_frames, 1);
     frame->m = m;
-    frame->args = macro_p_vec_new();
+    frame->args = macro_vec_new();
 
     if (m->vars->len > 0) {
         debug("scanning macro's actual args...");
@@ -131,13 +128,12 @@ void build_macro_env(macro_t *m) {
             read_macro_arg(&spos, &epos, i==m->vars->len-1);
 
             // store the macro's actual argument value into macro_t 
-            macro_t *arg = (macro_t *)malloc(sizeof(macro_t));
+            macro_t *arg = macro_vec_extend(frame->args, 1);
             arg->name = strdup(m->vars->items[i]);
             arg->src = src;
             arg->start_pos = spos;
             arg->end_pos = epos;
             arg->vars = char_p_vec_new();
-            macro_p_vec_push(frame->args, arg);
 
             debug("scanned args: %s as |%s|" , arg->name, dump_file(src->id, spos, epos));
             next();
@@ -174,8 +170,8 @@ void extract_macro(char *buf) {
             bool done = FALSE;
             // assert(macro_frames_len > 0);
             macro_frame_t *frame = macro_frame_vec_top(macro_frames);
-            for (int i=0; i<frame->args->len; i++) {
-                macro_t *arg = frame->args->items[i];
+            for (int i=0; i<macro_vec_len(frame->args); i++) {
+                macro_t *arg = macro_vec_get(frame->args, i);
                 if (strcmp(arg->name, str) == 0) {
                     debug("expanding macro arg: %s as %s", str, dump_file(arg->src->id, arg->start_pos, arg->end_pos));
                     for (int i=arg->start_pos; i<=arg->end_pos; i++) {
@@ -221,10 +217,10 @@ bool enter_macro(const char *name) {
     if (is_in_expanding(name)) { // do not expand current macro again
         return FALSE;
     }
-
+    debug("found macro %s", name);
     build_macro_env(m);
 
-    char *macro_ext_buf = calloc(RCC_BUF_SIZE, 1);
+    char *macro_ext_buf = calloc(RCC_BUF_SIZE, 16);
     extract_macro(macro_ext_buf);
     debug("extracted: [%s] (%d)", macro_ext_buf, strlen(macro_ext_buf));
     exit_macro();
