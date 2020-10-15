@@ -361,7 +361,7 @@ void tokenize();
 
 void directive_include() {
     if (accept_char('\"')) {
-        char filename[RCC_BUF_SIZE];
+        char *filename = calloc(RCC_BUF_SIZE,1);
         int i=0;
         while (ch() != '\"') {
             if (i>=100) {
@@ -618,8 +618,8 @@ void tokenize() {
             if (concat_start_token_pos == -1) {
                 concat_start_token_pos = token_len - 1;
             }
-            token *t = &tokens[token_len - 1];
-            debug("found ## @ start_token_pos:%d [%s]", concat_start_token_pos, file_get_part(t->src_id, t->src_pos, t->src_end_pos));
+            //token *t = &tokens[token_len - 1];
+            //debug("found ## @ start_token_pos:%d [%s]", concat_start_token_pos, file_get_part(t->src_id, t->src_pos, t->src_end_pos));
         } else if (concat_start_token_pos != -1) {
             char *buf = calloc(RCC_BUF_SIZE, 1);
             for (int i = concat_start_token_pos; i < token_len; i++) {
