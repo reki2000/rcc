@@ -187,6 +187,9 @@ char *reg(int no, int size) {
     char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9" };
     char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d" };
     char *regs1[] = { "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b" };
+    if (no >= 6) {
+        error("invalid reg no:%d", no);
+    }
     switch (size) {
         case 8: return regs8[no];
         case 4: return regs4[no];
@@ -272,7 +275,7 @@ void emit_copy(int size) {
             out("addq $4, %rdi");
             size-=4;
         }
-        while (size>=0) {
+        while (size>0) {
             out("movb (%rsi), %al");
             out("movb %al, (%rdi)");
             out("incq %rsi");
@@ -521,6 +524,18 @@ void emit_jmp_case_if_not(int i, int size) {
     out_int("jnz	.L", i, "");
 }
 
+int emit_push_struct(int size) {
+    int offset = align(size, 8);
+    out("popq %rsi"); // has address of the struct value
+    out_int("addq $-", offset, ", %rsp");
+    out("movq %rsp, %rdi");
+    out("pushq %rsi");
+    out("pushq %rdi");
+    emit_copy(size);
+    out("popq %rax"); // drop
+    return offset / 8;
+}
+
 
 int func_return_label;
 
@@ -567,6 +582,7 @@ void compile(int pos) {
     char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
     debug("compiling atom_t: %s", ast_text);
+    set_token_pos(p->token_pos);
     //dump_token_by_id(p->token_pos);
 
     switch (p->type) {
@@ -816,12 +832,45 @@ void compile(int pos) {
             func *f = (func *)(p->ptr_value);
             int argc = (p+1)->int_value;
 
-            for (int i=argc-1; i>=0; i--) {
-                compile((p+i+2)->atom_pos);
+            int num_reg_args = 0;
+            int num_stack_args = 0;
+
+            bool use_reg[100]; // NUM_ARGC
+            int struct_size[100]; 
+            for (int i=0; i<argc; i++) {
+                type_t *t = program[(p+i+2)->atom_pos].t;
+                if (t->struct_of) {
+                    struct_size[i] = t->size;
+                    use_reg[i] = (num_reg_args < 5 && t->size <= 16);
+                    if (use_reg[i]) num_reg_args += (t->size <= 8) ? 1 : 2;
+                } else  {
+                    struct_size[i] = 0;
+                    use_reg[i] = (num_reg_args < ABI_NUM_GP);
+                    if (use_reg[i]) num_reg_args++;
+                }
             }
 
-            int num_reg_args = argc > ABI_NUM_GP ? ABI_NUM_GP : argc;
-            int num_stack_args = argc > ABI_NUM_GP ? argc - ABI_NUM_GP : 0;
+            // push for stack-passing
+            for (int i=argc-1; i>=0; i--) {
+                if (use_reg[i]) continue;
+                debug("compiling stack passing values %d", i);
+                compile((p+i+2)->atom_pos);
+                if (struct_size[i] > 0) {
+                    num_stack_args += emit_push_struct(struct_size[i]);
+                } else {
+                    num_stack_args++;
+                }
+            }
+
+            // push for register-passing
+            for (int i=argc-1; i>=0; i--) {
+                if (!use_reg[i]) continue;
+                debug("compiling register passing values %d", i);
+                compile((p+i+2)->atom_pos);
+                if (struct_size[i] > 0) {
+                    emit_push_struct(struct_size[i]);
+                }
+            }
 
             for (int i=0; i<num_reg_args; i++) {
                 emit_pop_argv(i);
@@ -888,6 +937,8 @@ void compile_func(func *f) {
     if (!f->body_pos) {
         return;
     }
+    set_token_pos(program[f->body_pos].token_pos);
+
     func_return_label = new_label();
 
     out_str(".globl	", f->name, "");
@@ -899,17 +950,37 @@ void compile_func(func *f) {
     out_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
     int arg_offset = 0;
+    int reg_index = 0;
     for (int i=0; i<f->argc; i++) {
         var_t *v = &(f->argv[i]);
-        switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error("invalid size for funciton arg:%s", v->name); }
-        if (i<6) {
-            emit_var_arg_init(i, v->offset, type_size(v->t));
+        debug("emitting function:%s arg:%s", f->name, v->name);
+        if (v->t->struct_of) {
+            if (v->t->size > 16 || reg_index >= ABI_NUM_GP || (v->t->size > 8 && reg_index == ABI_NUM_GP - 1)) {
+                debug("is on the stack. do nothing here", f->name, v->name);
+            } else if (v->t->size <= 8) {
+                debug("is passed by one register. do nothing here", f->name, v->name);
+            } else {
+                debug("is passed by two registers. ", f->name, v->name);
+                emit_var_arg_init(reg_index++, v->offset, 8);
+                emit_var_arg_init(reg_index++, v->offset - 8, type_size(v->t) - 8);
+                arg_offset = align(v->offset, ALIGN_OF_STACK);
+            }
+            continue;
+        } else {
+            switch (type_size(v->t))  { 
+                case 1: case 4: case 8: break;
+                default: error("invalid size for funciton arg:%s", v->name); 
+            }
+        }
+        if (reg_index < ABI_NUM_GP) {
+            emit_var_arg_init(reg_index, v->offset, type_size(v->t));
             arg_offset = align(v->offset, ALIGN_OF_STACK);
+            reg_index++;
         }
     }
     if (f->is_variadic) {
-        for (int i=0; i<6; i++) {
-            emit_var_arg_init(5-i, 8 + i*8 + arg_offset + 8*16, 8);
+        for (int i=0; i<ABI_NUM_GP; i++) {
+            emit_var_arg_init(ABI_NUM_GP-i-1, 8 + i*8 + arg_offset + 8*16, 8);
         }
     }
 

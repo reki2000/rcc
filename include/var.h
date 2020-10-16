@@ -18,6 +18,8 @@ typedef struct {
     int num_vars;
     int offset;
     bool is_function_args;
+    int num_reg_vars;
+    int num_stack_vars;
 } frame_t;
 
 extern frame_t env[];
