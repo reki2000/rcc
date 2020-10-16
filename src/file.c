@@ -10,8 +10,10 @@
 
 src_t *src;
 
-src_t src_files[NUM_FILES];
-int src_file_len = 0;
+VEC_HEADER(src_t, src_vec)
+VEC_BODY(src_t, src_vec)
+
+src_vec srcs;
 
 int src_file_id_stack[NUM_FILES];
 int src_file_stack_top = 0;
@@ -42,7 +44,7 @@ src_t *get_current_file() {
     if (src_file_stack_top <= 0) {
         return 0;
     }
-    return &src_files[src_file_id_stack[src_file_stack_top - 1]];
+    return src_vec_get(srcs, src_file_id_stack[src_file_stack_top - 1]);
 }
 
 int open_include_file(char *filename) {
@@ -66,7 +68,8 @@ char *load_file(char *filename) {
 
     int fd;
 
-    if (src_file_len == 0) {
+    if (srcs == 0) srcs = src_vec_new();
+    if (src_vec_len(srcs) == 0) {
         char *b = calloc(1, RCC_BUF_SIZE);
         dirname(b, filename);
         add_include_dir(b);
@@ -93,13 +96,10 @@ char *load_file(char *filename) {
 }
 
 bool enter_new_file(char *filename, char *body, int pos, int len, int line, int column) {
-    if (src_file_len >= NUM_FILES) {
-        error("too much include files");
-    }
 
-    src_t *s = &src_files[src_file_len];
+    src_t *s = src_vec_extend(srcs, 1);
 
-    s->id = src_file_len;
+    s->id = src_vec_len(srcs) - 1;
     s->filename = filename;
     s->body = body;
 
@@ -111,8 +111,6 @@ bool enter_new_file(char *filename, char *body, int pos, int len, int line, int 
     s->prev_line = 1;
     s->prev_column = 1;
     s->prev_pos = 0;
-
-    src_file_len++;
 
     if (src_file_stack_top >= NUM_FILES) {
         error("too many file stack:%s", filename);
@@ -148,7 +146,7 @@ bool exit_file() {
 void dump_file_stack() {
     for(int i=0; i<src_file_stack_top; i++) {
         int id = src_file_id_stack[i];
-        debug("stack:%d id:%d name:%s %d, %s", i, id, src_files[id].filename, &src_files[id], src == &src_files[id] ? "<--" : "");
+        debug("stack:%d id:%d name:%s %d, %s", i, id, src_vec_get(srcs,id)->filename, src_vec_get(srcs, id), src == src_vec_get(srcs, id) ? "<--" : "");
     }
 }
 
@@ -160,7 +158,7 @@ char *dump_file(int id, int start_pos, int end_pos) {
         return "* invalid pos for dump_file *";
     }
     int line_start_pos = start_pos;
-    char *body = src_files[id].body;
+    char *body = src_vec_get(srcs, id)->body;
 
     while (line_start_pos >= 0 && body[line_start_pos] != '\n' && start_pos - line_start_pos < 40) {
         line_start_pos--;
@@ -168,7 +166,7 @@ char *dump_file(int id, int start_pos, int end_pos) {
     line_start_pos++;
 
     int line_end_pos = end_pos;
-    while (line_end_pos < src_files[id].len && body[line_end_pos] != '\n' && line_end_pos - end_pos < 40) {
+    while (line_end_pos < src_vec_get(srcs, id)->len && body[line_end_pos] != '\n' && line_end_pos - end_pos < 40) {
         line_end_pos++;
     }
 
@@ -195,7 +193,7 @@ char *dump_file(int id, int start_pos, int end_pos) {
 }
 
 char *file_get_part(int id, int start_pos, int end_pos) {
-    char *body = src_files[id].body;
+    char *body = src_vec_get(srcs, id)->body;
     int line_size = end_pos - start_pos + 1;
     char *buf = calloc(1, line_size + 3 + 5 + 5 + 2);
     char *p = buf;
@@ -205,10 +203,7 @@ char *file_get_part(int id, int start_pos, int end_pos) {
 }
 
 src_t *file_info(int id) {
-    if (id < 0 || id >= src_file_len) {
-        error("invalid file id:%d", id);
-    }
-    return &src_files[id];
+    return src_vec_get(srcs,id);
 }
 
 bool is_eof() {
