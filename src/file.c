@@ -1,11 +1,11 @@
 #include "types.h"
+#include "vec.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
 #include "file.h"
 
 #define NUM_FILES 1000
-#define NUM_INCLUDE_DIRS 100
 #define SIZE_FILE_BUF (1024*1024)
 
 src_t *src;
@@ -16,14 +16,11 @@ int src_file_len = 0;
 int src_file_id_stack[NUM_FILES];
 int src_file_stack_top = 0;
 
-char *include_dirs[NUM_INCLUDE_DIRS];
-int include_dirs_len = 0;
+char_p_vec include_dirs = 0;
 
 void add_include_dir(char *dir) {
-    if (include_dirs_len >= NUM_INCLUDE_DIRS) {
-        error("too much include directories");
-    }
-    include_dirs[include_dirs_len++] = dir;
+    if (include_dirs == 0) include_dirs = char_p_vec_new();
+    char_p_vec_push(include_dirs, dir);
 }
 
 void dirname(char *out, char*path) {
@@ -50,9 +47,9 @@ src_t *get_current_file() {
 
 int open_include_file(char *filename) {
     int i;
-    for (i=0; i<include_dirs_len; i++) {
+    for (i=0; i<char_p_vec_len(include_dirs); i++) {
         char path[RCC_BUF_SIZE] = {0};
-        strcat(path, include_dirs[i]);
+        strcat(path, *char_p_vec_get(include_dirs, i));
         strcat(path, "/");
         strcat(path, filename);
         int fd = open(path, 0);

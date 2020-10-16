@@ -151,7 +151,7 @@
 - [ ] 'static' global variables
 
 - [x] struct assignment - memcpy(&a,&b,sizeof(a))
-- [ ] struct argument
+- [x] struct argument
 - [ ] struct return value
 
 - [ ] bug / expression sequence - evaluated result should have the last expression
@@ -165,3 +165,7 @@
 - [ ] remove print statement, replace with `void print(int i) { printf("%d\n",i); }`
 
 - [ ] the parser shoud NOT consider ABI - variable offset should be calculated in emitting stage, not in parsing stage
+
+- [ ] stop calculate variables' offset at parse stage, do it emission stage 
+  - it's depends on ABI - the AST shouldn't know whether the variable is passed on stack or on registers
+  - [ ] change va_arg's register save area at the begining -REG_ZREA_SIZE(%rbp) of the function's stack frame
