@@ -1,8 +1,9 @@
 #include "types.h"
-#include "vec.h"
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
+#include "vec.h"
+
 #include "file.h"
 
 #define SIZE_FILE_BUF (1024*1024)
@@ -148,6 +149,9 @@ char *dump_file(int id, int start_pos, int end_pos) {
         return "* invalid pos for dump_file *";
     }
     int line_start_pos = start_pos;
+    if (src_vec_get(srcs, id) == 0) {
+        return "* invalid id *";
+    }
     char *body = src_vec_get(srcs, id)->body;
 
     while (line_start_pos >= 0 && body[line_start_pos] != '\n' && start_pos - line_start_pos < 40) {
