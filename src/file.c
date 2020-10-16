@@ -5,19 +5,14 @@
 #include "devtool.h"
 #include "file.h"
 
-#define NUM_FILES 1000
 #define SIZE_FILE_BUF (1024*1024)
-
-src_t *src;
 
 VEC_HEADER(src_t, src_vec)
 VEC_BODY(src_t, src_vec)
 
-src_vec srcs;
-
-int src_file_id_stack[NUM_FILES];
-int src_file_stack_top = 0;
-
+src_t *src;
+src_vec srcs = 0;
+int_vec src_id_stack = 0;
 char_p_vec include_dirs = 0;
 
 void add_include_dir(char *dir) {
@@ -41,10 +36,10 @@ void dirname(char *out, char*path) {
 }
 
 src_t *get_current_file() {
-    if (src_file_stack_top <= 0) {
+    if (int_vec_len(src_id_stack) == 0) {
         return 0;
     }
-    return src_vec_get(srcs, src_file_id_stack[src_file_stack_top - 1]);
+    return src_vec_get(srcs, *int_vec_top(src_id_stack));
 }
 
 int open_include_file(char *filename) {
@@ -111,12 +106,8 @@ bool enter_new_file(char *filename, char *body, int pos, int len, int line, int 
     s->prev_column = 1;
     s->prev_pos = 0;
 
-    if (src_file_stack_top >= NUM_FILES) {
-        error("too many file stack:%s", filename);
-    }
-    src_file_id_stack[src_file_stack_top] = s->id;
-    src_file_stack_top++;
-
+    if (!src_id_stack) src_id_stack = int_vec_new();
+    int_vec_push(src_id_stack, s->id);
     src = get_current_file();
 
     debug("entered to file:%s #%d %x len:%d", src->filename, src->id, src->filename, src->len);
@@ -131,20 +122,20 @@ bool enter_file(char *filename) {
 }
 
 bool exit_file() {
-    if (src_file_stack_top == 0) {
+    if (int_vec_len(src_id_stack) == 0) {
         error("invalid exit from the root file");
     }
     debug("exiting file #%d:%s %x", src->id, src->filename, src->filename);
     //dump_file_stack();
 
-    src_file_stack_top--;
+    int_vec_pop(src_id_stack);
     src = get_current_file();
     return TRUE;
 }
 
 void dump_file_stack() {
-    for(int i=0; i<src_file_stack_top; i++) {
-        int id = src_file_id_stack[i];
+    for(int i=0; i<int_vec_len(src_id_stack); i++) {
+        int id = *int_vec_get(src_id_stack, i);
         debug("stack:%d id:%d name:%s %d, %s", i, id, src_vec_get(srcs,id)->filename, src_vec_get(srcs, id), src == src_vec_get(srcs, id) ? "<--" : "");
     }
 }
