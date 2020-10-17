@@ -136,14 +136,15 @@ var_t *add_var(char *name, type_t *t) {
         v.offset = 0;
         v.is_global = TRUE;
     } else if (f->is_function_args && t->struct_of) {
-        if (t->size <= 16 && f->num_reg_vars < ABI_NUM_GP - 2) {
+        int size = type_size(t);
+        if (size <= 16 && f->num_reg_vars < ABI_NUM_GP - 2) {
             f->offset += align(type_size(t), 8);
             max_offset = max(f->offset, max_offset);
             v.offset = f->offset;
-            f->num_reg_vars += (t->size > 8) ? 2 : 1;
+            f->num_reg_vars += (size > 8) ? 2 : 1;
         } else {
             v.offset = -ALIGN_OF_STACK * (2 + f->num_stack_vars); // 2 : return address, %rbp
-            f->num_stack_vars += align(t->size,8) / 8;
+            f->num_stack_vars += align(size,8) / 8;
         }
     } else if (f->is_function_args && f->num_reg_vars >= ABI_NUM_GP) {
         v.offset = -ALIGN_OF_STACK * (2 + f->num_stack_vars); // 2 : return address, %rbp

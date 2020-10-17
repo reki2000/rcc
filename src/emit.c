@@ -841,9 +841,10 @@ void compile(int pos) {
             for (int i=0; i<argc; i++) {
                 type_t *t = program[(p+i+2)->atom_pos].t;
                 if (t->struct_of) {
-                    struct_size[i] = t->size;
-                    use_reg[i] = (num_reg_args < 5 && t->size <= 16);
-                    if (use_reg[i]) num_reg_args += (t->size <= 8) ? 1 : 2;
+                    int size = type_size(t);
+                    struct_size[i] = size;
+                    use_reg[i] = (num_reg_args < 5 && size <= 16);
+                    if (use_reg[i]) num_reg_args += (size <= 8) ? 1 : 2;
                 } else  {
                     struct_size[i] = 0;
                     use_reg[i] = (num_reg_args < ABI_NUM_GP);
@@ -956,14 +957,15 @@ void compile_func(func *f) {
         var_t *v = var_vec_get(f->argv, i);
         debug("emitting function:%s arg:%s", f->name, v->name);
         if (v->t->struct_of) {
-            if (v->t->size > 16 || reg_index >= ABI_NUM_GP || (v->t->size > 8 && reg_index == ABI_NUM_GP - 1)) {
+            int size = type_size(v->t);
+            if (size > 16 || reg_index >= ABI_NUM_GP || (size > 8 && reg_index == ABI_NUM_GP - 1)) {
                 debug("is on the stack. do nothing here", f->name, v->name);
-            } else if (v->t->size <= 8) {
+            } else if (size <= 8) {
                 debug("is passed by one register. do nothing here", f->name, v->name);
             } else {
                 debug("is passed by two registers. ", f->name, v->name);
                 emit_var_arg_init(reg_index++, v->offset, 8);
-                emit_var_arg_init(reg_index++, v->offset - 8, type_size(v->t) - 8);
+                emit_var_arg_init(reg_index++, v->offset - 8, size - 8);
                 arg_offset = align(v->offset, ALIGN_OF_STACK);
             }
             continue;
