@@ -9,7 +9,9 @@ typedef struct {
     bool is_variadic;
 } func;
 
-extern func functions[];
+VEC_HEADER(func, func_vec)
+
+extern func_vec functions;
 
 func *find_func_name(char *name);
 extern func *add_function(char *, type_t *, bool, bool, int, var_vec);

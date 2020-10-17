@@ -1092,13 +1092,12 @@ void emit(int fd) {
     out(".text");
     out("");
 
-    func *f = &functions[0];
-    while (f->name != 0) {
+    for (int i=0; i<func_vec_len(functions); i++) {
+        func *f = func_vec_get(functions, i);
         if (f->body_pos != 0) {
             debug("%s --------------------- ", f->name);
             //dump_atom_tree(f->body_pos, 0);
             compile_func(f);
         }
-        f++;
     }
 }

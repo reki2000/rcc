@@ -2,6 +2,7 @@
 #include "types.h"
 #include "rstring.h"
 #include "devtool.h"
+#include "rsys.h"
 #include "vec.h"
 
 #include "type.h"
@@ -9,16 +10,14 @@
 
 #include "func.h"
 
-#define NUM_FUNCTIONS 1000
+VEC_BODY(func, func_vec)
 
-func functions[NUM_FUNCTIONS];
-int function_pos = 0;
-int function_len = 0;
+func_vec functions = 0;
 
 func *find_func_name(char *name) {
-    for (int i=0; i<function_len; i++) {
-        func *f = &functions[i];
-        if (strcmp(f->name, name) == 0) {
+    for (int i=0; i<func_vec_len(functions); i++) {
+        func *f = func_vec_get(functions, i);
+        if (!strcmp(f->name, name)) {
             return f;
         }
     }
@@ -46,18 +45,19 @@ func *find_function(char *name, type_t *ret_type, int argc, var_vec argv) {
 }
 
 func *add_function(char *name, type_t *ret_type, bool is_external, bool is_variadic, int argc, var_vec argv) {
-    if (function_len >= NUM_FUNCTIONS) {
-        error("Too many functions");
-    }
+    if (!functions) functions = func_vec_new();
     func *f = find_function(name, ret_type, argc, argv);
     if (!f) {
-        f = &functions[function_len++];
-        f->name = name;
-        f->ret_type = ret_type;
-        f->argc = argc;
-        f->argv = argv;
-        f->is_external = is_external;
-        f->is_variadic = is_variadic;
+        func fn;
+        fn.name = name;
+        fn.ret_type = ret_type;
+        fn.argc = argc;
+        fn.argv = argv;
+        fn.is_external = is_external;
+        fn.is_variadic = is_variadic;
+        fn.max_offset = 0;
+        fn.body_pos = 0;
+        f = func_vec_push(functions, fn);
     }
     debug("added function: %s", f->name);
     return f;
