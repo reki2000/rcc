@@ -42,8 +42,6 @@ extern type_t *type_long;
 extern type_t *type_void_ptr;
 extern type_t *type_char_ptr;
 
-extern type_t *type_builtin_va_list;
-
 extern void init_types();
 extern type_t *add_type(char *, int , type_t *, int );
 extern type_t *find_type(char *);

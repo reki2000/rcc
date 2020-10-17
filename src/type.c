@@ -23,8 +23,6 @@ type_t *type_long;
 type_t *type_void_ptr;
 type_t *type_char_ptr;
 
-type_t *type_builtin_va_list;
-
 void init_types() {
     add_type("$*", 8, 0, -1);    // for pointer
     type_void = add_type("void", 0, 0, -1);
@@ -34,13 +32,6 @@ void init_types() {
 
     type_void_ptr = add_pointer_type(type_void);
     type_char_ptr = add_pointer_type(type_char);
-
-    type_builtin_va_list = add_struct_type("", TRUE);
-    add_struct_member(type_builtin_va_list, "gp_offset", type_int, FALSE);
-    add_struct_member(type_builtin_va_list, "fp_offset", type_int, FALSE);
-    add_struct_member(type_builtin_va_list, "overflow_arg_area", type_char_ptr, FALSE);
-    add_struct_member(type_builtin_va_list, "reg_save_area", type_char_ptr, FALSE);
-    add_typedef("__builtin_va_list", add_pointer_type(type_builtin_va_list));
 }
 
 void dump_type(char *buf, type_t *t) {
