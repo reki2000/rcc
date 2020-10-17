@@ -540,40 +540,40 @@ int emit_push_struct(int size) {
 
 int func_return_label;
 
-#define NUM_BREAK_LABELS 1000
-
-struct {
+typedef struct {
     int break_label;
     int continue_label;
-} break_labels[NUM_BREAK_LABELS];
+} break_label_t;
 
-int break_label_top = -1;
+VEC_HEADER(break_label_t, break_label_vec)
+VEC_BODY(break_label_t, break_label_vec)
+
+break_label_vec break_labels = 0;
 
 int get_break_label() {
-    if (break_label_top < 0) {
+    if (!break_label_vec_len(break_labels)) {
         error("cannot emit break");
     }
-    return break_labels[break_label_top].break_label;
+    return break_label_vec_top(break_labels)->break_label;
 }
 int get_continue_label() {
-    if (break_label_top < 0) {
+    if (!break_label_vec_len(break_labels)) {
         error("cannot emit break");
     }
-    return break_labels[break_label_top].continue_label;
+    return break_label_vec_top(break_labels)->continue_label;
 }
 void enter_break_label(int break_label, int continue_label) {
-    if (break_label_top >= NUM_BREAK_LABELS) {
-        error("too many break label");
-    }
-    break_label_top++;
-    break_labels[break_label_top].break_label = break_label;
-    break_labels[break_label_top].continue_label = continue_label;
+    if (!break_labels) break_labels = break_label_vec_new();
+    break_label_t b;
+    b.break_label = break_label;
+    b.continue_label = continue_label;
+    break_label_vec_push(break_labels, b);
 }
 void exit_break_label() {
-    if (break_label_top < 0) {
+    if (!break_label_vec_len(break_labels)) {
         error("cannot exit break label");
     }
-    break_label_top--;
+    break_label_vec_pop(break_labels);
 }
 
 
