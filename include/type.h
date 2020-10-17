@@ -22,9 +22,9 @@ typedef struct enum_t {
 
 typedef struct type_t {
     int size;
+    int array_length;
     char *name;
     type_t *ptr_to;
-    int array_length;
     /*
      *  -1: not array
      *  0: array without size specification (ptr_to must be set)

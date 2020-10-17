@@ -65,7 +65,6 @@ container_t VEC_CONCAT(container_t, _new)() {\
 item_t *VEC_CONCAT(container_t,_push)(container_t p, item_t v) {\
     item_t *item = VEC_CONCAT(container_t, _extend)(p,1);\
     *item = v; \
-    p->items[p->len-1] = item;\
     return item;\
 }\
 \
