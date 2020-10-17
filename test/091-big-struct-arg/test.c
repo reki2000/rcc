@@ -1,5 +1,5 @@
-typedef struct { char* a; char * b; char* c; int x; int y; int z; } xyz;
-void show(xyz a, int b) {
+typedef struct { int x; char* a; char * b; char* c; int y; int z; } xyz;
+void show(int b, xyz a) {
   print(a.x);
   print(a.y);
   print(a.z);
@@ -16,7 +16,7 @@ int main() {
   a.x = 10;
   a.y = 20;
   a.z = 30;
-  show(a,40);
+  show(40, a);
   show2(0,1,2,3,4,a,40);
   return 0;
 }
