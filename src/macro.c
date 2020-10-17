@@ -27,7 +27,7 @@ void add_macro(const char *name, int start_pos, int end_pos, char_p_vec vars) {
 
     debug("added macro: %s as |%s|" , name, dump_file(src->id, start_pos, end_pos));
     for (int i=0; i<m->vars->len; i++) {
-        debug(" args:%d %s", i, m->vars->items[i],i);
+        debug(" args:%d %s", i, *char_p_vec_get(m->vars, i));
     }
 }
 
