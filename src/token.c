@@ -9,36 +9,33 @@
 #include "token.h"
 #include "gstr.h"
 
+VEC_HEADER(bool, bool_vec)
+VEC_BODY(bool, bool_vec)
 
-#define NUM_IFDEF 1000
-bool _ifdef_skip[NUM_IFDEF];
-int ifdef_top = -1;
+bool_vec ifdef_skips = 0;
 
 void ifdef_start(bool skip) {
-    if (ifdef_top >= NUM_IFDEF) {
-        error("too many #ifdef nest");
-    }
-    ifdef_top++;
-    _ifdef_skip[ifdef_top] = skip;
+    bool_vec_push(ifdef_skips, skip);
 }
 
 void ifdef_else() {
-    if (ifdef_top < 0) {
+    if (bool_vec_len(ifdef_skips) == 0) {
         error("found #else without #ifdef/ifndef");
     }
-    _ifdef_skip[ifdef_top] = !_ifdef_skip[ifdef_top];
+    bool_vec_set(ifdef_skips, bool_vec_len(ifdef_skips) -1, !(*bool_vec_top(ifdef_skips)));
 }
 
 bool ifdef_skip() {
-    if (ifdef_top < 0) return FALSE;
-    return _ifdef_skip[ifdef_top];
+    if (!ifdef_skips) ifdef_skips = bool_vec_new();
+    if (bool_vec_len(ifdef_skips) == 0) return FALSE;
+    return *bool_vec_top(ifdef_skips);
 }
 
 void ifdef_end() {
-    if (ifdef_top < 0) {
+    if (bool_vec_len(ifdef_skips) == 0) {
         error("found #endif without #ifdef/ifndef");
     }
-    ifdef_top--;
+    bool_vec_pop(ifdef_skips);
 }
 
 
