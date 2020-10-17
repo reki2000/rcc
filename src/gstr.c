@@ -2,68 +2,59 @@
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
+#include "vec.h"
 
-#define NUM_GLOBAL_STRINGS 1024
-#define NUM_GLOBAL_ARRAY (1024*1024)
-
-char *gstrings[NUM_GLOBAL_STRINGS];
-int gstrings_len = 0;
+char_p_vec gstrings = 0;
 
 int add_global_string(char *name) {
-    if (gstrings_len >= NUM_GLOBAL_STRINGS) {
-        error("Too many strings!");
-    }
-    for (int i=0; i<gstrings_len; i++) {
-        if (!strcmp(name, gstrings[i])) {
+    if (!gstrings) gstrings = char_p_vec_new();
+    for (int i=0; i<char_p_vec_len(gstrings); i++) {
+        if (!strcmp(name, *char_p_vec_get(gstrings,i))) {
             return i;
         }
     }
-    gstrings[gstrings_len] = name;
-    return gstrings_len++;
+    char_p_vec_push(gstrings, name);
+    return char_p_vec_len(gstrings) - 1;
 }
 
 char *find_global_string(int index) {
-    return gstrings[index];
+    if (!gstrings) gstrings = char_p_vec_new();
+    char **result = char_p_vec_get(gstrings, index);
+    return (result) ? *result : 0;
 }
 
-// 'global_array' is implemented as containing multiple lists in a array
-// [length] [val0] [val1] ... [length] [val0] [val1] ...
+VEC_HEADER(int_vec, int_vec_vec)
+VEC_BODY(int_vec, int_vec_vec)
 
-
-int global_array[NUM_GLOBAL_ARRAY];
-int global_array_len = 0;
+int_vec_vec global_array = 0;
 
 int alloc_global_array() {
-    if (global_array_len >= NUM_GLOBAL_ARRAY) {
-        error("too much global array initializations");
-    }
-    global_array[global_array_len] = 0;
-    return global_array_len++;
+    if (!global_array) global_array = int_vec_vec_new();
+    
+    int_vec_vec_push(global_array, int_vec_new());
+    return int_vec_vec_len(global_array) - 1;
 }
 
 void add_global_array(int pos, int value) {
-    int new_pos = pos + global_array[pos] + 1;
-    if (global_array_len > new_pos) {
-        error("size of the global array already fixed:%d", pos);
-    }
-    global_array[pos]++;
-    global_array[new_pos] = value;
-    global_array_len++;
+    int_vec_push(*int_vec_vec_get(global_array, pos), value);
 }
 
 int get_global_array_length(int pos) {
-    if (pos >= global_array_len) {
+    int_vec *item = int_vec_vec_get(global_array, pos);
+    if (!item) {
         error("global array index out of range:%d", pos);
     }
-    return global_array[pos];
+    return int_vec_len(*item);
 }
 
 int get_global_array(int pos, int offset) {
-    if (pos + offset + 1 >= global_array_len) {
-        error("global array index out of range:%d", pos);
+    int_vec *item = int_vec_vec_get(global_array, pos);
+    if (!item) {
+        error("global array pos out of range:%d", pos);
     }
-    if (offset >= global_array[pos]) {
-        error("global array index out of range:%d", pos);
+    int *val = int_vec_get(*item, offset);
+    if (!val) {
+        error("global array offset out of range:%d", offset);
     }
-    return global_array[pos + offset + 1];
+    return *val;
 }
