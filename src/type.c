@@ -1,6 +1,8 @@
 #include "types.h"
+#include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
+#include "vec.h"
 
 #include "type.h"
 
@@ -9,8 +11,10 @@
 #define NUM_STRUCTS 1024
 #define NUM_STRUCT_MEMBERS 100 // todo: this should be same with type.h 
 
-type_t types[NUM_TYPES];
-int types_pos = 0;
+VEC_HEADER(type_t, type_vec)
+VEC_BODY(type_t, type_vec)
+
+type_vec types = 0;
 
 type_t *type_int;
 type_t *type_void;
@@ -73,22 +77,25 @@ void dump_type(char *buf, type_t *t) {
     _strcat3(buf, " size:", type_size(t_org), "");
 }
 
-type_t *add_type(char* name, int size, type_t *prt_to, int array_length) {
-    type_t *p = &types[types_pos++];
-    p->name = name;
-    p->size = size;
-    p->ptr_to = prt_to;
-    p->array_length = array_length;
-    p->enum_of = (void *)0;
-    p->struct_of = (void *)0;
-    p->typedef_of = (void *)0;
+type_t *add_type(char* name, int size, type_t *ptr_to, int array_length) {
+    if (!types) types = type_vec_new();
+
+    type_t t;
+    t.name = name;
+    t.size = size;
+    t.ptr_to = ptr_to;
+    t.array_length = array_length;
+    t.enum_of = (void *)0;
+    t.struct_of = (void *)0;
+    t.typedef_of = (void *)0;
+
+    type_t *t_ptr = type_vec_push(types, t);
 
     char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, "added type:");
-    dump_type(buf, p);
-    debug(buf);
+    dump_type(buf, t_ptr);
+    debug("added type:%s", buf);
 
-    return p;
+    return t_ptr;
 }
 
 type_t *add_typedef(char *name, type_t* t) {
@@ -100,8 +107,8 @@ type_t *add_typedef(char *name, type_t* t) {
 }
 
 type_t *find_pointer(type_t *ptr_to, int array_length) {
-    for (int i=0; i<types_pos; i++) {
-        type_t *t = &types[i];
+    for (int i=0; i<type_vec_len(types); i++) {
+        type_t *t = type_vec_get(types, i);
         if (t->ptr_to == ptr_to && t->array_length == array_length) {
             return t;
         }
@@ -128,9 +135,10 @@ type_t *add_array_type(type_t *t, int array_length) {
 }
 
 type_t *find_type(char *name) {
-    for (int i=0; i<types_pos; i++) {
-        if (strcmp(name, types[i].name) == 0) {
-            return &types[i];
+    for (int i=0; i<type_vec_len(types); i++) {
+        type_t *t = type_vec_get(types, i);
+        if (!strcmp(name, t->name)) {
+            return t;
         }
     }
     return 0;
@@ -140,14 +148,14 @@ struct_t structs[NUM_STRUCTS];
 int structs_len = 0;
 
 type_t *find_struct_type(char *name, bool is_union) {
-    for (int i=0; i<types_pos; i++) {
-        type_t *t = &types[i];
+    for (int i=0; i<type_vec_len(types); i++) {
+        type_t *t = type_vec_get(types, i);
         if (t->struct_of && t->typedef_of == 0) {
             struct_t *s = t->struct_of;
             if (!s->is_anonymous 
-                &&strcmp(name, s->name) == 0 
+                && !strcmp(name, s->name) 
                 && s->is_union == is_union) {
-                return &types[i];
+                return t;
             }
         }
     }
@@ -244,11 +252,11 @@ type_t *find_enum_type(char *name) {
         return 0; 
     }
 
-    for (int i=0; i<types_pos; i++) {
-        type_t *t = &types[i];
+    for (int i=0; i<type_vec_len(types); i++) {
+        type_t *t = type_vec_get(types, i);
         if (t->enum_of && t->typedef_of == 0) {
-            if (strcmp(name, t->enum_of->name) == 0) {
-                return &types[i];
+            if (!strcmp(name, t->enum_of->name)) {
+                return t;
             }
         }
     }
