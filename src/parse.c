@@ -2,9 +2,9 @@
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
+#include "vec.h"
 
 #include "type.h"
-
 #include "token.h"
 #include "var.h"
 #include "func.h"
@@ -1688,7 +1688,7 @@ int parse_function_prototype(type_t *t, bool is_external) {
     }
 
     frame_t *frame = get_top_frame();
-    add_function(ident, t, is_external, is_variadic, frame->num_vars, frame->vars);
+    add_function(ident, t, is_external, is_variadic, var_vec_len(frame->vars), frame->vars);
 
     exit_var_frame();
     return 1;
@@ -1743,14 +1743,14 @@ int parse_function_definition(type_t *t) {
     if (is_variadic) {
         add_register_save_area();
     }
-    func *f = add_function(ident, t, FALSE, is_variadic, frame->num_vars, frame->vars);
+    func *f = add_function(ident, t, FALSE, is_variadic, var_vec_len(frame->vars), frame->vars);
 
     int body_pos = parse_block();
     if (!body_pos) {
         error("No body for function: %s", ident);
     }
 
-    func_set_body(f, frame->num_vars, frame->vars, body_pos, var_max_offset());
+    func_set_body(f, var_vec_len(frame->vars), frame->vars, body_pos, var_max_offset());
 
     exit_var_frame();
     return 1;
@@ -1797,5 +1797,5 @@ void parse() {
         if (pos) continue;
         error("Invalid declaration");
     }
-    exit_var_frame();
+    //exit_var_frame();
 }

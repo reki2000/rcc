@@ -2,6 +2,7 @@
 #include "types.h"
 #include "rstring.h"
 #include "devtool.h"
+#include "vec.h"
 
 #include "type.h"
 #include "var.h"
@@ -24,7 +25,7 @@ func *find_func_name(char *name) {
     return 0;
 }
 
-func *find_function(char *name, type_t *ret_type, int argc, var_t *argv) {
+func *find_function(char *name, type_t *ret_type, int argc, var_vec argv) {
     func *f = find_func_name(name);
     if (!f) {
         return 0;
@@ -32,7 +33,7 @@ func *find_function(char *name, type_t *ret_type, int argc, var_t *argv) {
     if (f->ret_type == ret_type && f->argc == argc) {
         int j;
         for (j=0; j<argc; j++) {
-            if (f->argv[j].t != argv[j].t) {
+            if (var_vec_get(f->argv, j)->t != var_vec_get(argv, j)->t) {
                 break;
             }
         }
@@ -44,7 +45,7 @@ func *find_function(char *name, type_t *ret_type, int argc, var_t *argv) {
     return 0;
 }
 
-func *add_function(char *name, type_t *ret_type, bool is_external, bool is_variadic, int argc, var_t *argv) {
+func *add_function(char *name, type_t *ret_type, bool is_external, bool is_variadic, int argc, var_vec argv) {
     if (function_len >= NUM_FUNCTIONS) {
         error("Too many functions");
     }
@@ -62,7 +63,7 @@ func *add_function(char *name, type_t *ret_type, bool is_external, bool is_varia
     return f;
 }
 
-func *func_set_body(func *f, int argc, var_t *argv, int pos, int max_offset) {
+func *func_set_body(func *f, int argc, var_vec argv, int pos, int max_offset) {
     f->argc = argc;
     f->argv = argv;
     f->body_pos = pos;

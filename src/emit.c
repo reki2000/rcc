@@ -2,6 +2,7 @@
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
+#include "vec.h"
 
 #include "token.h"
 
@@ -952,7 +953,7 @@ void compile_func(func *f) {
     int arg_offset = 0;
     int reg_index = 0;
     for (int i=0; i<f->argc; i++) {
-        var_t *v = &(f->argv[i]);
+        var_t *v = var_vec_get(f->argv, i);
         debug("emitting function:%s arg:%s", f->name, v->name);
         if (v->t->struct_of) {
             if (v->t->size > 16 || reg_index >= ABI_NUM_GP || (v->t->size > 8 && reg_index == ABI_NUM_GP - 1)) {
@@ -1059,8 +1060,9 @@ void emit(int fd) {
     out(".file	\"main.c\"");
     out("");
 
-    for (int i=0; i<env[0].num_vars; i++) {
-        var_t *v = &(env[0].vars[i]);
+    var_vec vars = get_global_frame()->vars;
+    for (int i=0; i<var_vec_len(vars); i++) {
+        var_t *v = var_vec_get(vars, i);
         if (v->is_constant) {
             continue;
         }
