@@ -6,13 +6,14 @@ typedef struct member_t {
     struct type_t *t;
 } member_t;
 
+VEC_HEADER(member_t, member_vec)
+
 typedef struct struct_t {
     char *name;
     bool is_union;
     bool is_anonymous;
     int next_offset;
-    int num_members;
-    member_t members[100];
+    member_vec members;
 } struct_t;
 
 typedef struct enum_t {

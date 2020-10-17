@@ -6,10 +6,10 @@
 
 #include "type.h"
 
-#define NUM_STRUCT_MEMBERS 100 // todo: this should be same with type.h 
-
 VEC_HEADER(type_t, type_vec)
 VEC_BODY(type_t, type_vec)
+
+VEC_BODY(member_t, member_vec)
 
 type_vec types = 0;
 
@@ -164,7 +164,7 @@ type_t *add_struct_union_type(char *name, bool is_union, bool is_anonymous) {
     }
     struct_t s;
     s.name = is_anonymous? "annonymous" : name;
-    s.num_members = 0;
+    s.members = member_vec_new();
     s.is_union = is_union;
     s.is_anonymous = is_anonymous;
     s.next_offset = 0;
@@ -183,8 +183,8 @@ type_t *add_struct_type(char *name, bool is_anonymous) {
 }
 
 void copy_union_member_to_struct(type_t *st, type_t *ut) {
-    for (int i=0; i<ut->struct_of->num_members; i++) {
-        member_t *m = &(ut->struct_of->members[i]);
+    for (int i=0; i<member_vec_len(ut->struct_of->members); i++) {
+        member_t *m = member_vec_get(ut->struct_of->members, i);
         add_struct_member(st, m->name, m->t, TRUE);
     }
 }
@@ -194,28 +194,25 @@ member_t *add_struct_member(type_t *st, char *name, type_t *t, bool is_union) {
     if (s == 0) {
         error("adding member to non struct type: %s", st->name);
     }
-    if (s->num_members > NUM_STRUCT_MEMBERS) {
-        error("Too many struct members: %s", name);
-    }
-    member_t *m = &(s->members[s->num_members++]);
-    m->name = name;
-    m->t = t;
+    member_t m;
+    m.name = name;
+    m.t = t;
 
     // todo: alignment to 4 bytes
     int t_size = type_size(t);
     if (is_union) {
-        m->offset = s->next_offset;
+        m.offset = s->next_offset;
         if (t_size > st->size - s->next_offset) {
             st->size = s->next_offset + t_size;
         }
     } else {
-        m->offset = st->size;
-        debug("added struct member %s @%d", name, m->offset);
+        m.offset = st->size;
+        debug("added struct member %s @%d", name, m.offset);
         st->size += t_size;
         s->next_offset += t_size;
     }
 
-    return m;
+    return member_vec_push(s->members, m);
 }
 
 member_t *find_struct_member(type_t *t, char *name) {
@@ -223,9 +220,9 @@ member_t *find_struct_member(type_t *t, char *name) {
     if (s == 0) {
         error("this type is not struct: %s", t->name);
     }
-    for (int i=0; i<s->num_members; i++) {
-        member_t *m = &(s->members[i]);
-        if (strcmp(name, m->name) == 0) {
+    for (int i=0; i<member_vec_len(s->members); i++) {
+        member_t *m = member_vec_get(s->members, i);
+        if (!strcmp(name, m->name)) {
             return m;
         }
     }
