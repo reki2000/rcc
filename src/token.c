@@ -38,12 +38,12 @@ void ifdef_end() {
     bool_vec_pop(ifdef_skips);
 }
 
+VEC_HEADER(token, token_vec)
+VEC_BODY(token, token_vec)
 
-#define NUM_TOKENS  (1024*128)
+token_vec tokens;
 
-token tokens[NUM_TOKENS];
 int token_pos = 0;
-int token_len = 0;
 
 void set_src_pos() {
     src->prev_column = src->column;
@@ -298,20 +298,16 @@ bool tokenize_ident(char **retval) {
 }
 
 token *add_token(token_id id) {
-    if (token_len >= NUM_TOKENS) {
-        error("Too much tokens");
-    }
-
-    token *t=&tokens[token_len++];
-    t->id = id;
-    t->src_id = src->id;
-    t->src_line = src->prev_line;
-    t->src_column = src->prev_column;
-    t->src_pos = src->prev_pos;
-    t->src_end_pos = src->pos - 1;
+    token t;
+    t.id = id;
+    t.src_id = src->id;
+    t.src_line = src->prev_line;
+    t.src_column = src->prev_column;
+    t.src_pos = src->prev_pos;
+    t.src_end_pos = src->pos - 1;
 
     set_src_pos();
-    return t;
+    return token_vec_push(tokens, t);
 }
 
 void add_int_token(int val) {
@@ -340,7 +336,7 @@ void dump_token(int pos, token *t) {
 }
 
 void dump_token_simple(char *buf, int pos) {
-    token *t = &tokens[pos];
+    token *t = token_vec_get(tokens, pos);
     src_t *s = file_info(t->src_id);
 
     snprintf(buf, RCC_BUF_SIZE, "%s:%d:%d |%s|", s->filename, t->src_line, t->src_column, dump_file(t->src_id, t->src_pos, t->src_end_pos));
@@ -348,10 +344,10 @@ void dump_token_simple(char *buf, int pos) {
 
 void dump_tokens() {
     int i = token_pos;
-    if (i<0 || i>=token_len) {
+    if (i<0 || i>=token_vec_len(tokens)) {
         return;
     }
-    dump_token(i, &tokens[i]);
+    dump_token(i, token_vec_get(tokens, i));
 }
 
 void tokenize();
@@ -613,20 +609,17 @@ void tokenize() {
         // do macro string concatination
         if (accept_string("##")) {
             if (concat_start_token_pos == -1) {
-                concat_start_token_pos = token_len - 1;
+                concat_start_token_pos = token_vec_len(tokens) - 1;
             }
-            //token *t = &tokens[token_len - 1];
-            //debug("found ## @ start_token_pos:%d [%s]", concat_start_token_pos, file_get_part(t->src_id, t->src_pos, t->src_end_pos));
         } else if (concat_start_token_pos != -1) {
             char *buf = calloc(RCC_BUF_SIZE, 1);
-            for (int i = concat_start_token_pos; i < token_len; i++) {
-                token *t = &tokens[i];
+            for (int i = concat_start_token_pos; i < token_vec_len(tokens); i++) {
+                token *t = token_vec_get(tokens, i);
                 strcat(buf, file_get_part(t->src_id, t->src_pos, t->src_end_pos));
-                // debug("contatinating buf: %s, added %s, token:%d", buf, file_get_part(t->src_id, t->src_pos, t->src_end_pos), i);
             }
             buf = realloc(buf, strlen(buf)+1);
 
-            token_len = concat_start_token_pos; // reset concatinated tokens!
+            while (token_vec_len(tokens) - 1 > concat_start_token_pos) token_vec_pop(tokens); // reset concatinated tokens!
             concat_start_token_pos = -1;
 
             enter_new_file(src->filename, buf, 0, strlen(buf), 1, 1);
@@ -635,17 +628,10 @@ void tokenize() {
         }
         skip();
     }
-
-    // debug("start dump token %s ---------------", src->filename);
-    // for(int i=0; i<token_len; i++) {
-    //     token *t = &tokens[i];
-    //     dump_token(i, t);
-    // }
-    // debug("end dump token %s ---------------", src->filename);
-
 }
 
 void tokenize_file(char *filename) {
+    tokens = token_vec_new();
     enter_file(filename);
 
     enter_file("rcc/args.h");  // defines __builtin_va_* macros
@@ -655,11 +641,11 @@ void tokenize_file(char *filename) {
     tokenize();
     add_token(T_EOF);
     exit_file();
-    debug("tokens:%d", token_len);
+    debug("tokens:%d", token_vec_len(tokens));
 }
 
 bool expect(token_id id) {
-    if (tokens[token_pos].id == id) {
+    if (token_vec_get(tokens, token_pos)->id == id) {
         token_pos++;
         return TRUE;
     }
@@ -667,8 +653,8 @@ bool expect(token_id id) {
 }
 
 bool expect_int(int *value) {
-    if (tokens[token_pos].id == T_INT) {
-        *value = tokens[token_pos].int_value;
+    if (token_vec_get(tokens, token_pos)->id == T_INT) {
+        *value = token_vec_get(tokens, token_pos)->int_value;
         token_pos++;
         return TRUE;
     }
@@ -676,8 +662,8 @@ bool expect_int(int *value) {
 }
 
 bool expect_ident(char **value) {
-    if (tokens[token_pos].id == T_IDENT) {
-        *value = tokens[token_pos].str_value;
+    if (token_vec_get(tokens, token_pos)->id == T_IDENT) {
+        *value = token_vec_get(tokens, token_pos)->str_value;
         token_pos++;
         return TRUE;
     }
@@ -685,8 +671,8 @@ bool expect_ident(char **value) {
 }
 
 bool expect_string(char **value) {
-    if (tokens[token_pos].id == T_STRING) {
-        *value = tokens[token_pos].str_value;
+    if (token_vec_get(tokens, token_pos)->id == T_STRING) {
+        *value = token_vec_get(tokens, token_pos)->str_value;
         token_pos++;
         return TRUE;
     }
@@ -694,8 +680,8 @@ bool expect_string(char **value) {
 }
 
 bool expect_char(char *value) {
-    if (tokens[token_pos].id == T_CHAR) {
-        *value = tokens[token_pos].char_value;
+    if (token_vec_get(tokens, token_pos)->id == T_CHAR) {
+        *value = token_vec_get(tokens, token_pos)->char_value;
         token_pos++;
         return TRUE;
     }
@@ -711,5 +697,5 @@ void set_token_pos(int pos) {
 }
 
 bool is_eot() {
-    return (token_pos >= token_len);
+    return (token_pos >= token_vec_len(tokens));
 }
