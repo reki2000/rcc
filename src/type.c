@@ -6,7 +6,6 @@
 
 #include "type.h"
 
-#define NUM_ENUMS 1024
 #define NUM_STRUCT_MEMBERS 100 // todo: this should be same with type.h 
 
 VEC_HEADER(type_t, type_vec)
@@ -233,9 +232,10 @@ member_t *find_struct_member(type_t *t, char *name) {
     return 0;
 }
 
+VEC_HEADER(enum_t, enum_vec)
+VEC_BODY(enum_t, enum_vec)
 
-enum_t enums[NUM_ENUMS];
-int enums_len = 0;
+enum_vec enums = 0;
 
 type_t *find_enum_type(char *name) {
     // annonymous enum should be different in every occurence
@@ -255,22 +255,20 @@ type_t *find_enum_type(char *name) {
 }
 
 type_t *add_enum_type(char *name) {
+    if (!enums) enums = enum_vec_new();
+
     type_t *t = find_enum_type(name);
     if (t) {
         return t;
     }
 
-    if (enums_len >= NUM_ENUMS) {
-        error("too much enum definitions");
-    }
-
-    enum_t *e = &enums[enums_len++];
-    e->next_value = 0;
-    e->name = name;
+    enum_t e;
+    e.next_value = 0;
+    e.name = name;
     debug("added new enum type: ", name);
 
     t = add_type("$e", 4, 0, -1);
-    t->enum_of = e;
+    t->enum_of = enum_vec_push(enums, e);
 
     return t;
 }
