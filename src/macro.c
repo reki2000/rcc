@@ -7,8 +7,6 @@
 #include "file.h"
 #include "macro.h"
 
-#define NUM_MACROS 1000
-
 VEC_HEADER(macro_t, macro_vec)
 VEC_BODY(macro_t, macro_vec)
 
