@@ -6,9 +6,7 @@
 
 #include "type.h"
 
-#define NUM_TYPES 1024
 #define NUM_ENUMS 1024
-#define NUM_STRUCTS 1024
 #define NUM_STRUCT_MEMBERS 100 // todo: this should be same with type.h 
 
 VEC_HEADER(type_t, type_vec)
@@ -135,8 +133,10 @@ type_t *find_type(char *name) {
     return 0;
 }
 
-struct_t structs[NUM_STRUCTS];
-int structs_len = 0;
+VEC_HEADER(struct_t, struct_vec)
+VEC_BODY(struct_t, struct_vec)
+
+struct_vec structs = 0;
 
 type_t *find_struct_type(char *name, bool is_union) {
     for (int i=0; i<type_vec_len(types); i++) {
@@ -154,6 +154,8 @@ type_t *find_struct_type(char *name, bool is_union) {
 }
 
 type_t *add_struct_union_type(char *name, bool is_union, bool is_anonymous) {
+    if (!structs) structs = struct_vec_new();
+
     type_t *t = (void *)0;
     if (!is_anonymous) {
         t = find_struct_type(name, is_union);
@@ -161,17 +163,15 @@ type_t *add_struct_union_type(char *name, bool is_union, bool is_anonymous) {
             return t;
         }
     }
-    if (structs_len >= NUM_STRUCTS) {
-        error("Too many structs:%s", name);
-    }
-    struct_t *s = &structs[structs_len++];
-    s->name = is_anonymous? "annonymous" : name;
-    s->num_members = 0;
-    s->is_union = is_union;
-    s->is_anonymous = is_anonymous;
+    struct_t s;
+    s.name = is_anonymous? "annonymous" : name;
+    s.num_members = 0;
+    s.is_union = is_union;
+    s.is_anonymous = is_anonymous;
+    s.next_offset = 0;
 
     t = add_type("$s", 0, 0, -1);
-    t->struct_of = s;
+    t->struct_of = struct_vec_push(structs, s);
     return t;
 }
 
