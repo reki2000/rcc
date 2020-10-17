@@ -129,7 +129,7 @@ void build_macro_env(macro_t *m) {
 
             // store the macro's actual argument value into macro_t 
             macro_t *arg = macro_vec_extend(frame->args, 1);
-            arg->name = strdup(m->vars->items[i]);
+            arg->name = strdup(*char_p_vec_get(m->vars, i));
             arg->src = src;
             arg->start_pos = spos;
             arg->end_pos = epos;

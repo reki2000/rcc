@@ -601,7 +601,7 @@ void tokenize() {
             } else if (tokenize_ident(&str)) {
                 if (enter_macro(str)) {
                     tokenize();
-                    exit_file();
+                    exit_macro();
                 } else {
                     add_ident_token(str);
                 }

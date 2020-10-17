@@ -64,7 +64,7 @@ int open_include_file(char *filename) {
 }
 
 char *load_file(char *filename) {
-    char *buf = calloc(1, SIZE_FILE_BUF);
+    char *buf = calloc(SIZE_FILE_BUF,1);
 
     int fd;
 
@@ -96,7 +96,6 @@ char *load_file(char *filename) {
 }
 
 bool enter_new_file(char *filename, char *body, int pos, int len, int line, int column) {
-
     src_t *s = src_vec_extend(srcs, 1);
 
     s->id = src_vec_len(srcs) - 1;
