@@ -179,6 +179,9 @@ bool tokenize_int_hex(long *retval, int *size) {
         count++;
         next();
     }
+    if (count > 8) {
+        *size = 8;
+    }
 
     return (count != 0);
 }
@@ -193,6 +196,9 @@ bool tokenize_int_oct(long *retval, int *size) {
     while (decode_digit(ch(), retval, '0', '7', 0, 8)) {
         next();
     }
+    if (*retval > INT32_MAX) {
+        *size = 8;
+    }
     return TRUE;
 }
 
@@ -202,6 +208,9 @@ bool tokenize_int_decimal(long *retval, int *size) {
     while (decode_digit(ch(), retval, '0', '9', 0, 10)) {
         count++;
         next();
+    }
+    if (*retval > INT32_MAX) {
+        *size = 8;
     }
     return (count != 0);
 }
