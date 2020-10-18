@@ -143,27 +143,22 @@ struct_member: postfix '.' member_name | postfix '->' member_name
 
 primary: var_name | literal | '(' expr ')'
 
-literal: int_literal_expr | global_string
-
-int_literal_expr: int_literal_term ( ('+' | '-') int_literal_term )*
-int_literal_term: int_literal_factor ( '*' int_literal_factor )*
-int_literal_factor : '(' int_literal_expr ')' | int_literal 
-
-int_literal: signed_int | int | char | enum_member_name
-signed_int: ( '+' | '-' ) int
-char: ''' ( ANY | escaped_char ) '''
-
-global_string: '"' escaped_string '"'
-
-escaped_string: ( ANY | escaped_char )*
-escaped_char: '\' [0abfnrtr"'\]
+literal: INT | CHAR | enum_member_name | GLOBAL_STRING
 func_name: IDENT
 var_name: IDENT
-int: hex | oct | decimal
 
-hex: '0x' [0-9A-Fa-f]+
-oct: 0 DIGIT+
-decimal: DIGIT+
+CHAR: ''' ( ANY | ESCAPED_CHAR ) '''
+
+GLOBAL_STRING: '"' ESCAPED_STRING '"'
+
+ESCAPED_STRING: ( ANY | ESCAPED_CHAR )*
+ESCAPED_CHAR: '\' [0abfnrtr"'\]
+
+INT: ( HEX | OCT | DECIMAL ) 'L'?
+
+HEX: '0x' [0-9A-Fa-f]+
+OCT: '0' DIGIT*
+DECIMAL: [1-9] DIGIT*
 
 IDENT: IDENT_CHAR ( IDENT_CHAR | DIGIT )*;
 IDENT_CHAR: ALPHA | '_'

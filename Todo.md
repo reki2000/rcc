@@ -124,6 +124,7 @@
 - [x] #ifdef, #ifndef, #else, #endif
 - [x] #define macro
 - [x] #undef
+- [ ] '#' should be the first valid character in a line
 - [x] ## operator
 - [ ] # operator
 - [ ] __FILE__, __LINE__
@@ -154,7 +155,7 @@
 - [x] struct argument
 - [ ] struct return value
 
-- [ ] bug / expression sequence - evaluated result should have the last expression
+- [ ] bug / expression sequence - evaluated result should reflect the last expression
 
 ## Refactorings
 
