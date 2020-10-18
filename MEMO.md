@@ -178,3 +178,6 @@ define: start_of_line '#' 'define' IDENT ( '(' IDENT ( ',' IDENT )* ) ')' )? ( t
 ## Integer Literal
 - start with '-' '0x' 0' or DIGIT
 - might end by 'L'
+- 0xfff == 07777
+- 0xff == 0377
+- 0xffff_ffff == 0377_7777_7777
