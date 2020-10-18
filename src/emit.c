@@ -261,31 +261,34 @@ void emit_postfix_add(int size, int ptr_size) {
 void emit_copy(int size) {
     out("popq	%rdi");
     out("popq	%rsi");
-    if (size > 8) { // for size > 8, %rdx is an address, not value
-        while (size>=8) {
-            out("movq (%rsi), %rax");
-            out("movq %rax, (%rdi)");
-            out("addq $8, %rsi");
-            out("addq $8, %rdi");
-            size-=8;
-        }
-        while (size>=4) {
-            out("movl (%rsi), %ecx");
-            out("movl %ecx, (%rdi)");
-            out("addq $4, %rsi");
-            out("addq $4, %rdi");
-            size-=4;
-        }
-        while (size>0) {
-            out("movb (%rsi), %al");
-            out("movb %al, (%rdi)");
-            out("incq %rsi");
-            out("incq %rdi");
-            size-=4;
-        }
-    } else {
-        out_x("movX	%Zsi, (%rdi)", size);
+    out("pushq	%rsi");
+    while (size>=8) {
+        out("movq (%rsi), %rax");
+        out("movq %rax, (%rdi)");
+        out("addq $8, %rsi");
+        out("addq $8, %rdi");
+        size-=8;
     }
+    while (size>=4) {
+        out("movl (%rsi), %eax");
+        out("movl %eax, (%rdi)");
+        out("addq $4, %rsi");
+        out("addq $4, %rdi");
+        size-=4;
+    }
+    while (size>0) {
+        out("movb (%rsi), %al");
+        out("movb %al, (%rdi)");
+        out("incq %rsi");
+        out("incq %rdi");
+        size-=1;
+    }
+}
+
+void emit_store(int size) {
+    out("popq	%rdi");
+    out("popq	%rsi");
+    out_x("movX	%Zsi, (%rdi)", size);
     out("pushq	%rsi");
 }
 
@@ -598,7 +601,11 @@ void compile(int pos) {
         case TYPE_BIND:
             compile(p->atom_pos); // rvalue
             compile((p+1)->atom_pos); // lvalue - should be an address
-            emit_copy(type_size(p->t));
+            if (p->t->struct_of) {
+                emit_copy(type_size(p->t));
+            } else {
+                emit_store(type_size(p->t));
+            }
             break;
         case TYPE_PTR:
         case TYPE_PTR_DEREF:
@@ -843,7 +850,7 @@ void compile(int pos) {
                 if (t->struct_of) {
                     int size = type_size(t);
                     struct_size[i] = size;
-                    use_reg[i] = (num_reg_args < 5 && size <= 16);
+                    use_reg[i] = ((size <= 8 && num_reg_args < ABI_NUM_GP) || (size <= 16 && num_reg_args < ABI_NUM_GP - 1));
                     if (use_reg[i]) num_reg_args += (size <= 8) ? 1 : 2;
                 } else  {
                     struct_size[i] = 0;
@@ -962,6 +969,8 @@ void compile_func(func *f) {
                 debug("is on the stack. do nothing here", f->name, v->name);
             } else if (size <= 8) {
                 debug("is passed by one register. do nothing here", f->name, v->name);
+                emit_var_arg_init(reg_index++, v->offset, type_size(v->t));
+                arg_offset = align(v->offset, ALIGN_OF_STACK);
             } else {
                 debug("is passed by two registers. ", f->name, v->name);
                 emit_var_arg_init(reg_index++, v->offset, 8);
