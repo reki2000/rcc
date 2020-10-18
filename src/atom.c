@@ -202,6 +202,15 @@ int alloc_typed_int_atom(int type, int value, type_t *t) {
     return pos;
 }
 
+int alloc_typed_long_atom(int type, long value, type_t *t) {
+    int pos = alloc_atom(1);
+    atom_t *a = &program[pos];
+    a->type = type;
+    a->long_value = value;
+    a->t = t;
+    return pos;
+}
+
 int atom_to_rvalue(int target) {
     atom_t *a = &program[target];
     type_t *t;

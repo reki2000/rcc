@@ -34,20 +34,6 @@ bool expect_enum_member(int *v) {
     return FALSE;
 }
 
-bool expect_int_unary(int *v) {
-    if (expect_int(v)) {
-        return TRUE;
-    }
-
-    char ch;
-    if (expect_char(&ch)) {
-        *v = (int)ch;
-        return TRUE;
-    }
-
-    return expect_enum_member(v);
-}
-
 int parse_string() {
     char *s;
     if (expect_string(&s)) {
@@ -59,9 +45,18 @@ int parse_string() {
 
 int parse_int_literal() {
     int v=0;
-    if(expect_int_unary(&v)) {
+    if(expect_int(&v) || expect_enum_member(&v)) {
         return alloc_typed_int_atom(TYPE_INTEGER, v, type_int);
     }
+    char ch;
+    if (expect_char(&ch)) {
+        return alloc_typed_int_atom(TYPE_INTEGER, (int)ch, type_char);
+    }
+    long l;
+    if (expect_long(&l)) {
+        return alloc_typed_long_atom(TYPE_INTEGER, l, type_long);
+    }
+
     return 0;
 }
 
@@ -70,14 +65,7 @@ int parse_literal() {
     pos = parse_string();
     if (pos) return pos;
 
-    int p = get_token_pos();
-    pos = parse_int_literal();
-    if (!pos) {
-        set_token_pos(p);
-        return 0;
-    }
-
-    return pos;
+    return parse_int_literal();
 }
 
 var_t *parse_var_name() {
