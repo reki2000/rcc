@@ -1,7 +1,7 @@
 typedef enum {
     T_RESERVE,
     T_EOF,
-    T_INT,
+    T_UINT32, T_UINT64,
     T_CHAR,
     T_STRING,
     T_IDENT,
