@@ -2,6 +2,7 @@
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
+#include "vec.h"
 
 #include "token.h"
 
@@ -187,6 +188,9 @@ char *reg(int no, int size) {
     char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9" };
     char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d" };
     char *regs1[] = { "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b" };
+    if (no >= 6) {
+        error("invalid reg no:%d", no);
+    }
     switch (size) {
         case 8: return regs8[no];
         case 4: return regs4[no];
@@ -257,31 +261,34 @@ void emit_postfix_add(int size, int ptr_size) {
 void emit_copy(int size) {
     out("popq	%rdi");
     out("popq	%rsi");
-    if (size > 8) { // for size > 8, %rdx is an address, not value
-        while (size>=8) {
-            out("movq (%rsi), %rax");
-            out("movq %rax, (%rdi)");
-            out("addq $8, %rsi");
-            out("addq $8, %rdi");
-            size-=8;
-        }
-        while (size>=4) {
-            out("movl (%rsi), %ecx");
-            out("movl %ecx, (%rdi)");
-            out("addq $4, %rsi");
-            out("addq $4, %rdi");
-            size-=4;
-        }
-        while (size>=0) {
-            out("movb (%rsi), %al");
-            out("movb %al, (%rdi)");
-            out("incq %rsi");
-            out("incq %rdi");
-            size-=4;
-        }
-    } else {
-        out_x("movX	%Zsi, (%rdi)", size);
+    out("pushq	%rsi");
+    while (size>=8) {
+        out("movq (%rsi), %rax");
+        out("movq %rax, (%rdi)");
+        out("addq $8, %rsi");
+        out("addq $8, %rdi");
+        size-=8;
     }
+    while (size>=4) {
+        out("movl (%rsi), %eax");
+        out("movl %eax, (%rdi)");
+        out("addq $4, %rsi");
+        out("addq $4, %rdi");
+        size-=4;
+    }
+    while (size>0) {
+        out("movb (%rsi), %al");
+        out("movb %al, (%rdi)");
+        out("incq %rsi");
+        out("incq %rdi");
+        size-=1;
+    }
+}
+
+void emit_store(int size) {
+    out("popq	%rdi");
+    out("popq	%rsi");
+    out_x("movX	%Zsi, (%rdi)", size);
     out("pushq	%rsi");
 }
 
@@ -521,43 +528,55 @@ void emit_jmp_case_if_not(int i, int size) {
     out_int("jnz	.L", i, "");
 }
 
+int emit_push_struct(int size) {
+    int offset = align(size, 8);
+    out("popq %rsi"); // has address of the struct value
+    out_int("addq $-", offset, ", %rsp");
+    out("movq %rsp, %rdi");
+    out("pushq %rsi");
+    out("pushq %rdi");
+    emit_copy(size);
+    out("popq %rax"); // drop
+    return offset / 8;
+}
+
 
 int func_return_label;
 
-#define NUM_BREAK_LABELS 1000
-
-struct {
+typedef struct {
     int break_label;
     int continue_label;
-} break_labels[NUM_BREAK_LABELS];
+} break_label_t;
 
-int break_label_top = -1;
+VEC_HEADER(break_label_t, break_label_vec)
+VEC_BODY(break_label_t, break_label_vec)
+
+break_label_vec break_labels = 0;
 
 int get_break_label() {
-    if (break_label_top < 0) {
+    if (!break_label_vec_len(break_labels)) {
         error("cannot emit break");
     }
-    return break_labels[break_label_top].break_label;
+    return break_label_vec_top(break_labels)->break_label;
 }
 int get_continue_label() {
-    if (break_label_top < 0) {
+    if (!break_label_vec_len(break_labels)) {
         error("cannot emit break");
     }
-    return break_labels[break_label_top].continue_label;
+    return break_label_vec_top(break_labels)->continue_label;
 }
 void enter_break_label(int break_label, int continue_label) {
-    if (break_label_top >= NUM_BREAK_LABELS) {
-        error("too many break label");
-    }
-    break_label_top++;
-    break_labels[break_label_top].break_label = break_label;
-    break_labels[break_label_top].continue_label = continue_label;
+    if (!break_labels) break_labels = break_label_vec_new();
+    break_label_t b;
+    b.break_label = break_label;
+    b.continue_label = continue_label;
+    break_label_vec_push(break_labels, b);
 }
 void exit_break_label() {
-    if (break_label_top < 0) {
+    if (!break_label_vec_len(break_labels)) {
         error("cannot exit break label");
     }
-    break_label_top--;
+    break_label_vec_pop(break_labels);
 }
 
 
@@ -567,6 +586,7 @@ void compile(int pos) {
     char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
     debug("compiling atom_t: %s", ast_text);
+    set_token_pos(p->token_pos);
     //dump_token_by_id(p->token_pos);
 
     switch (p->type) {
@@ -581,7 +601,11 @@ void compile(int pos) {
         case TYPE_BIND:
             compile(p->atom_pos); // rvalue
             compile((p+1)->atom_pos); // lvalue - should be an address
-            emit_copy(type_size(p->t));
+            if (p->t->struct_of) {
+                emit_copy(type_size(p->t));
+            } else {
+                emit_store(type_size(p->t));
+            }
             break;
         case TYPE_PTR:
         case TYPE_PTR_DEREF:
@@ -816,12 +840,46 @@ void compile(int pos) {
             func *f = (func *)(p->ptr_value);
             int argc = (p+1)->int_value;
 
-            for (int i=argc-1; i>=0; i--) {
-                compile((p+i+2)->atom_pos);
+            int num_reg_args = 0;
+            int num_stack_args = 0;
+
+            bool use_reg[100]; // NUM_ARGC
+            int struct_size[100]; 
+            for (int i=0; i<argc; i++) {
+                type_t *t = program[(p+i+2)->atom_pos].t;
+                if (t->struct_of) {
+                    int size = type_size(t);
+                    struct_size[i] = size;
+                    use_reg[i] = ((size <= 8 && num_reg_args < ABI_NUM_GP) || (size <= 16 && num_reg_args < ABI_NUM_GP - 1));
+                    if (use_reg[i]) num_reg_args += (size <= 8) ? 1 : 2;
+                } else  {
+                    struct_size[i] = 0;
+                    use_reg[i] = (num_reg_args < ABI_NUM_GP);
+                    if (use_reg[i]) num_reg_args++;
+                }
             }
 
-            int num_reg_args = argc > ABI_NUM_GP ? ABI_NUM_GP : argc;
-            int num_stack_args = argc > ABI_NUM_GP ? argc - ABI_NUM_GP : 0;
+            // push for stack-passing
+            for (int i=argc-1; i>=0; i--) {
+                if (use_reg[i]) continue;
+                debug("compiling stack passing values %d", i);
+                compile((p+i+2)->atom_pos);
+                if (struct_size[i] > 0) {
+                    num_stack_args += emit_push_struct(struct_size[i]);
+                } else {
+                    num_stack_args++;
+                }
+            }
+
+            // push for register-passing
+            for (int i=argc-1; i>=0; i--) {
+                if (!use_reg[i]) continue;
+                debug("compiling register passing values %d", i);
+                compile((p+i+2)->atom_pos);
+                if (struct_size[i] > 0) {
+                    emit_push_struct(struct_size[i]);
+                }
+            }
 
             for (int i=0; i<num_reg_args; i++) {
                 emit_pop_argv(i);
@@ -888,6 +946,8 @@ void compile_func(func *f) {
     if (!f->body_pos) {
         return;
     }
+    set_token_pos(program[f->body_pos].token_pos);
+
     func_return_label = new_label();
 
     out_str(".globl	", f->name, "");
@@ -899,17 +959,40 @@ void compile_func(func *f) {
     out_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
     int arg_offset = 0;
+    int reg_index = 0;
     for (int i=0; i<f->argc; i++) {
-        var_t *v = &(f->argv[i]);
-        switch (type_size(v->t))  { case 1: case 4: case 8: break; default: error("invalid size for funciton arg:%s", v->name); }
-        if (i<6) {
-            emit_var_arg_init(i, v->offset, type_size(v->t));
+        var_t *v = var_vec_get(f->argv, i);
+        debug("emitting function:%s arg:%s", f->name, v->name);
+        if (v->t->struct_of) {
+            int size = type_size(v->t);
+            if (size > 16 || reg_index >= ABI_NUM_GP || (size > 8 && reg_index == ABI_NUM_GP - 1)) {
+                debug("is on the stack. do nothing here", f->name, v->name);
+            } else if (size <= 8) {
+                debug("is passed by one register. do nothing here", f->name, v->name);
+                emit_var_arg_init(reg_index++, v->offset, type_size(v->t));
+                arg_offset = align(v->offset, ALIGN_OF_STACK);
+            } else {
+                debug("is passed by two registers. ", f->name, v->name);
+                emit_var_arg_init(reg_index++, v->offset, 8);
+                emit_var_arg_init(reg_index++, v->offset - 8, size - 8);
+                arg_offset = align(v->offset, ALIGN_OF_STACK);
+            }
+            continue;
+        } else {
+            switch (type_size(v->t))  { 
+                case 1: case 4: case 8: break;
+                default: error("invalid size for funciton arg:%s", v->name); 
+            }
+        }
+        if (reg_index < ABI_NUM_GP) {
+            emit_var_arg_init(reg_index, v->offset, type_size(v->t));
             arg_offset = align(v->offset, ALIGN_OF_STACK);
+            reg_index++;
         }
     }
     if (f->is_variadic) {
-        for (int i=0; i<6; i++) {
-            emit_var_arg_init(5-i, 8 + i*8 + arg_offset + 8*16, 8);
+        for (int i=0; i<ABI_NUM_GP; i++) {
+            emit_var_arg_init(ABI_NUM_GP-i-1, 8 + i*8 + arg_offset + 8*16, 8);
         }
     }
 
@@ -988,8 +1071,9 @@ void emit(int fd) {
     out(".file	\"main.c\"");
     out("");
 
-    for (int i=0; i<env[0].num_vars; i++) {
-        var_t *v = &(env[0].vars[i]);
+    var_vec vars = get_global_frame()->vars;
+    for (int i=0; i<var_vec_len(vars); i++) {
+        var_t *v = var_vec_get(vars, i);
         if (v->is_constant) {
             continue;
         }
@@ -1017,13 +1101,12 @@ void emit(int fd) {
     out(".text");
     out("");
 
-    func *f = &functions[0];
-    while (f->name != 0) {
+    for (int i=0; i<func_vec_len(functions); i++) {
+        func *f = func_vec_get(functions, i);
         if (f->body_pos != 0) {
             debug("%s --------------------- ", f->name);
             //dump_atom_tree(f->body_pos, 0);
             compile_func(f);
         }
-        f++;
     }
 }

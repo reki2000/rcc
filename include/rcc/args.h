@@ -12,3 +12,9 @@
 #define __builtin_va_arg(va, ret_type) \
     (*(ret_type *)((((va->gp_offset+=8) < (48+8)) ? (va->reg_save_area + va->gp_offset - 8) : (va->overflow_arg_area + va->gp_offset - 8 - 48))))
 
+typedef struct {
+    int gp_offset;
+    int fp_offset;
+    char *overflow_arg_area;
+    char *reg_save_area;
+} * __builtin_va_list;

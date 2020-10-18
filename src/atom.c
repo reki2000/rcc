@@ -2,6 +2,7 @@
 #include "rsys.h"
 #include "rstring.h"
 #include "devtool.h"
+#include "vec.h"
 
 #include "type.h"
 #include "var.h"
@@ -59,7 +60,7 @@ void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
     strcat(buf, " t:");
     dump_type(buf, p->t);
     strcat(buf, " ");
-    dump_token_simple(buf, p->token_pos);
+    dump_token_simple(buf+strlen(buf), p->token_pos);
 }
 
 void dump_atom(int pos, int indent) {
@@ -257,8 +258,8 @@ int alloc_ptr_atom(int target) {
         case TYPE_GLOBAL_VAR_REF:
             return  alloc_typed_pos_atom(TYPE_PTR, target, a->t);
     }
-    dump_atom_tree(target, 0);
-    error("cannot get pointer of above atom");
+    dump_atom_tree(target, 1);
+    error("cannot get pointer of above atom #%d atom_type:%d", target, a->type);
     return 0;
 }
 

@@ -3,12 +3,10 @@ typedef struct {
     src_t *src;
     int start_pos;
     int end_pos;
-    char_p_vec *vars;
+    char_p_vec vars;
 } macro_t;
 
-extern macro_t macros[];
-
-void add_macro(const char *name, int start_pos, int end_pos, char_p_vec *vars);
+void add_macro(const char *name, int start_pos, int end_pos, char_p_vec vars);
 void delete_macro(const char *name);
 macro_t *find_macro(const char *name);
 

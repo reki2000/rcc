@@ -24,7 +24,6 @@ char *color_white = "\e[37m";
 
 extern int token_pos;
 extern token *tokens;
-extern src_t *src_files;
 
 void _log(level_e level, char *message) {
     char *color_str[] = {color_red, color_red, "", color_yellow, ""};
@@ -35,9 +34,6 @@ void _log(level_e level, char *message) {
 
     if (src != NULL) {
         snprintf(buf, RCC_BUF_SIZE, "%s%s: [%s:%d:%d] %s%s\n", tty? color_str[level]:"", level_str[level], src->filename, src->line, src->column, message, tty? color_white:"");
-    // } else if (token_pos != 0) {
-    //     token *t = &tokens[token_pos];
-    //     snprintf(buf, RCC_BUF_SIZE, "%s%s: [%s:%d:%d] %s%s\n", tty? color_str[level]:"", level_str[level], src_files[t->src_id].filename, t->src_line, t->src_column, message, tty? color_white:"");
     } else {
         snprintf(buf, RCC_BUF_SIZE, "%s%s: %s%s\n", tty? color_str[level]:"", level_str[level], message, tty? color_white:"");
     }

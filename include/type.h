@@ -6,13 +6,14 @@ typedef struct member_t {
     struct type_t *t;
 } member_t;
 
+VEC_HEADER(member_t, member_vec)
+
 typedef struct struct_t {
     char *name;
     bool is_union;
     bool is_anonymous;
     int next_offset;
-    int num_members;
-    member_t members[100];
+    member_vec members;
 } struct_t;
 
 typedef struct enum_t {
@@ -22,9 +23,9 @@ typedef struct enum_t {
 
 typedef struct type_t {
     int size;
+    int array_length;
     char *name;
     type_t *ptr_to;
-    int array_length;
     /*
      *  -1: not array
      *  0: array without size specification (ptr_to must be set)
@@ -41,8 +42,6 @@ extern type_t *type_char;
 extern type_t *type_long;
 extern type_t *type_void_ptr;
 extern type_t *type_char_ptr;
-
-extern type_t *type_builtin_va_list;
 
 extern void init_types();
 extern type_t *add_type(char *, int , type_t *, int );

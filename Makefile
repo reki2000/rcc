@@ -43,7 +43,7 @@ $(GEN3): $(GEN2)
 unittest: clean $(OBJECTS) unittests
 
 unittests: $(TESTSOURCES)
-	for f in $^; do $(CC) $(CFLAGS) -Iinclude -o out/test.out $$f $(OBJDIR)/$$(basename $${f/_test.c/.o}); out/test.out; done
+	for f in $^; do echo "testing $$f"; $(CC) $(CFLAGS) -Iinclude -o out/test.out $$f $(OBJDIR)/vec.o; out/test.out; done
 
 test: clean $(GEN1)
 	test/test.sh
@@ -53,3 +53,10 @@ test-gen2: clean $(GEN2)
 
 test-gen3: clean $(GEN3)
 	test/test.sh --gen3
+
+debug: 
+	gdb bin/rcc test/core
+
+debug-test:
+	gdb test/out/test.out test/core
+
