@@ -330,7 +330,7 @@ void add_int_token(int val) {
     t->int_value = val;
 }
 
-void add_long_token(int val) {
+void add_long_token(long val) {
     token *t = add_token(T_UINT64);
     t->long_value = val;
 }

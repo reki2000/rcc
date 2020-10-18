@@ -48,11 +48,11 @@ int parse_int_literal() {
     if(expect_int(&v) || expect_enum_member(&v)) {
         return alloc_typed_int_atom(TYPE_INTEGER, v, type_int);
     }
-    char ch;
+    char ch=0;
     if (expect_char(&ch)) {
         return alloc_typed_int_atom(TYPE_INTEGER, (int)ch, type_char);
     }
-    long l;
+    long l=0;
     if (expect_long(&l)) {
         return alloc_typed_long_atom(TYPE_INTEGER, l, type_long);
     }
