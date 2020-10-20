@@ -186,11 +186,15 @@ void emit_global_var_val(char *name, int size) {
     out("pushq	%rax");
 }
 
+typedef enum {
+    R_DI, R_SI, R_DX, R_CX, R_8, R_9, R_AX, R_BX, R_10, R_11, R_12, R_13, R_14, R_15
+} reg_e;
+
 char *reg(int no, int size) {
-    char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9" };
-    char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d" };
-    char *regs1[] = { "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b" };
-    if (no >= 6) {
+    char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8" , "%r9" , "%rax", "%rbx", "%r10" , "%r11" , "%r12" , "%r13" , "%r14" , "%r15"  };
+    char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d", "%eax", "%ebx", "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d" };
+    char *regs1[] = { "%dil", "%sil", "%dl" , "%cl" , "%r8b", "%r9b", "%al" , "%bl",  "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b" };
+    if (no >= 16) {
         error("invalid reg no:%d", no);
     }
     switch (size) {
