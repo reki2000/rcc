@@ -20,27 +20,31 @@ void _write(char *s) {
     write(output_fd, s, strlen(s));
 }
 
+void outf(char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    char buf[RCC_BUF_SIZE];
+    vsnprintf(buf, RCC_BUF_SIZE, fmt, va);
+    va_end(va);
+    _write(buf);
+}
+
 void out_comment(char *str) {
-    _write("# ");
-    _write(str);
-    _write("\n");
+    outf("# %s\n", str);
 }
 
 void out_label(char *str) {
-    _write(str);
-    _write(":\n");
+    outf("%s:\n", str);
 }
 
 void out(char *str) {
-    _write("\t");
-    _write(str);
-    _write("\n");
+    outf("\t%s\n", str);
 }
 
 /**
  * Build a proper assembly instruction which suits for the specified size.
  * ex:
- *   movX Zedx, %Zax (size=4) --> movl %edx, %eax
+ *   movX %Zdx, %Zax (size=4) --> movl %edx, %eax
  *   addX $2, %Zdi   (size=1) --> addb $2, %dil
  */
 void out_x(char *fmt, int size) {
@@ -81,17 +85,11 @@ void out_x(char *fmt, int size) {
 }
 
 void out_int(char *str1, int i, char *str2) {
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, str1, i, str2);
-    out(buf);
+    outf("%s%d%s\n", str1, i, str2);
 }
 
 void out_int4(char *str1, char *str2, char *str3, int i, char *str4) {
-    char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, str1);
-    strcat(buf, str2);
-    _strcat3(buf, str3, i, str4);
-    out(buf);
+    outf("%s%s%s%d%s\n", str1, str2, str3, i, str4);
 }
 
 void out_intx(char *str1, char *str2, int i, char *str3, int size) {
@@ -102,11 +100,7 @@ void out_intx(char *str1, char *str2, int i, char *str3, int size) {
 }
 
 void out_str(char *str1, char *str2, char *str3) {
-    char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, str1);
-    strcat(buf, str2);
-    strcat(buf, str3);
-    out(buf);
+    outf("%s%s%s\n", str1, str2, str3);
 }
 
 void out_strx(char *str1, char *str2, char *str3, char *str4, int size) {
