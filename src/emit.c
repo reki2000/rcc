@@ -20,7 +20,7 @@ void _write(char *s) {
     write(output_fd, s, strlen(s));
 }
 
-void outf(char *fmt, ...) {
+void genf(char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     char buf[RCC_BUF_SIZE];
@@ -29,16 +29,16 @@ void outf(char *fmt, ...) {
     _write(buf);
 }
 
-void out_comment(char *str) {
-    outf("# %s\n", str);
+void gen_comment(char *str) {
+    genf("# %s\n", str);
 }
 
-void out_label(char *str) {
-    outf("%s:\n", str);
+void gen_label(char *str) {
+    genf("%s:\n", str);
 }
 
-void out(char *str) {
-    outf("\t%s\n", str);
+void gen(char *str) {
+    genf("\t%s\n", str);
 }
 
 /**
@@ -47,7 +47,7 @@ void out(char *str) {
  *   movX %Zdx, %Zax (size=4) --> movl %edx, %eax
  *   addX $2, %Zdi   (size=1) --> addb $2, %dil
  */
-void out_x(char *fmt, int size) {
+void gen_x(char *fmt, int size) {
     if (size != 8 && size != 4 && size != 1) {
         error("fmt:%s unknown size:%d", fmt, size);
     }
@@ -81,35 +81,35 @@ void out_x(char *fmt, int size) {
         d++;
     }
     *d = 0;
-    out(buf);
+    gen(buf);
 }
 
-void out_int(char *str1, int i, char *str2) {
-    outf("%s%d%s\n", str1, i, str2);
+void gen_int(char *str1, int i, char *str2) {
+    genf("%s%d%s\n", str1, i, str2);
 }
 
-void out_int4(char *str1, char *str2, char *str3, int i, char *str4) {
-    outf("%s%s%s%d%s\n", str1, str2, str3, i, str4);
+void gen_int4(char *str1, char *str2, char *str3, int i, char *str4) {
+    genf("%s%s%s%d%s\n", str1, str2, str3, i, str4);
 }
 
-void out_intx(char *str1, char *str2, int i, char *str3, int size) {
+void gen_intx(char *str1, char *str2, int i, char *str3, int size) {
     char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str1);
     _strcat3(buf, str2, i, str3);
-    out_x(buf, size);
+    gen_x(buf, size);
 }
 
-void out_str(char *str1, char *str2, char *str3) {
-    outf("%s%s%s\n", str1, str2, str3);
+void gen_str(char *str1, char *str2, char *str3) {
+    genf("%s%s%s\n", str1, str2, str3);
 }
 
-void out_strx(char *str1, char *str2, char *str3, char *str4, int size) {
+void gen_strx(char *str1, char *str2, char *str3, char *str4, int size) {
     char buf[RCC_BUF_SIZE] = {0};
     strcat(buf, str1);
     strcat(buf, str2);
     strcat(buf, str3);
     strcat(buf, str4);
-    out_x(buf, size);
+    gen_x(buf, size);
 }
 
 int label_index = 0;
@@ -121,11 +121,11 @@ void emit_int(long i, int size) {
     if (size == 8) {
         char buf[RCC_BUF_SIZE];
         snprintf(buf, RCC_BUF_SIZE, "movq $%ld,%%rax", i);
-        out(buf);
+        gen(buf);
     } else {
-        out_int("movl	$", i, ", %eax");
+        gen_int("movl	$", i, ", %eax");
     }
-    out("pushq	%rax");
+    gen("pushq	%rax");
 }
 
 void emit_string(char* str) {
@@ -154,30 +154,30 @@ void emit_string(char* str) {
     }
     *d++ = '"';
     *d = 0;
-    out(buf);
+    gen(buf);
 }
 
 void emit_global_ref(int i) {
-    out_int("leaq	.G", i, "(%rip), %rax");
-    out("pushq	%rax");
+    gen_int("leaq	.G", i, "(%rip), %rax");
+    gen("pushq	%rax");
 }
 
 void emit_var_val(int i, int size) {
     if (size == 1) {
-        out_int("movzbl	-", i, "(%rbp), %eax");
+        gen_int("movzbl	-", i, "(%rbp), %eax");
     } else {
-        out_intx("movX	", "-", i, "(%rbp), %Zax", size);
+        gen_intx("movX	", "-", i, "(%rbp), %Zax", size);
     }
-    out("pushq	%rax");
+    gen("pushq	%rax");
 }
 
 void emit_global_var_val(char *name, int size) {
     if (size == 1) {
-        out_str("movzbl	", name, "(%rip), %eax");
+        gen_str("movzbl	", name, "(%rip), %eax");
     } else {
-        out_strx("movX	", "", name, "(%rip), %Zax", size);
+        gen_strx("movX	", "", name, "(%rip), %Zax", size);
     }
-    out("pushq	%rax");
+    gen("pushq	%rax");
 }
 
 typedef enum {
@@ -206,7 +206,7 @@ void emit_var_arg_init(int no, int offset, int size) {
         strcat(buf, reg(no, 1));
         strcat(buf, ",\t");
         strcat(buf, reg(no, 4));
-        out(buf);
+        gen(buf);
         size = 4;
         buf[0] = '\0';
     }
@@ -214,133 +214,133 @@ void emit_var_arg_init(int no, int offset, int size) {
     strcat(buf, "\t");
     strcat(buf, reg(no, size));
     strcat(buf, ", ");
-    out_int(buf, -offset, "(%rbp)");
+    gen_int(buf, -offset, "(%rbp)");
 }
 
 void emit_pop_argv(int no) {
-    out_str("popq	", reg(no, 8), "");
+    gen_str("popq	", reg(no, 8), "");
 }
 
 void emit_call(char *name, int num_stack_args, char *plt) {
-    out("movb $0, %al");
-    out_str("call	", name, plt);
+    gen("movb $0, %al");
+    gen_str("call	", name, plt);
     if (num_stack_args > 0) {
-        out_int("addq $", num_stack_args * 8, ", %rsp");
+        gen_int("addq $", num_stack_args * 8, ", %rsp");
     }
-    out("pushq	%rax");
+    gen("pushq	%rax");
 }
 
 void emit_deref(int size) {
-    out("popq	%rax");
+    gen("popq	%rax");
     if (size == 1) {
-        out("movzbl	(%rax), %eax");
+        gen("movzbl	(%rax), %eax");
     } else {
-        out_x("movX	(%rax), %Zax", size);
+        gen_x("movX	(%rax), %Zax", size);
     }
-    out("pushq	%rax");
+    gen("pushq	%rax");
 }
 
 void emit_var_ref(int i) {
-    out_int("leaq	", -i, "(%rbp), %rax");
-    out("pushq	%rax");
+    gen_int("leaq	", -i, "(%rbp), %rax");
+    gen("pushq	%rax");
 }
 
 void emit_global_var_ref(char *name) {
-    out_str("leaq	", name, "(%rip), %rax");
-    out("pushq	%rax");
+    gen_str("leaq	", name, "(%rip), %rax");
+    gen("pushq	%rax");
 }
 
 void emit_postfix_add(int size, int ptr_size) {
-    out("popq	%rax");
-    out_x("movX	(%rax), %Zdx", size);
-    out("pushq	%rdx");
-    out_intx("add",  "X	$", ptr_size, ", %Zdx", size);
-    out_x("movX	%Zdx, (%rax)", size);
+    gen("popq	%rax");
+    gen_x("movX	(%rax), %Zdx", size);
+    gen("pushq	%rdx");
+    gen_intx("add",  "X	$", ptr_size, ", %Zdx", size);
+    gen_x("movX	%Zdx, (%rax)", size);
 }
 
 void emit_copy(int size) {
-    out("popq	%rdi");
-    out("popq	%rsi");
-    out("pushq	%rsi");
+    gen("popq	%rdi");
+    gen("popq	%rsi");
+    gen("pushq	%rsi");
     while (size>=8) {
-        out("movq (%rsi), %rax");
-        out("movq %rax, (%rdi)");
-        out("addq $8, %rsi");
-        out("addq $8, %rdi");
+        gen("movq (%rsi), %rax");
+        gen("movq %rax, (%rdi)");
+        gen("addq $8, %rsi");
+        gen("addq $8, %rdi");
         size-=8;
     }
     while (size>=4) {
-        out("movl (%rsi), %eax");
-        out("movl %eax, (%rdi)");
-        out("addq $4, %rsi");
-        out("addq $4, %rdi");
+        gen("movl (%rsi), %eax");
+        gen("movl %eax, (%rdi)");
+        gen("addq $4, %rsi");
+        gen("addq $4, %rdi");
         size-=4;
     }
     while (size>0) {
-        out("movb (%rsi), %al");
-        out("movb %al, (%rdi)");
-        out("incq %rsi");
-        out("incq %rdi");
+        gen("movb (%rsi), %al");
+        gen("movb %al, (%rdi)");
+        gen("incq %rsi");
+        gen("incq %rdi");
         size-=1;
     }
 }
 
 void emit_store(int size) {
-    out("popq	%rdi");
-    out("popq	%rsi");
-    out_x("movX	%Zsi, (%rdi)", size);
-    out("pushq	%rsi");
+    gen("popq	%rdi");
+    gen("popq	%rsi");
+    gen_x("movX	%Zsi, (%rdi)", size);
+    gen("pushq	%rsi");
 }
 
 void emit_pop() {
-    out("popq	%rax");
-    out("");
+    gen("popq	%rax");
+    gen("");
 }
 
 void emit_zcast(int size) {
     if (size == 8) {
         return;
     }
-    out("popq	%rax");
+    gen("popq	%rax");
     if (size == 1) {
-        out("movzbq	%al, %rax");
+        gen("movzbq	%al, %rax");
     } else if (size == 4) {
-        out("movzlq	%eax, %rax");
+        gen("movzlq	%eax, %rax");
     } else {
         error("invalid size for emit_zcast");
     }
-    out("pushq %rax");
+    gen("pushq %rax");
 }
 
 void emit_scast(int size) {
     if (size == 8) {
         return;
     }
-    out("popq	%rax");
+    gen("popq	%rax");
     if (size == 1) {
-        out("movsbq	%al, %rax");
+        gen("movsbq	%al, %rax");
     } else if (size == 4) {
-        out("movslq	%eax, %rax");
+        gen("movslq	%eax, %rax");
     } else {
         error("invalid size for emit_scast");
     }
-    out("pushq %rax");
+    gen("pushq %rax");
 }
 
 void emit_array_index(int item_size) {
-    out("popq	%rax");
-    out_int("movl	$", item_size, ",%ecx");
-    out("imulq %rcx");
-    out("popq	%rdx");
-    out("addq %rdx, %rax");
-    out("pushq	%rax");
+    gen("popq	%rax");
+    gen_int("movl	$", item_size, ",%ecx");
+    gen("imulq %rcx");
+    gen("popq	%rdx");
+    gen("addq %rdx, %rax");
+    gen("pushq	%rax");
 }
 
 void emit_binop(char *op, int size) {
-    out("popq	%rdx");
-    out("popq	%rax");
-    out_strx(op, "X", "	%Zdx, %Zax", "", size);
-    out("pushq	%rax");
+    gen("popq	%rdx");
+    gen("popq	%rax");
+    gen_strx(op, "X", "	%Zdx, %Zax", "", size);
+    gen("pushq	%rax");
 }
 
 void emit_add(int size) {
@@ -364,49 +364,49 @@ void emit_bit_xor(int size) {
 }
 
 void emit_bit_lshift(int size) {
-    out("popq	%rcx");
-    out("popq	%rax");
-    out_x("salX %cl, %Zax", size);
-    out("pushq	%rax");
+    gen("popq	%rcx");
+    gen("popq	%rax");
+    gen_x("salX %cl, %Zax", size);
+    gen("pushq	%rax");
 }
 
 void emit_bit_rshift(int size) {
-    out("popq	%rcx");
-    out("popq	%rax");
-    out_x("sarX %cl, %Zax", size);
-    out("pushq	%rax");
+    gen("popq	%rcx");
+    gen("popq	%rax");
+    gen_x("sarX %cl, %Zax", size);
+    gen("pushq	%rax");
 }
 
 void emit_mul(int size) {
-    out("popq	%rdx");
-    out("popq	%rax");
-    out_x("imulX	%Zdx", size);
-    out("pushq	%rax");
+    gen("popq	%rdx");
+    gen("popq	%rax");
+    gen_x("imulX	%Zdx", size);
+    gen("pushq	%rax");
 }
 
 void emit_div(int size) {
-    out("popq	%rcx");
-    out("popq	%rax");
-    out((size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
-    out_x("idivX	%Zcx", size);
-    out("pushq	%rax");
+    gen("popq	%rcx");
+    gen("popq	%rax");
+    gen((size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
+    gen_x("idivX	%Zcx", size);
+    gen("pushq	%rax");
 }
 
 void emit_mod(int size) {
-    out("popq	%rcx");
-    out("popq	%rax");
-    out((size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
-    out_x("idivX	%Zcx", size);
-    out("pushq	%rdx");
+    gen("popq	%rcx");
+    gen("popq	%rax");
+    gen((size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
+    gen_x("idivX	%Zcx", size);
+    gen("pushq	%rdx");
 }
 
 void emit_eq_x(char *set, int size) {
-    out("popq	%rdx");
-    out("popq	%rcx");
-    out("xorl   %eax, %eax");
-    out_x("subX	%Zdx, %Zcx", size);
-    out(set);
-    out("pushq	%rax");
+    gen("popq	%rdx");
+    gen("popq	%rcx");
+    gen("xorl   %eax, %eax");
+    gen_x("subX	%Zdx, %Zcx", size);
+    gen(set);
+    gen("pushq	%rax");
 }
 
 void emit_eq_eq(int size) {
@@ -434,109 +434,109 @@ void emit_eq_ge(int size) {
 }
 
 void emit_log_or(int size) {
-    out("popq	%rdx");
-    out("popq	%rax");
-    out_x("orX	%Zdx, %Zax", size);
-    out("pushq	%rax");
+    gen("popq	%rdx");
+    gen("popq	%rax");
+    gen_x("orX	%Zdx, %Zax", size);
+    gen("pushq	%rax");
 }
 
 void emit_log_and(int size) {
-    out("popq	%rdx");
-    out("popq	%rax");
-    out_x("andX	%Zdx, %Zax", size);
-    out("pushq	%rax");
+    gen("popq	%rdx");
+    gen("popq	%rax");
+    gen_x("andX	%Zdx, %Zax", size);
+    gen("pushq	%rax");
 }
 
 void emit_log_not(int size) {
-    out("popq	%rdx");
-    out("xorl   %eax, %eax");
-    out_x("orX	%Zdx, %Zdx", size);
-    out("setz %al");
-    out("pushq	%rax");
+    gen("popq	%rdx");
+    gen("xorl   %eax, %eax");
+    gen_x("orX	%Zdx, %Zdx", size);
+    gen("setz %al");
+    gen("pushq	%rax");
 }
 
 void emit_neg(int size) {
-    out("popq	%rax");
-    out_x("notX	%Zax", size);
-    out("pushq	%rax");
+    gen("popq	%rax");
+    gen_x("notX	%Zax", size);
+    gen("pushq	%rax");
 }
 
 void emit_print() {
-    out("popq	%rax");
-	out("movl	%eax, %esi");
-	out("leaq	.LC0(%rip), %rdi");
-	out("movl	$0, %eax");
-	out("call	printf@PLT");
-	out("movl	$0, %eax");
+    gen("popq	%rax");
+	gen("movl	%eax, %esi");
+	gen("leaq	.LC0(%rip), %rdi");
+	gen("movl	$0, %eax");
+	gen("call	printf@PLT");
+	gen("movl	$0, %eax");
 }
 
 void emit_label(int i) {
     char buf[RCC_BUF_SIZE] = {0};
     _strcat3(buf, ".L", i, "");
-    out_label(buf);
+    gen_label(buf);
 }
 
 void emit_global_label(int i) {
     char buf[RCC_BUF_SIZE] = {0};
     _strcat3(buf, ".G", i, "");
-    out_label(buf);
+    gen_label(buf);
 }
 
 void emit_jmp(int i) {
-    out_int("jmp .L", i, "");
+    gen_int("jmp .L", i, "");
 }
 
 void emit_jmp_false(int i) {
-    out("popq	%rax");
-    out("orl	%eax, %eax");
-    out_int("jz	.L", i, "");
+    gen("popq	%rax");
+    gen("orl	%eax, %eax");
+    gen_int("jz	.L", i, "");
 }
 
 void emit_jmp_true_keepvalue(int i) {
-    out("popq	%rax");
-    out("pushq	%rax");
-    out("orl	%eax, %eax");
-    out_int("jnz	.L", i, "");
+    gen("popq	%rax");
+    gen("pushq	%rax");
+    gen("orl	%eax, %eax");
+    gen_int("jnz	.L", i, "");
 }
 
 void emit_jmp_false_keepvalue(int i) {
-    out("popq	%rax");
-    out("pushq	%rax");
-    out("orl	%eax, %eax");
-    out_int("jz	.L", i, "");
+    gen("popq	%rax");
+    gen("pushq	%rax");
+    gen("orl	%eax, %eax");
+    gen_int("jz	.L", i, "");
 }
 
 void emit_jmp_true(int i) {
-    out("popq	%rax");
-    out("orl	%eax, %eax");
-    out_int("jnz	.L", i, "");
+    gen("popq	%rax");
+    gen("orl	%eax, %eax");
+    gen_int("jnz	.L", i, "");
 }
 
 void emit_jmp_case(int i, int size) {
-    out("popq	%rax");
-    out("popq   %rcx");
-    out("pushq   %rcx");
-    out_x("subX	%Zcx, %Zax", size);
-    out_int("jz	.L", i, "");
+    gen("popq	%rax");
+    gen("popq   %rcx");
+    gen("pushq   %rcx");
+    gen_x("subX	%Zcx, %Zax", size);
+    gen_int("jz	.L", i, "");
 }
 
 void emit_jmp_case_if_not(int i, int size) {
-    out("popq	%rax");
-    out("popq   %rcx");
-    out("pushq   %rcx");
-    out_x("subX	%Zcx, %Zax", size);
-    out_int("jnz	.L", i, "");
+    gen("popq	%rax");
+    gen("popq   %rcx");
+    gen("pushq   %rcx");
+    gen_x("subX	%Zcx, %Zax", size);
+    gen_int("jnz	.L", i, "");
 }
 
 int emit_push_struct(int size) {
     int offset = align(size, 8);
-    out("popq %rsi"); // has address of the struct value
-    out_int("addq $-", offset, ", %rsp");
-    out("movq %rsp, %rdi");
-    out("pushq %rsi");
-    out("pushq %rdi");
+    gen("popq %rsi"); // has address of the struct value
+    gen_int("addq $-", offset, ", %rsp");
+    gen("movq %rsp, %rdi");
+    gen("pushq %rsi");
+    gen("pushq %rdi");
     emit_copy(size);
-    out("popq %rax"); // drop
+    gen("popq %rax"); // drop
     return offset / 8;
 }
 
@@ -942,7 +942,7 @@ void compile(int pos) {
             dump_atom(pos, 0);
             error("Invalid program");
     }
-    out_comment(ast_text);
+    gen_comment(ast_text);
     debug("compiled %s", ast_text);
 }
 
@@ -954,13 +954,13 @@ void compile_func(func *f) {
 
     func_return_label = new_label();
 
-    out_str(".globl	", f->name, "");
-    out_str(".type	", f->name, ", @function");
-    out_label(f->name);
-    out("pushq	%rbp");
-    out("movq	%rsp, %rbp");
+    gen_str(".globl	", f->name, "");
+    gen_str(".type	", f->name, ", @function");
+    gen_label(f->name);
+    gen("pushq	%rbp");
+    gen("movq	%rsp, %rbp");
 
-    out_int("subq	$", align(f->max_offset, 16), ", %rsp");
+    gen_int("subq	$", align(f->max_offset, 16), ", %rsp");
 
     int arg_offset = 0;
     int reg_index = 0;
@@ -1002,41 +1002,41 @@ void compile_func(func *f) {
 
     compile(f->body_pos);
 
-    out("xor	%eax, %eax");
+    gen("xor	%eax, %eax");
     emit_label(func_return_label);
-    out("leave");
-    out("ret");
-    out("");
+    gen("leave");
+    gen("ret");
+    gen("");
 }
 
-int out_global_constant_by_type(type_t *pt, int value) {
+int gen_global_constant_by_type(type_t *pt, int value) {
     int filled_size = 0;
     if (pt == type_char) {
-        out_int(".byte\t", value, "");
+        gen_int(".byte\t", value, "");
         filled_size += 1;
     } else if (pt == type_int) {
-        out_int(".long\t", value, "");
+        gen_int(".long\t", value, "");
         filled_size += 4;
     } else if (pt == type_long) {
-        out_int(".quad\t", value, "");
+        gen_int(".quad\t", value, "");
         filled_size += 4;
     } else if (pt == type_char_ptr) {
-        out_int(".quad\t.G", value, "");
+        gen_int(".quad\t.G", value, "");
         filled_size += 8;
     } else if (pt->ptr_to) {
-        out_int(".quad\t", value, "");
+        gen_int(".quad\t", value, "");
         filled_size += 8;
     }
     return filled_size;
 }
 
-void out_global_constant(var_t *v) {
-    out_str(".globl\t", v->name, "");
-    out(".data");
-    out_int(".align\t", 4, "");
-    out_str(".type\t", v->name, ", @object");
-    out_int4(".size\t", v->name, ", ", type_size(v->t), "");
-    out_label(v->name);
+void gen_global_constant(var_t *v) {
+    gen_str(".globl\t", v->name, "");
+    gen(".data");
+    gen_int(".align\t", 4, "");
+    gen_str(".type\t", v->name, ", @object");
+    gen_int4(".size\t", v->name, ", ", type_size(v->t), "");
+    gen_label(v->name);
     if (v->t->array_length >= 0) {
         int filled_size = 0;
         int pos = v->int_value;
@@ -1044,36 +1044,36 @@ void out_global_constant(var_t *v) {
         type_t *pt = v->t->ptr_to;
         for (int index = 0; index < len; index++) {
             int value = get_global_array(pos, index);
-            filled_size += out_global_constant_by_type(pt, value);
+            filled_size += gen_global_constant_by_type(pt, value);
         }
         if (type_size(v->t) > filled_size) {
-            out_int(".zero\t", type_size(v->t) - filled_size, "");
+            gen_int(".zero\t", type_size(v->t) - filled_size, "");
         }
     } else {
-        int filled_size = out_global_constant_by_type(v->t, v->int_value);
+        int filled_size = gen_global_constant_by_type(v->t, v->int_value);
         if (!filled_size) {
             char buf[RCC_BUF_SIZE] = {0};
             dump_type(buf, v->t);
             error("unknown size for global variable:%s %s", v->name, buf);
         }
     }
-    out("");
+    gen("");
 }
 
-void out_global_declare(var_t *v) {
+void gen_global_declare(var_t *v) {
     char buf[RCC_BUF_SIZE];
     buf[0] = 0;
     strcat(buf, ".comm	");
     strcat(buf, v->name);
     _strcat3(buf, ", ", type_size(v->t), "");
-    out(buf);
+    gen(buf);
 }
 
 void emit(int fd) {
     output_fd = fd;
     
-    out(".file	\"main.c\"");
-    out("");
+    gen(".file	\"main.c\"");
+    gen("");
 
     var_vec vars = get_global_frame()->vars;
     for (int i=0; i<var_vec_len(vars); i++) {
@@ -1082,16 +1082,16 @@ void emit(int fd) {
             continue;
         }
         if (v->has_value) {
-            out_global_constant(v);
+            gen_global_constant(v);
         } else if (!v->is_external) {
-            out_global_declare(v);
+            gen_global_declare(v);
         }
     }
 
-    out(".text");
-    out(".section	.rodata");
-    out_label(".LC0");
-    out(".string	\"%d\\n\"");
+    gen(".text");
+    gen(".section	.rodata");
+    gen_label(".LC0");
+    gen(".string	\"%d\\n\"");
 
     int gstr_i=0;
     char *gstr;
@@ -1100,10 +1100,10 @@ void emit(int fd) {
         emit_string(gstr);
         gstr_i++;
     }
-    out("");
+    gen("");
 
-    out(".text");
-    out("");
+    gen(".text");
+    gen("");
 
     for (int i=0; i<func_vec_len(functions); i++) {
         func *f = func_vec_get(functions, i);
