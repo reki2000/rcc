@@ -15,7 +15,6 @@ Rcc is a tiny subset of C language compiler inspired by [9cc](https://github.com
 ## Language features *NOT* supported yet
 
 - unsigned types (all numeric variables are handled as signed)
-- long numeric literals (0L)
 - floating point types
 - error handling for invalid syntax source codes
 - stack alignment (16 bytes) before function call
