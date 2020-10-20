@@ -1,7 +1,7 @@
 typedef enum {
     T_RESERVE,
     T_EOF,
-    T_INT,
+    T_UINT32, T_UINT64,
     T_CHAR,
     T_STRING,
     T_IDENT,
@@ -48,6 +48,7 @@ typedef struct {
 
 extern bool expect(token_id id);
 extern bool expect_int(int *value);
+extern bool expect_long(long *value);
 extern bool expect_char(char *value);
 extern bool expect_ident(char **value);
 extern bool expect_string(char **value);

@@ -18,3 +18,8 @@ extern void *malloc(long);
 #define ALIGN_OF_STACK 8
 
 #define NULL ((void *)0)
+
+#define INT32_MAX 2147483647
+#define INT64_MAX 9223372036854775807
+#define UINT32_MAX 4294967295
+#define UINT64_MAX 18446744073709551615

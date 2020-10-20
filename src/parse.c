@@ -34,20 +34,6 @@ bool expect_enum_member(int *v) {
     return FALSE;
 }
 
-bool expect_int_unary(int *v) {
-    if (expect_int(v)) {
-        return TRUE;
-    }
-
-    char ch;
-    if (expect_char(&ch)) {
-        *v = (int)ch;
-        return TRUE;
-    }
-
-    return expect_enum_member(v);
-}
-
 int parse_string() {
     char *s;
     if (expect_string(&s)) {
@@ -59,9 +45,18 @@ int parse_string() {
 
 int parse_int_literal() {
     int v=0;
-    if(expect_int_unary(&v)) {
+    if(expect_int(&v) || expect_enum_member(&v)) {
         return alloc_typed_int_atom(TYPE_INTEGER, v, type_int);
     }
+    char ch=0;
+    if (expect_char(&ch)) {
+        return alloc_typed_int_atom(TYPE_INTEGER, (int)ch, type_char);
+    }
+    long l=0;
+    if (expect_long(&l)) {
+        return alloc_typed_long_atom(TYPE_INTEGER, l, type_long);
+    }
+
     return 0;
 }
 
@@ -70,14 +65,7 @@ int parse_literal() {
     pos = parse_string();
     if (pos) return pos;
 
-    int p = get_token_pos();
-    pos = parse_int_literal();
-    if (!pos) {
-        set_token_pos(p);
-        return 0;
-    }
-
-    return pos;
+    return parse_int_literal();
 }
 
 var_t *parse_var_name() {
@@ -120,27 +108,28 @@ int _alloc_andthen(int cur, int next) {
 }
 
 int parse_primary() {
-    int pos;
     int start_pos = get_token_pos();
 
-    pos = parse_literal();
+    int pos = parse_literal();
     if (pos) return pos;
 
     pos = parse_var();
     if (pos) return pos;
 
-    if (expect(T_LPAREN)) {
-        pos = parse_expr_sequence();
-        if (!pos) {
-            set_token_pos(start_pos);
-            return 0;
-        }
-        if (!expect(T_RPAREN)) {
-            error("missing ')' after '('");
-        }
-        return pos;
+    if (!expect(T_LPAREN)) {
+        set_token_pos(start_pos);
+        return 0;
     }
-    return 0;
+
+    pos = parse_expr_sequence();
+    if (!pos) {
+        set_token_pos(start_pos);
+        return 0;
+    }
+    if (!expect(T_RPAREN)) {
+        error("missing ')' after '('");
+    }
+    return pos;
 }
 
 func *parse_func_name() {
@@ -237,12 +226,13 @@ int parse_postfix_incdec(int pos) {
 }
 
 int parse_postfix() {
-    int pos;
-    pos = parse_primary();
+    int start_pos = get_token_pos();
+    int pos = parse_primary();
     if (!pos) {
         pos = parse_apply_func();
         if (!pos) {
-           return 0;
+            set_token_pos(start_pos);
+            return 0;
         }
     }
 
@@ -319,37 +309,30 @@ int parse_signed() {
 }
 
 int parse_sizeof() {
-    int pos = 0;
     if (!expect(T_SIZEOF)) {
         return 0;
     }
 
-    int start_pos = get_token_pos();
-    if (expect(T_LPAREN)) {
-        type_t *t = parse_type_declaration();
-        if (t) {
-            t = parse_pointer(t);
-            if (!expect(T_RPAREN)) {
-                error("no () after sizeof");
-            }
-            pos = alloc_typed_int_atom(TYPE_INTEGER, type_size(t), type_int);
-        } else {
-            set_token_pos(start_pos);
+    int pos = parse_unary();
+    if (pos) {
+        if (program[pos].t->array_length < 0) {
+            pos = atom_to_rvalue(pos);
         }
+        return alloc_typed_int_atom(TYPE_INTEGER, type_size(program[pos].t), type_int);
     }
-    if (!pos) {
-        pos = parse_unary();
-        if (pos) {
-            if (program[pos].t->array_length < 0) {
-                pos = atom_to_rvalue(pos);
-            }
-            int size = type_size(program[pos].t);
-            pos = alloc_typed_int_atom(TYPE_INTEGER, size, type_int);
-        } else {
-            error("invliad expr after sizeof");
-        }
+
+    if (!expect(T_LPAREN)) {
+        error("invliad expr after sizeof");
     }
-    return pos;
+    type_t *t = parse_type_declaration();
+    if (!t) {
+        error("no type name after sizeof()");
+    }
+    t = parse_pointer(t);
+    if (!expect(T_RPAREN)) {
+        error("no closing  after sizeof(type");
+    }
+    return alloc_typed_int_atom(TYPE_INTEGER, type_size(t), type_int);
 }
 
 int parse_bitwise_not() {
@@ -370,29 +353,30 @@ int parse_bitwise_not() {
 
 int parse_logical_not() {
     int pos;
-    if (expect(T_L_NOT)) {
-        pos = parse_unary();
-        if (!pos) {
-            error("Invalid '!'");
-        }
-        pos = atom_to_rvalue(pos);
-        if (program[pos].type == TYPE_INTEGER) {
-            return alloc_typed_int_atom(TYPE_INTEGER, !(program[pos].int_value), type_int);
-        }
-        return alloc_typed_pos_atom(TYPE_LOG_NOT, pos, type_int);
+    if (!expect(T_L_NOT)) {
+        return 0;
     }
-    return 0;
+
+    pos = parse_unary();
+    if (!pos) {
+        error("Invalid '!'");
+    }
+    pos = atom_to_rvalue(pos);
+    if (program[pos].type == TYPE_INTEGER) {
+        return alloc_typed_int_atom(TYPE_INTEGER, !(program[pos].int_value), type_int);
+    }
+    return alloc_typed_pos_atom(TYPE_LOG_NOT, pos, type_int);
 }
 
 int parse_cast() {
-    int pos = get_token_pos();
+    int start_pos = get_token_pos();
     if (!expect(T_LPAREN)) {
         return 0;
     }
 
     type_t *t = parse_type_declaration();
     if (!t) {
-        set_token_pos(pos);
+        set_token_pos(start_pos);
         return 0;
     }
 
@@ -402,9 +386,10 @@ int parse_cast() {
         error("invalid end of cast");
     }
 
-    pos = parse_unary();
+    int pos = parse_unary();
     if (!pos) {
-        error("invalid cast");
+        set_token_pos(start_pos); // it's not cast - may be an operand of sizeof
+        return 0;
     }
     return alloc_typed_pos_atom(TYPE_CAST, atom_to_rvalue(pos), t);
 }

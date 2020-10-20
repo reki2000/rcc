@@ -155,7 +155,7 @@ INDEX(
 
 ## Pre processor specification
 
-- '\' at the end of line is 'transparent eol - all C source including pre-processor cannot understand this as an EOL
+- '\' at the end of line is 'transparent eol - all C sources parser, including pre-processor, cannot understand this as an EOL
 - /* .. */ comment (cannot be nested)
 - // comment 
 - '#' should be the first character of the line. only whole the line is its body. the last '\' in the line tells that the next line is the continuing the previous line.
@@ -174,3 +174,10 @@ define: start_of_line '#' 'define' IDENT ( '(' IDENT ( ',' IDENT )* ) ')' )? ( t
         - prepare a buffer
         - pop the stack, fill the buffer with its original char sequence
         - do tokenization against the buffer
+
+## Integer Literal
+- start with '-' '0x' 0' or DIGIT
+- might end by 'L'
+- 0xfff == 07777
+- 0xff == 0377
+- 0xffff_ffff == 0377_7777_7777

@@ -147,7 +147,7 @@ char escape(char escaped_char) {
     return c;
 }
 
-bool decode_digit(char c, int *value, char min, char max, int base, int radix) {
+bool decode_digit(char c, long *value, char min, char max, int base, int radix) {
     if (c >= min && c <= max) {
         *value *= radix;
         *value += ((char)c - min + base);
@@ -156,7 +156,7 @@ bool decode_digit(char c, int *value, char min, char max, int base, int radix) {
     return FALSE;
 }
 
-bool tokenize_int_hex(int *retval) {
+bool tokenize_int_hex(long *retval, int *size) {
     if (ch() != '0') {
         return FALSE;
     }
@@ -179,11 +179,14 @@ bool tokenize_int_hex(int *retval) {
         count++;
         next();
     }
+    if (count > 8) {
+        *size = 8;
+    }
 
     return (count != 0);
 }
 
-bool tokenize_int_oct(int *retval) {
+bool tokenize_int_oct(long *retval, int *size) {
     if (ch() != '0') {
         return FALSE;
     }
@@ -193,24 +196,36 @@ bool tokenize_int_oct(int *retval) {
     while (decode_digit(ch(), retval, '0', '7', 0, 8)) {
         next();
     }
+    if (*retval > INT32_MAX) {
+        *size = 8;
+    }
     return TRUE;
 }
 
-bool tokenize_int_decimal(int *retval) {
+bool tokenize_int_decimal(long *retval, int *size) {
     int count = 0;
     *retval = 0;
     while (decode_digit(ch(), retval, '0', '9', 0, 10)) {
         count++;
         next();
     }
+    if (*retval > INT32_MAX) {
+        *size = 8;
+    }
     return (count != 0);
 }
 
-bool tokenize_int(int *retval) {
+bool tokenize_int(long *retval, int *size) {
+    *size = 4;
     skip();
-    return tokenize_int_hex(retval)
-      || tokenize_int_oct(retval)
-      || tokenize_int_decimal(retval);
+    if (!tokenize_int_hex(retval, size) 
+      && !tokenize_int_oct(retval, size)
+      && !tokenize_int_decimal(retval, size)) return FALSE;
+    
+    if (accept_char('L') || accept_char('l')) {
+        *size = 8;
+    }
+    return TRUE;
 }
 
 bool tokenize_char(char *retval) {
@@ -311,8 +326,13 @@ token *add_token(token_id id) {
 }
 
 void add_int_token(int val) {
-    token *t = add_token(T_INT);
+    token *t = add_token(T_UINT32);
     t->int_value = val;
+}
+
+void add_long_token(long val) {
+    token *t = add_token(T_UINT64);
+    t->long_value = val;
 }
 
 void add_string_token(char *val) {
@@ -582,11 +602,16 @@ void tokenize() {
         } else if (accept_ident("while")) {
             add_token(T_WHILE);
         } else {
-            int i;
+            long i;
+            int size;
             char c;
             char *str;
-            if (tokenize_int(&i)) {
-                add_int_token(i);
+            if (tokenize_int(&i, &size)) {
+                if (size == 8) {
+                    add_long_token(i);
+                } else {
+                    add_int_token(i);
+                }
             } else if (tokenize_char(&c)) {
                 add_char_token(c);
             } else if (tokenize_string(&str)) {
@@ -653,8 +678,17 @@ bool expect(token_id id) {
 }
 
 bool expect_int(int *value) {
-    if (token_vec_get(tokens, token_pos)->id == T_INT) {
+    if (token_vec_get(tokens, token_pos)->id == T_UINT32) {
         *value = token_vec_get(tokens, token_pos)->int_value;
+        token_pos++;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+bool expect_long(long *value) {
+    if (token_vec_get(tokens, token_pos)->id == T_UINT64) {
+        *value = token_vec_get(tokens, token_pos)->long_value;
         token_pos++;
         return TRUE;
     }

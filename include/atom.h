@@ -90,6 +90,7 @@ int alloc_binop_atom(int type, int lpos, int rpos);
 
 int alloc_typed_pos_atom(int , int, type_t *);
 int alloc_typed_int_atom(int, int, type_t *);
+int alloc_typed_long_atom(int, long, type_t *);
 
 int alloc_var_atom(var_t *);
 int alloc_deref_atom(int);

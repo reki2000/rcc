@@ -123,9 +123,11 @@ int new_label() {
     return label_index++;
 }
 
-void emit_int(int i, int size) {
+void emit_int(long i, int size) {
     if (size == 8) {
-        out_int("movq	$", i, ", %rax");
+        char buf[RCC_BUF_SIZE];
+        snprintf(buf, RCC_BUF_SIZE, "movq $%ld,%%rax", i);
+        out(buf);
     } else {
         out_int("movl	$", i, ", %eax");
     }
@@ -387,7 +389,7 @@ void emit_mul(int size) {
 void emit_div(int size) {
     out("popq	%rcx");
     out("popq	%rax");
-    out("cdq");
+    out((size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
     out_x("idivX	%Zcx", size);
     out("pushq	%rax");
 }
@@ -395,7 +397,7 @@ void emit_div(int size) {
 void emit_mod(int size) {
     out("popq	%rcx");
     out("popq	%rax");
-    out("cdq");
+    out((size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
     out_x("idivX	%Zcx", size);
     out("pushq	%rdx");
 }
@@ -630,7 +632,11 @@ void compile(int pos) {
             break;
 
         case TYPE_INTEGER: 
-            emit_int(p->int_value, type_size(p->t));
+            if (type_size(p->t) == 8) {
+                emit_int(p->long_value, 8);
+            } else {
+                emit_int((long)(p->int_value), type_size(p->t));
+            }
             break;
 
         case TYPE_ADD:
