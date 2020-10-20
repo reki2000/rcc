@@ -389,7 +389,7 @@ void emit_mul(int size) {
 void emit_div(int size) {
     out("popq	%rcx");
     out("popq	%rax");
-    out("cdq");
+    out((size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
     out_x("idivX	%Zcx", size);
     out("pushq	%rax");
 }
@@ -397,7 +397,7 @@ void emit_div(int size) {
 void emit_mod(int size) {
     out("popq	%rcx");
     out("popq	%rax");
-    out("cdq");
+    out((size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
     out_x("idivX	%Zcx", size);
     out("pushq	%rdx");
 }
