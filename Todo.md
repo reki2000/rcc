@@ -131,6 +131,7 @@
 - [ ] __VA_ARGS__ # C99
 
 - [ ] multiple global variable definition
+- [ ] array global variable initialization
 
 - [x] long literal (10000L)
 - [ ] concatinate sequence of string literal 
@@ -158,6 +159,8 @@
 - [ ] bug / expression sequence - evaluated result should reflect the last expression
 
 ## Refactorings
+
+- [x] rewrite code generation from stack-machine to register-machine (!)
 
 - [ ] atom_t refactoring 2
  - use atom_t * instead of pos

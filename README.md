@@ -8,7 +8,7 @@ Rcc is a tiny subset of C language compiler inspired by [9cc](https://github.com
 - Compiling stages: tokenize, parse, output-x64-asm
 - LL(1) hand-written parser
 - Data type model: x64 - LP64 (int:32, long:64, pointer:64)
-- Stack machine
+- Register machine with simple register assigmnent logic (round-robin within a single expression)
 - Depends on external assembler (as) and linker (ld)
 - Highly limited use of C standard library (listed in `include/rsys.h`)
 
@@ -36,6 +36,15 @@ make test-gen3
 
 ## Current BNF
 ```
+#
+# ? : occurs 0 or 1
+# * : occurs 0 or more
+# | : or - at least one of the items on the right or left of this, are required
+# ( .. ) : grouping for ? or * or |
+# small_case : token (spaces between items require one or more delimiters)
+# UPPER_CASE : sequence of single character (spaces between items mean that these items are in the series of characters in one token, not delimited )
+#
+
 program: global_declaration* eof
 
 global_declaration: storage_class? type_declaration ( ';' | global_variable ';' | function_prototype ';' | function_definition )
