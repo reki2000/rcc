@@ -44,7 +44,7 @@ int new_label() {
     return label_index++;
 }
 
-typedef enum {
+typedef enum reg {
     R_DI, R_SI, R_DX, R_CX, R_8, R_9, R_AX, R_BX, R_10, R_11, R_12, R_13, R_14, R_15, R_LAST
 } reg_e;
 
@@ -78,16 +78,13 @@ int stack_offset = 0;
  */
 int reg_in_use[R_LAST];
 
+bool reg_is_callee_saved(reg_e i) {
+    return (i==R_BX || i==R_12 || i==R_13 || i==R_14 || i==R_15);
+}
+
 void init_reg_in_use() {
     for (reg_e i=0; i<R_LAST; i++) {
-        switch (i) {
-            case R_BX:
-            case R_12:
-            case R_13:
-            case R_14:
-            case R_15: reg_in_use[i] = 1; break;
-            default: reg_in_use[i] = 0;
-        }
+        reg_in_use[i] = reg_is_callee_saved(i) ? 1 : 0;
     }
 }
 
@@ -102,7 +99,8 @@ void emit_pop(reg_e r) {
 }
 
 void reg_push_all() {
-    for(reg_e i=0; i<R_LAST; i++) {
+    for (reg_e i=0; i<R_LAST; i++) {
+        if (reg_is_callee_saved(i)) continue;
         if (reg_in_use[i]) {
             emit_push(i);
         }
@@ -110,9 +108,11 @@ void reg_push_all() {
 }
 
 void reg_pop_all() {
-    for(reg_e i=R_LAST-1; i>=0; i--) {
-        if (reg_in_use[i]) {
-            emit_pop(i);
+    for (reg_e i=0; i<R_LAST; i--) {
+        reg_e r = R_LAST-i-1;
+        if (reg_is_callee_saved(r)) continue;
+        if (reg_in_use[r]) {
+            emit_pop(r);
         }
     }
 }
@@ -156,7 +156,6 @@ void reg_release(reg_e r) {
 
 
 void emit_int(long val, int size, reg_e out) {
-    debug("size:%d opsize:%s, reg:%s", size, opsize(size), reg(out, size));
     genf(" mov%s $%ld, %s", opsize(size), val, reg(out, size));
 }
 
@@ -167,23 +166,7 @@ void emit_string(char* str) {
     strcat(buf, ".string\t");
     d = buf + strlen(buf);
     *d++ = '"';
-    while (*str) {
-        switch(*str) {
-            case '\n': *d++='\\'; *d = 'n'; break;
-            case '\r': *d++='\\'; *d = 'r'; break;
-            case '\t': *d++='\\'; *d = 't'; break;
-            case '\f': *d++='\\'; *d = 'f'; break;
-            case '\a': *d++='\\'; *d = 'a'; break;
-            case '\b': *d++='\\'; *d = 'b'; break;
-            case '\e': *d++='\\'; *d = 'e'; break;
-            case '\"': *d++='\\'; *d = '"'; break;
-            case '\'': *d++='\\'; *d = '\''; break;
-            case '\\': *d++='\\'; *d = '\\'; break;
-            default: *d = *str;
-        }
-        str++;
-        d++;
-    }
+    escape_string(d, str);
     *d++ = '"';
     *d = 0;
     gen(buf);
@@ -217,17 +200,13 @@ void emit_var_arg_init(reg_e no, int offset, int size) {
     genf(" mov%s %s, %d(%%rbp)", opsize(size), reg(no, size), -offset);
 }
 
-void emit_pop_argv(reg_e no) {
-    genf(" popq %s", reg(no, 8));
-}
-
 void emit_call(char *name, int num_stack_args, char *plt, int size, reg_e out) {
     genf(" movb $0, %%al");
     genf(" call %s%s", name, plt);
     if (num_stack_args > 0) {
         genf(" addq $%d, %%rsp", num_stack_args * 8);
     }
-    genf(" mov%s %%rax, %s", opsize(size), reg(out, size));
+    genf(" mov%s %s, %s", opsize(size), reg(R_AX, size), reg(out, size));
 }
 
 void emit_deref(int size, reg_e inout) {
@@ -282,14 +261,14 @@ void emit_copy(int size, reg_e in, reg_e out) {
 }
 
 void emit_store(int size, reg_e in, reg_e out) {
-    genf(" mov%s %s, %s", opsize(size), reg(in,size), reg(out, size));
+    genf(" mov%s %s, (%s)", opsize(size), reg(in,size), reg(out, 8));
 }
 
 void emit_zcast(int size, reg_e inout) {
     if (size == 8) {
         return;
     }
-    genf(" movz%sq	%s, %s", opsize(size), reg(inout,size), reg(inout,8));
+    genf(" movz%sq %s, %s", opsize(size), reg(inout,size), reg(inout,8));
 }
 
 void emit_scast(int size, reg_e inout) {
@@ -311,7 +290,7 @@ void emit_array_index(int item_size, reg_e in, reg_e out) {
 }
 
 void emit_binop(char *binop, int size, reg_e in, reg_e out) {
-    genf( "%s%s %s,%s", binop, opsize(size), reg(in,size), reg(out,size));
+    genf(" %s%s %s,%s", binop, opsize(size), reg(in,size), reg(out,size));
 }
 
 void emit_bit_shift(char* op, int size, reg_e in, reg_e out) {
@@ -384,12 +363,12 @@ void emit_jmp(int i) {
 }
 
 void emit_jmp_false(int i, reg_e in) {
-    genf(" orb %s, %s", reg(in,4), reg(in,4));
+    genf(" orl %s, %s", reg(in,4), reg(in,4));
     genf(" jz .L%d", i);
 }
 
 void emit_jmp_true(int i, reg_e in) {
-    genf(" orb %s, %s", reg(in,4), reg(in,4));
+    genf(" orl %s, %s", reg(in,4), reg(in,4));
     genf(" jnz .L%d", i);
 }
 
@@ -407,7 +386,7 @@ int emit_push_struct(int size, reg_e from) {
     reg_e to = reg_assign();
     int offset = align(size, 8);
     stack_offset += offset;
-    genf(" addq $%d, %%rsp", offset); // todo: check if this should be "subq $8, %rsp; movq %rsp, %to; subq $offset, %rsp"
+    genf(" subq $%d, %%rsp", offset);
     genf(" movq %%rsp, %s", reg(to, 8));
     emit_copy(size, from, to);
     reg_release(to);
@@ -477,9 +456,9 @@ void compile(int pos, reg_e reg_out) {
             compile(p->atom_pos, reg_out); // rvalue
             compile((p+1)->atom_pos, i1); // lvalue - should be an address
             if (p->t->struct_of) {
-                emit_copy(type_size(p->t), i1, reg_out);
+                emit_copy(type_size(p->t), reg_out, i1);
             } else {
-                emit_store(type_size(p->t), i1, reg_out);
+                emit_store(type_size(p->t), reg_out, i1);
             }
             reg_release(i1);
             break;
@@ -742,6 +721,7 @@ void compile(int pos, reg_e reg_out) {
                 if (use_reg[i]) continue;
                 debug("compiling stack passing values %d", i);
                 compile((p+i+2)->atom_pos, reg_out);
+                emit_push(reg_out);
                 if (struct_size[i] > 0) {
                     num_stack_args += emit_push_struct(struct_size[i], reg_out);
                 } else {
@@ -754,13 +734,14 @@ void compile(int pos, reg_e reg_out) {
                 if (!use_reg[i]) continue;
                 debug("compiling register passing values %d", i);
                 compile((p+i+2)->atom_pos, reg_out); // todo: direct assign to registers
+                emit_push(reg_out);
                 if (struct_size[i] > 0) {
                     emit_push_struct(struct_size[i], reg_out);
                 }
             }
 
             for (int i=0; i<num_reg_args; i++) {
-                emit_pop_argv(i);
+                emit_pop(i);
             }
             emit_call(f->name, num_stack_args, f->is_external ? "@PLT" : "", type_size(f->ret_type), reg_out);
             reg_pop_all();
