@@ -27,105 +27,137 @@ void genf(char *fmt, ...) {
     vsnprintf(buf, RCC_BUF_SIZE, fmt, va);
     va_end(va);
     _write(buf);
-}
-
-void gen_comment(char *str) {
-    genf("# %s\n", str);
+    _write("\n");
 }
 
 void gen_label(char *str) {
-    genf("%s:\n", str);
+    genf("%s:", str);
 }
 
 void gen(char *str) {
-    genf("\t%s\n", str);
+    genf("\t%s", str);
 }
 
-/**
- * Build a proper assembly instruction which suits for the specified size.
- * ex:
- *   movX %Zdx, %Zax (size=4) --> movl %edx, %eax
- *   addX $2, %Zdi   (size=1) --> addb $2, %dil
- */
-void gen_x(char *fmt, int size) {
-    if (size != 8 && size != 4 && size != 1) {
-        error("fmt:%s unknown size:%d", fmt, size);
-    }
-    char buf[RCC_BUF_SIZE] = {0};
-    char *d = &buf[0];
-    while (*fmt) {
-        switch (*fmt) {
-            case 'X':
-                *d = (size == 8) ? 'q' : (size == 4)? 'l' : 'b';
-                break;
-            case 'Z':
-                *d = (size == 8) ? 'r' : (size == 4)? 'e' : 'B';
-                break;
-            default:
-                *d = *fmt;
-        }
-        if (*d == 'B') {
-            char c1 = *(fmt+1);
-            char c2 = *(fmt+2);
-            if ((c1 == 'd' || c1 == 's') && c2 == 'i') {
-                *d = c1; *(d+1) = 'i'; *(d+2) = 'l'; // '%Zdi' -> '%dil' for Zdi, Zsi
-            } else if ((c1 == 'a' || c1 == 'b' || c1 == 'c' || c1 == 'd') && c2 == 'x') {
-                *d = c1; *(d+1) = 'l'; *(d+2) = ' '; // '%Zax' -> '%al ' for Zax, Zbx, Zcx, Zdx
-            } else {
-                error("unknown register name: %s", fmt);
-            }
-            fmt += 2;
-            d += 2;
-        }
-        fmt++;
-        d++;
-    }
-    *d = 0;
-    gen(buf);
-}
-
-void gen_int(char *str1, int i, char *str2) {
-    genf("%s%d%s\n", str1, i, str2);
-}
-
-void gen_int4(char *str1, char *str2, char *str3, int i, char *str4) {
-    genf("%s%s%s%d%s\n", str1, str2, str3, i, str4);
-}
-
-void gen_intx(char *str1, char *str2, int i, char *str3, int size) {
-    char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, str1);
-    _strcat3(buf, str2, i, str3);
-    gen_x(buf, size);
-}
-
-void gen_str(char *str1, char *str2, char *str3) {
-    genf("%s%s%s\n", str1, str2, str3);
-}
-
-void gen_strx(char *str1, char *str2, char *str3, char *str4, int size) {
-    char buf[RCC_BUF_SIZE] = {0};
-    strcat(buf, str1);
-    strcat(buf, str2);
-    strcat(buf, str3);
-    strcat(buf, str4);
-    gen_x(buf, size);
-}
 
 int label_index = 0;
 int new_label() {
     return label_index++;
 }
 
-void emit_int(long i, int size) {
-    if (size == 8) {
-        char buf[RCC_BUF_SIZE];
-        snprintf(buf, RCC_BUF_SIZE, "movq $%ld,%%rax", i);
-        gen(buf);
-    } else {
-        gen_int("movl	$", i, ", %eax");
+typedef enum {
+    R_DI, R_SI, R_DX, R_CX, R_8, R_9, R_AX, R_BX, R_10, R_11, R_12, R_13, R_14, R_15, R_LAST
+} reg_e;
+
+char *reg(int no, int size) {
+    // todo: make name table to be global variables, but for now it's not supported by rcc. (initializing global variables with a string array)
+    char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8" , "%r9" , "%rax", "%rbx", "%r10" , "%r11" , "%r12" , "%r13" , "%r14" , "%r15"  };
+    char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d", "%eax", "%ebx", "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d" };
+    char *regs1[] = { "%dil", "%sil", "%dl" , "%cl" , "%r8b", "%r9b", "%al" , "%bl",  "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b" };
+    if (no >= 16) {
+        error("invalid reg no:%d", no);
     }
-    gen("pushq	%rax");
+    switch (size) {
+        case 8: return regs8[no];
+        case 4: return regs4[no];
+        case 1: return regs1[no];
+        default: error("invalid size for reg:%d", size); return (void *)0;
+    }
+}
+
+char *opsize(int size) {
+    return (size == 8) ? "q" : (size == 4) ? "l" : (size == 1) ? "b" : "?";
+}
+
+int stack_offset = 0;
+
+/*
+ * reg_in_use stores a status for the register.
+ * 0: not in use (freely assignable)
+ * 1: used
+ * 2+: used and had 1+ pushed on the stack 
+ */
+int reg_in_use[R_LAST];
+
+void init_reg_in_use() {
+    for (reg_e i=0; i<R_LAST; i++) {
+        switch (i) {
+            case R_BX:
+            case R_12:
+            case R_13:
+            case R_14:
+            case R_15: reg_in_use[i] = 1; break;
+            default: reg_in_use[i] = 0;
+        }
+    }
+}
+
+void emit_push(reg_e r) {
+    genf(" pushq %s", reg(r,8));
+    stack_offset -= 8;
+}
+
+void emit_pop(reg_e r) {
+    genf(" popq %s", reg(r,8));
+    stack_offset += 8;
+}
+
+void reg_push_all() {
+    for(reg_e i=0; i<R_LAST; i++) {
+        if (reg_in_use[i]) {
+            emit_push(i);
+        }
+    }
+}
+
+void reg_pop_all() {
+    for(reg_e i=R_LAST-1; i>=0; i--) {
+        if (reg_in_use[i]) {
+            emit_pop(i);
+        }
+    }
+}
+
+/*
+ * assign a register which is the least pushed on the stack
+ */
+reg_e reg_assign() {
+    reg_e reg_min = R_LAST;
+    int val_min = INT32_MAX;
+    for (reg_e i=0; i<R_LAST; i++) {
+        if (val_min > reg_in_use[i]) {
+            reg_min = i;
+            val_min = reg_in_use[i];
+        }
+    }
+    if (reg_in_use[reg_min] > 0) {
+        emit_push(reg_min);
+    }
+    reg_in_use[reg_min]++;
+    return reg_min;
+}
+
+void reg_reserve(reg_e r) {
+    // todo: prevent assign if reserving register is used with *itself* (by automatically assigned) at the same time
+    if (reg_in_use[r]) {
+        emit_push(r);
+    }
+    reg_in_use[r]++;
+}
+
+void reg_release(reg_e r) {
+    if (!reg_in_use[r]) {
+        error("invalid release for reg %d", r);
+    }
+    if (reg_in_use[r] > 1) {
+        emit_pop(r);
+    }
+    reg_in_use[r]--;
+}
+
+
+void emit_int(long val, int size, reg_e out) {
+    debug("size:%d opsize:%s, reg:%s", size, opsize(size), reg(out, size));
+    genf(" mov%s $%ld, %s", opsize(size), val, reg(out, size));
 }
 
 void emit_string(char* str) {
@@ -157,386 +189,228 @@ void emit_string(char* str) {
     gen(buf);
 }
 
-void emit_global_ref(int i) {
-    gen_int("leaq	.G", i, "(%rip), %rax");
-    gen("pushq	%rax");
+void emit_global_ref(int i, reg_e out) {
+    genf(" leaq .G%d(%%rip), %s", i, reg(out, 8));
 }
 
-void emit_var_val(int i, int size) {
+void emit_var_val(int i, int size, reg_e out) {
     if (size == 1) {
-        gen_int("movzbl	-", i, "(%rbp), %eax");
+        genf(" movzbl %d(%%rbp), %s", -i, reg(out, 4));
     } else {
-        gen_intx("movX	", "-", i, "(%rbp), %Zax", size);
+        genf(" mov%s %d(%%rbp), %s", opsize(size), -i, reg(out, size));
     }
-    gen("pushq	%rax");
 }
 
-void emit_global_var_val(char *name, int size) {
+void emit_global_var_val(char *name, int size, reg_e out) {
     if (size == 1) {
-        gen_str("movzbl	", name, "(%rip), %eax");
+        genf(" movzbl %s(%%rip), %s", name, reg(out, 4));
     } else {
-        gen_strx("movX	", "", name, "(%rip), %Zax", size);
-    }
-    gen("pushq	%rax");
-}
-
-typedef enum {
-    R_DI, R_SI, R_DX, R_CX, R_8, R_9, R_AX, R_BX, R_10, R_11, R_12, R_13, R_14, R_15
-} reg_e;
-
-char *reg(int no, int size) {
-    char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8" , "%r9" , "%rax", "%rbx", "%r10" , "%r11" , "%r12" , "%r13" , "%r14" , "%r15"  };
-    char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d", "%eax", "%ebx", "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d" };
-    char *regs1[] = { "%dil", "%sil", "%dl" , "%cl" , "%r8b", "%r9b", "%al" , "%bl",  "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b" };
-    if (no >= 16) {
-        error("invalid reg no:%d", no);
-    }
-    switch (size) {
-        case 8: return regs8[no];
-        case 4: return regs4[no];
-        case 1: return regs1[no];
-        default: error("invalid size for reg:%d", size); return (void *)0;
+        genf(" mov%s %s($%rip), %s", opsize(size), name, reg(out, size));
     }
 }
 
-void emit_var_arg_init(int no, int offset, int size) {
-    char buf[RCC_BUF_SIZE] = {0};
+void emit_var_arg_init(reg_e no, int offset, int size) {
     if (size == 1) {
-        strcat(buf, "movzbl\t");
-        strcat(buf, reg(no, 1));
-        strcat(buf, ",\t");
-        strcat(buf, reg(no, 4));
-        gen(buf);
+        genf(" movzbl %s, %s", reg(no,1), reg(no,4));
         size = 4;
-        buf[0] = '\0';
     }
-    strcat(buf, size == 8 ? "movq" : "movl");
-    strcat(buf, "\t");
-    strcat(buf, reg(no, size));
-    strcat(buf, ", ");
-    gen_int(buf, -offset, "(%rbp)");
+    genf(" mov%s %s, %d(%%rbp)", opsize(size), reg(no, size), -offset);
 }
 
-void emit_pop_argv(int no) {
-    gen_str("popq	", reg(no, 8), "");
+void emit_pop_argv(reg_e no) {
+    genf(" popq %s", reg(no, 8));
 }
 
-void emit_call(char *name, int num_stack_args, char *plt) {
-    gen("movb $0, %al");
-    gen_str("call	", name, plt);
+void emit_call(char *name, int num_stack_args, char *plt, int size, reg_e out) {
+    genf(" movb $0, %%al");
+    genf(" call %s%s", name, plt);
     if (num_stack_args > 0) {
-        gen_int("addq $", num_stack_args * 8, ", %rsp");
+        genf(" addq $%d, %%rsp", num_stack_args * 8);
     }
-    gen("pushq	%rax");
+    genf(" mov%s %%rax, %s", opsize(size), reg(out, size));
 }
 
-void emit_deref(int size) {
-    gen("popq	%rax");
+void emit_deref(int size, reg_e inout) {
     if (size == 1) {
-        gen("movzbl	(%rax), %eax");
+        genf(" movzbl (%s), %s", reg(inout,8), reg(inout,4));
     } else {
-        gen_x("movX	(%rax), %Zax", size);
+        genf(" mov%s (%s), %s", opsize(size), reg(inout,8), reg(inout,size));
     }
-    gen("pushq	%rax");
 }
 
-void emit_var_ref(int i) {
-    gen_int("leaq	", -i, "(%rbp), %rax");
-    gen("pushq	%rax");
+void emit_var_ref(int i, reg_e ret) {
+    genf(" leaq	%d(%%rbp), %s", -i, reg(ret,8));
 }
 
-void emit_global_var_ref(char *name) {
-    gen_str("leaq	", name, "(%rip), %rax");
-    gen("pushq	%rax");
+void emit_global_var_ref(char *name, reg_e out) {
+    genf(" leaq %s(%%rip), %s", name, reg(out, 8));
 }
 
-void emit_postfix_add(int size, int ptr_size) {
-    gen("popq	%rax");
-    gen_x("movX	(%rax), %Zdx", size);
-    gen("pushq	%rdx");
-    gen_intx("add",  "X	$", ptr_size, ", %Zdx", size);
-    gen_x("movX	%Zdx, (%rax)", size);
+void emit_postfix_add(int size, int ptr_size, reg_e inout) {
+    reg_e tmp = reg_assign();
+    genf(" mov%s (%s), %s", opsize(size), reg(inout, 8), reg(tmp, size));
+    genf(" add%s $%d, (%s)", opsize(size), ptr_size, reg(inout,8));
+    genf(" mov%s %s, %s", opsize(size), reg(tmp,size), reg(inout, size));
+    reg_release(tmp);
 }
 
-void emit_copy(int size) {
-    gen("popq	%rdi");
-    gen("popq	%rsi");
-    gen("pushq	%rsi");
+void emit_copy(int size, reg_e in, reg_e out) {
+    emit_push(in);
+    reg_e tmp = reg_assign();
     while (size>=8) {
-        gen("movq (%rsi), %rax");
-        gen("movq %rax, (%rdi)");
-        gen("addq $8, %rsi");
-        gen("addq $8, %rdi");
+        genf(" movq (%s), %s", reg(in,8), reg(tmp,8));
+        genf(" movq %s, (%s)", reg(tmp,8), reg(out,8));
+        genf(" addq $8, %s", reg(in,8));
+        genf(" addq $8, %s", reg(out,8));
         size-=8;
     }
     while (size>=4) {
-        gen("movl (%rsi), %eax");
-        gen("movl %eax, (%rdi)");
-        gen("addq $4, %rsi");
-        gen("addq $4, %rdi");
+        genf(" movl (%s), %s", reg(in,8), reg(tmp,4));
+        genf(" movl %s, (%s)", reg(tmp,4), reg(out,8));
+        genf(" addq $4, %s", reg(in,8));
+        genf(" addq $4, %s", reg(out,8));
         size-=4;
     }
     while (size>0) {
-        gen("movb (%rsi), %al");
-        gen("movb %al, (%rdi)");
-        gen("incq %rsi");
-        gen("incq %rdi");
+        genf(" movb (%s), %s", reg(in,8), reg(tmp,1));
+        genf(" movb %s, (%s)", reg(tmp,1), reg(out,8));
+        genf(" incq %s", reg(in,8));
+        genf(" incq %s", reg(out,8));
         size-=1;
     }
+    emit_pop(out);
 }
 
-void emit_store(int size) {
-    gen("popq	%rdi");
-    gen("popq	%rsi");
-    gen_x("movX	%Zsi, (%rdi)", size);
-    gen("pushq	%rsi");
+void emit_store(int size, reg_e in, reg_e out) {
+    genf(" mov%s %s, %s", opsize(size), reg(in,size), reg(out, size));
 }
 
-void emit_pop() {
-    gen("popq	%rax");
-    gen("");
-}
-
-void emit_zcast(int size) {
+void emit_zcast(int size, reg_e inout) {
     if (size == 8) {
         return;
     }
-    gen("popq	%rax");
-    if (size == 1) {
-        gen("movzbq	%al, %rax");
-    } else if (size == 4) {
-        gen("movzlq	%eax, %rax");
-    } else {
-        error("invalid size for emit_zcast");
-    }
-    gen("pushq %rax");
+    genf(" movz%sq	%s, %s", opsize(size), reg(inout,size), reg(inout,8));
 }
 
-void emit_scast(int size) {
+void emit_scast(int size, reg_e inout) {
     if (size == 8) {
         return;
     }
-    gen("popq	%rax");
-    if (size == 1) {
-        gen("movsbq	%al, %rax");
-    } else if (size == 4) {
-        gen("movslq	%eax, %rax");
-    } else {
-        error("invalid size for emit_scast");
-    }
-    gen("pushq %rax");
+    genf(" movs%sq %s, %s", opsize(size), reg(inout,size), reg(inout,8));
 }
 
-void emit_array_index(int item_size) {
-    gen("popq	%rax");
-    gen_int("movl	$", item_size, ",%ecx");
-    gen("imulq %rcx");
-    gen("popq	%rdx");
-    gen("addq %rdx, %rax");
-    gen("pushq	%rax");
+void emit_array_index(int item_size, reg_e in, reg_e out) {
+    // out = out + in * item_size
+    reg_reserve(R_DX);
+    reg_reserve(R_AX);
+    genf(" movl $%d,%%eax", item_size);
+    genf(" imulq %s", reg(in,8));
+    genf(" addq %%rax, %s", reg(out,8));
+    reg_reserve(R_AX);
+    reg_release(R_DX);
 }
 
-void emit_binop(char *op, int size) {
-    gen("popq	%rdx");
-    gen("popq	%rax");
-    gen_strx(op, "X", "	%Zdx, %Zax", "", size);
-    gen("pushq	%rax");
+void emit_binop(char *binop, int size, reg_e in, reg_e out) {
+    genf( "%s%s %s,%s", binop, opsize(size), reg(in,size), reg(out,size));
 }
 
-void emit_add(int size) {
-    emit_binop("add", size);
+void emit_bit_shift(char* op, int size, reg_e in, reg_e out) {
+    reg_reserve(R_CX);
+    genf(" movb %s,%%cl", reg(in,1));
+    genf(" sa%s%s %%cl, %s", op, size, reg(out,size));
+    reg_release(R_CX);
 }
 
-void emit_sub(int size) {
-    emit_binop("sub", size);
+void emit_mul(int size, reg_e in, reg_e inout) {
+    reg_reserve(R_DX);
+    reg_reserve(R_AX);
+    genf(" mov%s %s,%s", opsize(size), reg(in,size), reg(R_AX,size));
+    genf(" imul%s %s", opsize(size), reg(inout,size));
+    genf(" mov%s %s,%s", opsize(size), reg(R_AX,size), reg(inout,size));
+    reg_release(R_AX);
+    reg_release(R_DX);
 }
 
-void emit_bit_and(int size) {
-    emit_binop("and", size);
+void emit_divmod(int size, reg_e in, reg_e out, reg_e divmod) { // in / out
+    reg_reserve(R_DX);
+    reg_reserve(R_AX);
+    genf(" mov%s %s,%s", opsize(size), reg(in,size), reg(R_AX,size));
+    genf(" %s", (size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
+    genf(" idiv%s %s", opsize(size), reg(out,size));
+    genf(" mov%s %s,%s", opsize(size), reg(divmod,size), reg(out,size));
+    reg_release(R_AX);
+    reg_release(R_DX);
 }
 
-void emit_bit_or(int size) {
-    emit_binop("or", size);
+void emit_div(int size, reg_e in, reg_e out) {
+    emit_divmod(size, in, out, R_AX);
 }
 
-void emit_bit_xor(int size) {
-    emit_binop("xor", size);
+void emit_mod(int size, reg_e in, reg_e out) {
+    emit_divmod(size, in, out, R_DX);
 }
 
-void emit_bit_lshift(int size) {
-    gen("popq	%rcx");
-    gen("popq	%rax");
-    gen_x("salX %cl, %Zax", size);
-    gen("pushq	%rax");
+void emit_eq_x(char *set, int size, reg_e in, reg_e out) {
+    genf(" cmp%s %s, %s", opsize(size), reg(in,size), reg(out,size));
+    genf(" set%s %s", set, reg(out,1));
 }
 
-void emit_bit_rshift(int size) {
-    gen("popq	%rcx");
-    gen("popq	%rax");
-    gen_x("sarX %cl, %Zax", size);
-    gen("pushq	%rax");
+void emit_log_not(int size, reg_e out) {
+    genf(" or%s %s, %s", opsize(size), reg(out,size), reg(out,size));
+    genf(" setz %s", reg(out,1));
 }
 
-void emit_mul(int size) {
-    gen("popq	%rdx");
-    gen("popq	%rax");
-    gen_x("imulX	%Zdx", size);
-    gen("pushq	%rax");
+void emit_neg(int size, reg_e out) {
+    genf(" not%s %s", opsize(size), reg(out,size));
 }
 
-void emit_div(int size) {
-    gen("popq	%rcx");
-    gen("popq	%rax");
-    gen((size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
-    gen_x("idivX	%Zcx", size);
-    gen("pushq	%rax");
-}
-
-void emit_mod(int size) {
-    gen("popq	%rcx");
-    gen("popq	%rax");
-    gen((size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
-    gen_x("idivX	%Zcx", size);
-    gen("pushq	%rdx");
-}
-
-void emit_eq_x(char *set, int size) {
-    gen("popq	%rdx");
-    gen("popq	%rcx");
-    gen("xorl   %eax, %eax");
-    gen_x("subX	%Zdx, %Zcx", size);
-    gen(set);
-    gen("pushq	%rax");
-}
-
-void emit_eq_eq(int size) {
-    emit_eq_x("sete %al", size);
-}
-
-void emit_eq_ne(int size) {
-    emit_eq_x("setne %al", size);
-}
-
-void emit_eq_lt(int size) {
-    emit_eq_x("setnge %al", size);
-}
-
-void emit_eq_le(int size) {
-    emit_eq_x("setle %al", size);
-}
-
-void emit_eq_gt(int size) {
-    emit_eq_x("setnle %al", size);
-}
-
-void emit_eq_ge(int size) {
-    emit_eq_x("setge %al", size);
-}
-
-void emit_log_or(int size) {
-    gen("popq	%rdx");
-    gen("popq	%rax");
-    gen_x("orX	%Zdx, %Zax", size);
-    gen("pushq	%rax");
-}
-
-void emit_log_and(int size) {
-    gen("popq	%rdx");
-    gen("popq	%rax");
-    gen_x("andX	%Zdx, %Zax", size);
-    gen("pushq	%rax");
-}
-
-void emit_log_not(int size) {
-    gen("popq	%rdx");
-    gen("xorl   %eax, %eax");
-    gen_x("orX	%Zdx, %Zdx", size);
-    gen("setz %al");
-    gen("pushq	%rax");
-}
-
-void emit_neg(int size) {
-    gen("popq	%rax");
-    gen_x("notX	%Zax", size);
-    gen("pushq	%rax");
-}
-
-void emit_print() {
-    gen("popq	%rax");
-	gen("movl	%eax, %esi");
-	gen("leaq	.LC0(%rip), %rdi");
-	gen("movl	$0, %eax");
-	gen("call	printf@PLT");
-	gen("movl	$0, %eax");
+void emit_print(reg_e in) {
+	genf(" movl	%s, %%esi", reg(in,4));
+	genf(" leaq	.LC0(%%rip), %%rdi");
+	genf(" movl	$0, %%eax");
+	genf(" call	printf@PLT");
 }
 
 void emit_label(int i) {
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, ".L", i, "");
-    gen_label(buf);
+    genf(".L%d:", i);
 }
 
 void emit_global_label(int i) {
-    char buf[RCC_BUF_SIZE] = {0};
-    _strcat3(buf, ".G", i, "");
-    gen_label(buf);
+    genf(".G%d:", i);
 }
 
 void emit_jmp(int i) {
-    gen_int("jmp .L", i, "");
+    genf(" jmp .L%d", i);
 }
 
-void emit_jmp_false(int i) {
-    gen("popq	%rax");
-    gen("orl	%eax, %eax");
-    gen_int("jz	.L", i, "");
+void emit_jmp_false(int i, reg_e in) {
+    genf(" orb %s, %s", reg(in,4), reg(in,4));
+    genf(" jz .L%d", i);
 }
 
-void emit_jmp_true_keepvalue(int i) {
-    gen("popq	%rax");
-    gen("pushq	%rax");
-    gen("orl	%eax, %eax");
-    gen_int("jnz	.L", i, "");
+void emit_jmp_true(int i, reg_e in) {
+    genf(" orb %s, %s", reg(in,4), reg(in,4));
+    genf(" jnz .L%d", i);
 }
 
-void emit_jmp_false_keepvalue(int i) {
-    gen("popq	%rax");
-    gen("pushq	%rax");
-    gen("orl	%eax, %eax");
-    gen_int("jz	.L", i, "");
+void emit_jmp_eq(int i, int size, reg_e in1, reg_e in2) {
+    genf(" cmp%s %s,%s", opsize(size), reg(in1,size), reg(in2,size));
+    genf(" jz .L%d", i);
 }
 
-void emit_jmp_true(int i) {
-    gen("popq	%rax");
-    gen("orl	%eax, %eax");
-    gen_int("jnz	.L", i, "");
+void emit_jmp_ne(int i, int size, reg_e in1, reg_e in2) {
+    genf(" cmp%s %s,%s", opsize(size), reg(in1,size), reg(in2,size));
+    genf(" jnz .L%d", i);
 }
 
-void emit_jmp_case(int i, int size) {
-    gen("popq	%rax");
-    gen("popq   %rcx");
-    gen("pushq   %rcx");
-    gen_x("subX	%Zcx, %Zax", size);
-    gen_int("jz	.L", i, "");
-}
-
-void emit_jmp_case_if_not(int i, int size) {
-    gen("popq	%rax");
-    gen("popq   %rcx");
-    gen("pushq   %rcx");
-    gen_x("subX	%Zcx, %Zax", size);
-    gen_int("jnz	.L", i, "");
-}
-
-int emit_push_struct(int size) {
+int emit_push_struct(int size, reg_e from) {
+    reg_e to = reg_assign();
     int offset = align(size, 8);
-    gen("popq %rsi"); // has address of the struct value
-    gen_int("addq $-", offset, ", %rsp");
-    gen("movq %rsp, %rdi");
-    gen("pushq %rsi");
-    gen("pushq %rdi");
-    emit_copy(size);
-    gen("popq %rax"); // drop
+    stack_offset += offset;
+    genf(" addq $%d, %%rsp", offset); // todo: check if this should be "subq $8, %rsp; movq %rsp, %to; subq $offset, %rsp"
+    genf(" movq %%rsp, %s", reg(to, 8));
+    emit_copy(size, from, to);
+    reg_release(to);
     return offset / 8;
 }
 
@@ -580,7 +454,7 @@ void exit_break_label() {
 }
 
 
-void compile(int pos) {
+void compile(int pos, reg_e reg_out) {
     atom_t *p = &(program[pos]);
 
     char ast_text[RCC_BUF_SIZE] = {0};
@@ -591,49 +465,52 @@ void compile(int pos) {
 
     switch (p->type) {
         case TYPE_VAR_REF:
-            emit_var_ref(p->int_value);
+            emit_var_ref(p->int_value, reg_out);
             break;
 
         case TYPE_GLOBAL_VAR_REF:
-            emit_global_var_ref(p->ptr_value);
+            emit_global_var_ref(p->ptr_value, reg_out);
             break;
 
-        case TYPE_BIND:
-            compile(p->atom_pos); // rvalue
-            compile((p+1)->atom_pos); // lvalue - should be an address
+        case TYPE_BIND: {
+            reg_e i1 = reg_assign();
+            compile(p->atom_pos, reg_out); // rvalue
+            compile((p+1)->atom_pos, i1); // lvalue - should be an address
             if (p->t->struct_of) {
-                emit_copy(type_size(p->t));
+                emit_copy(type_size(p->t), i1, reg_out);
             } else {
-                emit_store(type_size(p->t));
+                emit_store(type_size(p->t), i1, reg_out);
             }
+            reg_release(i1);
             break;
+        }
         case TYPE_PTR:
         case TYPE_PTR_DEREF:
-            compile(p->atom_pos);
+            compile(p->atom_pos, reg_out);
             break;
         case TYPE_RVALUE:
-            compile(p->atom_pos);
+            compile(p->atom_pos, reg_out);
             if (p->t->array_length >= 0 || p->t->struct_of) {
                 // rvalue of array / struct will be a pointer for itself
             } else {
-                emit_deref(type_size(p->t));
+                emit_deref(type_size(p->t), reg_out);
             }
             break;
 
         case TYPE_CONVERT:
-            compile(p->atom_pos);
+            compile(p->atom_pos, reg_out);
             break;
 
         case TYPE_CAST:
-            compile(p->atom_pos);
-            emit_scast(type_size(p->t));
+            compile(p->atom_pos, reg_out);
+            emit_scast(type_size(p->t), reg_out);
             break;
 
         case TYPE_INTEGER: 
             if (type_size(p->t) == 8) {
-                emit_int(p->long_value, 8);
+                emit_int(p->long_value, 8, reg_out);
             } else {
-                emit_int((long)(p->int_value), type_size(p->t));
+                emit_int((long)(p->int_value), type_size(p->t), reg_out);
             }
             break;
 
@@ -654,45 +531,42 @@ void compile(int pos) {
         case TYPE_LSHIFT:
         case TYPE_RSHIFT:
         case TYPE_MEMBER_OFFSET:
-            compile(p->atom_pos);
-            compile((p+1)->atom_pos);
+            compile(p->atom_pos, reg_out);
+            reg_e i1 = reg_assign();
+            compile((p+1)->atom_pos, i1);
             switch (p->type) {
                 case TYPE_MEMBER_OFFSET:
-                case TYPE_ADD: emit_add(type_size(p->t)); break;
-                case TYPE_SUB: emit_sub(type_size(p->t)); break;
-                case TYPE_DIV: emit_div(type_size(p->t)); break;
-                case TYPE_MOD: emit_mod(type_size(p->t)); break;
-                case TYPE_MUL: emit_mul(type_size(p->t)); break;
-                case TYPE_EQ_EQ: emit_eq_eq(type_size(p->t)); break;
-                case TYPE_EQ_NE: emit_eq_ne(type_size(p->t)); break;
-                case TYPE_EQ_LE: emit_eq_le(type_size(p->t)); break;
-                case TYPE_EQ_LT: emit_eq_lt(type_size(p->t)); break;
-                case TYPE_EQ_GE: emit_eq_ge(type_size(p->t)); break;
-                case TYPE_EQ_GT: emit_eq_gt(type_size(p->t)); break;
-                case TYPE_OR: emit_bit_or(type_size(p->t)); break;
-                case TYPE_AND: emit_bit_and(type_size(p->t)); break;
-                case TYPE_XOR: emit_bit_xor(type_size(p->t)); break;
-                case TYPE_LSHIFT: emit_bit_lshift(type_size(p->t)); break;
-                case TYPE_RSHIFT: emit_bit_rshift(type_size(p->t)); break;
+                case TYPE_ADD: emit_binop("add", type_size(p->t), i1, reg_out); break;
+                case TYPE_SUB: emit_binop("sub", type_size(p->t), i1, reg_out); break;
+                case TYPE_DIV: emit_div(type_size(p->t), i1, reg_out); break;
+                case TYPE_MOD: emit_mod(type_size(p->t), i1, reg_out); break;
+                case TYPE_MUL: emit_mul(type_size(p->t), i1, reg_out); break;
+                case TYPE_EQ_EQ: emit_eq_x("e", type_size(p->t), i1, reg_out); break;
+                case TYPE_EQ_NE: emit_eq_x("ne", type_size(p->t), i1, reg_out); break;
+                case TYPE_EQ_LE: emit_eq_x("nge", type_size(p->t), i1, reg_out); break;
+                case TYPE_EQ_LT: emit_eq_x("le", type_size(p->t), i1, reg_out); break;
+                case TYPE_EQ_GE: emit_eq_x("ge", type_size(p->t), i1, reg_out); break;
+                case TYPE_EQ_GT: emit_eq_x("nle", type_size(p->t), i1, reg_out); break;
+                case TYPE_OR: emit_binop("or", type_size(p->t), i1, reg_out); break;
+                case TYPE_AND: emit_binop("and", type_size(p->t), i1, reg_out); break;
+                case TYPE_XOR: emit_binop("xor", type_size(p->t), i1, reg_out); break;
+                case TYPE_LSHIFT: emit_bit_shift("l", type_size(p->t), i1, reg_out); break;
+                case TYPE_RSHIFT: emit_bit_shift("r", type_size(p->t), i1, reg_out); break;
+                case TYPE_ARRAY_INDEX: emit_array_index((p+2)->int_value, i1, reg_out); break;
             }
-            break;
-
-        case TYPE_ARRAY_INDEX:
-            compile(p->atom_pos);
-            compile((p+1)->atom_pos);
-            emit_array_index((p+2)->int_value);
+            reg_release(i1);
             break;
 
         case TYPE_POSTFIX_DEC: {
-            compile(p->atom_pos);
+            compile(p->atom_pos, reg_out);
             type_t *target_t = p->t;
-            emit_postfix_add(type_size(target_t), (target_t->ptr_to) ? -type_size(target_t->ptr_to) : -1);
+            emit_postfix_add(type_size(target_t), (target_t->ptr_to) ? -type_size(target_t->ptr_to) : -1, reg_out);
             break;
         }
         case TYPE_POSTFIX_INC:  {
-            compile(p->atom_pos);
+            compile(p->atom_pos, reg_out);
             type_t *target_t = p->t;
-            emit_postfix_add(type_size(target_t), (target_t->ptr_to) ? type_size(target_t->ptr_to) : 1);
+            emit_postfix_add(type_size(target_t), (target_t->ptr_to) ? type_size(target_t->ptr_to) : 1, reg_out);
             break;
         }
         
@@ -700,56 +574,56 @@ void compile(int pos) {
             break;
 
         case TYPE_EXPR_STATEMENT:
-            compile(p->atom_pos);
-            emit_pop();
+            compile(p->atom_pos, reg_out);
             break;
+
         case TYPE_ANDTHEN:
-            compile(p->atom_pos);
-            compile((p+1)->atom_pos);
+            compile(p->atom_pos, reg_out);
+            compile((p+1)->atom_pos, reg_out);
             break;
 
         case TYPE_LOG_AND: {
-                compile(p->atom_pos);
                 int l_end = new_label();
-                emit_jmp_false_keepvalue(l_end); // short circuit of '&&'
-                compile((p+1)->atom_pos);
+                compile(p->atom_pos, reg_out);
+                emit_jmp_false(l_end, reg_out); // short circuit of '&&'
+                compile((p+1)->atom_pos, reg_out);
                 emit_label(l_end);
             }
             break;
 
         case TYPE_LOG_OR: {
-                compile(p->atom_pos);
                 int l_end = new_label();
-                emit_jmp_true_keepvalue(l_end);   // short circuit of '||'
-                compile((p+1)->atom_pos);
+                compile(p->atom_pos, reg_out);
+                emit_jmp_false(l_end, reg_out);   // short circuit of '||'
+                compile((p+1)->atom_pos, reg_out);
                 emit_label(l_end);
             }
             break;
 
         case TYPE_PRINT:
-            compile(p->atom_pos);
-            emit_print();
+            compile(p->atom_pos, reg_out);
+            emit_print(reg_out);
             break;
             
         case TYPE_LOG_NOT:
-            compile(p->atom_pos);
-            emit_log_not(type_size(p->t));
+            compile(p->atom_pos, reg_out);
+            emit_log_not(type_size(p->t), reg_out);
             break;
 
         case TYPE_NEG:
-            compile(p->atom_pos);
-            emit_neg(type_size(p->t));
+            compile(p->atom_pos, reg_out);
+            emit_neg(type_size(p->t), reg_out);
             break;
 
         case TYPE_TERNARY: {
             int l_end = new_label();
             int l_else = new_label();
-            compile(p->atom_pos);
-            emit_jmp_false(l_else);
-            compile((p+1)->atom_pos);
+            compile(p->atom_pos, reg_out);
+            emit_jmp_false(l_else, reg_out);
+            compile((p+1)->atom_pos, reg_out);
             emit_jmp(l_end);
             emit_label(l_else);
-            compile((p+2)->atom_pos);
+            compile((p+2)->atom_pos, reg_out);
             emit_label(l_end);
         } 
             break;
@@ -759,14 +633,14 @@ void compile(int pos) {
             int l_end = new_label();
             int l_else = new_label();
 
-            compile(p->atom_pos);
-            emit_jmp_false(has_else ? l_else : l_end);
-            compile((p+1)->atom_pos);
+            compile(p->atom_pos, reg_out);
+            emit_jmp_false(has_else ? l_else : l_end, reg_out);
+            compile((p+1)->atom_pos, reg_out);
 
             if (has_else) {
                 emit_jmp(l_end);
                 emit_label(l_else);
-                compile((p+2)->atom_pos);
+                compile((p+2)->atom_pos, reg_out);
             }
             emit_label(l_end);
         }
@@ -778,15 +652,15 @@ void compile(int pos) {
             int l_end = new_label();
             enter_break_label(l_end, l_loop);
 
-            compile((p+2)->atom_pos);
+            compile((p+2)->atom_pos, reg_out);
             emit_label(l_body);
-            compile((p+1)->atom_pos);
-            emit_jmp_false(l_end);
+            compile((p+1)->atom_pos, reg_out);
+            emit_jmp_false(l_end, reg_out);
 
-            compile(p->atom_pos);
+            compile(p->atom_pos, reg_out);
 
             emit_label(l_loop);
-            compile((p+3)->atom_pos);
+            compile((p+3)->atom_pos, reg_out);
             emit_jmp(l_body);
             emit_label(l_end);
 
@@ -800,9 +674,9 @@ void compile(int pos) {
             enter_break_label(l_end, l_body);
 
             emit_label(l_body);
-            compile((p+1)->atom_pos);
-            emit_jmp_false(l_end);
-            compile(p->atom_pos);
+            compile((p+1)->atom_pos, reg_out);
+            emit_jmp_false(l_end, reg_out);
+            compile(p->atom_pos, reg_out);
             emit_jmp(l_body);
             emit_label(l_end);
 
@@ -816,9 +690,9 @@ void compile(int pos) {
             enter_break_label(l_end, l_body);
 
             emit_label(l_body);
-            compile(p->atom_pos);
-            compile((p+1)->atom_pos);
-            emit_jmp_true(l_body);
+            compile(p->atom_pos, reg_out);
+            compile((p+1)->atom_pos, reg_out);
+            emit_jmp_true(l_body, reg_out);
             emit_label(l_end);
 
             exit_break_label();
@@ -826,8 +700,7 @@ void compile(int pos) {
             break;
 
         case TYPE_RETURN:
-            compile(p->atom_pos);
-            emit_pop();
+            compile(p->atom_pos, R_AX);
             emit_jmp(func_return_label);
             break;
         
@@ -864,12 +737,13 @@ void compile(int pos) {
             }
 
             // push for stack-passing
+            reg_push_all();
             for (int i=argc-1; i>=0; i--) {
                 if (use_reg[i]) continue;
                 debug("compiling stack passing values %d", i);
-                compile((p+i+2)->atom_pos);
+                compile((p+i+2)->atom_pos, reg_out);
                 if (struct_size[i] > 0) {
-                    num_stack_args += emit_push_struct(struct_size[i]);
+                    num_stack_args += emit_push_struct(struct_size[i], reg_out);
                 } else {
                     num_stack_args++;
                 }
@@ -879,27 +753,28 @@ void compile(int pos) {
             for (int i=argc-1; i>=0; i--) {
                 if (!use_reg[i]) continue;
                 debug("compiling register passing values %d", i);
-                compile((p+i+2)->atom_pos);
+                compile((p+i+2)->atom_pos, reg_out); // todo: direct assign to registers
                 if (struct_size[i] > 0) {
-                    emit_push_struct(struct_size[i]);
+                    emit_push_struct(struct_size[i], reg_out);
                 }
             }
 
             for (int i=0; i<num_reg_args; i++) {
                 emit_pop_argv(i);
             }
-            emit_call(f->name, num_stack_args, f->is_external ? "@PLT" : "");
+            emit_call(f->name, num_stack_args, f->is_external ? "@PLT" : "", type_size(f->ret_type), reg_out);
+            reg_pop_all();
         }
             break;
         
         case TYPE_STRING:
-            emit_global_ref(p->int_value);
+            emit_global_ref(p->int_value, reg_out);
             break;
 
         case TYPE_SWITCH: {
             int l_end = new_label();
             enter_break_label(l_end, 0);
-            compile(p->atom_pos);
+            compile(p->atom_pos, reg_out);
             int size = type_size(p->t);
 
             p++;
@@ -910,8 +785,10 @@ void compile(int pos) {
                 int pos;
 
                 if (case_atom->type == TYPE_CASE) {
-                    compile((case_atom  )->atom_pos);
-                    emit_jmp_case_if_not(l_next_case, size);
+                    reg_e tmp = reg_assign();
+                    compile((case_atom  )->atom_pos, tmp);
+                    reg_release(tmp);
+                    emit_jmp_ne(l_next_case, size, reg_out, tmp); // todo - should release 'tmp' before jmp
                     pos = (case_atom+1)->atom_pos;
                 } else if (case_atom->type == TYPE_DEFAULT) {
                     emit_label(l_fallthrough);
@@ -922,7 +799,7 @@ void compile(int pos) {
                 }
 
                 emit_label(l_fallthrough);
-                compile(pos);
+                compile(pos, reg_out);
                 l_fallthrough = new_label();    // points to the body of the next case
                 emit_jmp(l_fallthrough);
 
@@ -933,7 +810,6 @@ void compile(int pos) {
             emit_label(l_fallthrough);
             exit_break_label();
             emit_label(l_end);
-            emit_pop();
         }
             break;
 
@@ -942,11 +818,11 @@ void compile(int pos) {
             dump_atom(pos, 0);
             error("Invalid program");
     }
-    gen_comment(ast_text);
+    genf("# %s", ast_text);
     debug("compiled %s", ast_text);
 }
 
-void compile_func(func *f) {
+void emit_function(func *f) {
     if (!f->body_pos) {
         return;
     }
@@ -954,13 +830,15 @@ void compile_func(func *f) {
 
     func_return_label = new_label();
 
-    gen_str(".globl	", f->name, "");
-    gen_str(".type	", f->name, ", @function");
+    genf(".globl %s", f->name);
+    genf(".type	%s, @function", f->name);
     gen_label(f->name);
-    gen("pushq	%rbp");
-    gen("movq	%rsp, %rbp");
+    genf(" pushq %%rbp");
+    genf(" movq %%rsp, %%rbp");
 
-    gen_int("subq	$", align(f->max_offset, 16), ", %rsp");
+    genf(" subq	$%d, %%rsp", align(f->max_offset, 16));
+    stack_offset = 0; // at this point, %rsp must be 16-bytes aligned
+    init_reg_in_use();
 
     int arg_offset = 0;
     int reg_index = 0;
@@ -1000,42 +878,42 @@ void compile_func(func *f) {
         }
     }
 
-    compile(f->body_pos);
+    compile(f->body_pos, reg_assign());
 
-    gen("xor	%eax, %eax");
+    genf(" xorl %%eax, %%eax");
     emit_label(func_return_label);
-    gen("leave");
-    gen("ret");
-    gen("");
+    genf(" leave");
+    genf(" ret");
+    genf("");
 }
 
-int gen_global_constant_by_type(type_t *pt, int value) {
+int emit_global_constant_by_type(type_t *pt, int value) {
     int filled_size = 0;
     if (pt == type_char) {
-        gen_int(".byte\t", value, "");
+        genf(".byte %d", value);
         filled_size += 1;
     } else if (pt == type_int) {
-        gen_int(".long\t", value, "");
+        genf(".long %d", value);
         filled_size += 4;
     } else if (pt == type_long) {
-        gen_int(".quad\t", value, "");
+        genf(".quad %d", value);
         filled_size += 4;
     } else if (pt == type_char_ptr) {
-        gen_int(".quad\t.G", value, "");
+        genf(".quad .G%d", value);
         filled_size += 8;
     } else if (pt->ptr_to) {
-        gen_int(".quad\t", value, "");
+        genf(".quad %d", value);
         filled_size += 8;
     }
     return filled_size;
 }
 
-void gen_global_constant(var_t *v) {
-    gen_str(".globl\t", v->name, "");
-    gen(".data");
-    gen_int(".align\t", 4, "");
-    gen_str(".type\t", v->name, ", @object");
-    gen_int4(".size\t", v->name, ", ", type_size(v->t), "");
+void emit_global_constant(var_t *v) {
+    genf(".globl %s", v->name);
+    genf(".data");
+    genf(".align 4");
+    genf(".type %s, @object", v->name);
+    genf(".size %s, %d", v->name, type_size(v->t));
     gen_label(v->name);
     if (v->t->array_length >= 0) {
         int filled_size = 0;
@@ -1044,13 +922,13 @@ void gen_global_constant(var_t *v) {
         type_t *pt = v->t->ptr_to;
         for (int index = 0; index < len; index++) {
             int value = get_global_array(pos, index);
-            filled_size += gen_global_constant_by_type(pt, value);
+            filled_size += emit_global_constant_by_type(pt, value);
         }
         if (type_size(v->t) > filled_size) {
-            gen_int(".zero\t", type_size(v->t) - filled_size, "");
+            genf(".zero %d", type_size(v->t) - filled_size);
         }
     } else {
-        int filled_size = gen_global_constant_by_type(v->t, v->int_value);
+        int filled_size = emit_global_constant_by_type(v->t, v->int_value);
         if (!filled_size) {
             char buf[RCC_BUF_SIZE] = {0};
             dump_type(buf, v->t);
@@ -1060,16 +938,11 @@ void gen_global_constant(var_t *v) {
     gen("");
 }
 
-void gen_global_declare(var_t *v) {
-    char buf[RCC_BUF_SIZE];
-    buf[0] = 0;
-    strcat(buf, ".comm	");
-    strcat(buf, v->name);
-    _strcat3(buf, ", ", type_size(v->t), "");
-    gen(buf);
+void emit_global_declaration(var_t *v) {
+    genf(".comm %s, %d", v->name, type_size(v->t));
 }
 
-void emit(int fd) {
+void compile_file(int fd) {
     output_fd = fd;
     
     gen(".file	\"main.c\"");
@@ -1082,16 +955,16 @@ void emit(int fd) {
             continue;
         }
         if (v->has_value) {
-            gen_global_constant(v);
+            emit_global_constant(v);
         } else if (!v->is_external) {
-            gen_global_declare(v);
+            emit_global_declaration(v);
         }
     }
 
     gen(".text");
-    gen(".section	.rodata");
+    gen(".section .rodata");
     gen_label(".LC0");
-    gen(".string	\"%d\\n\"");
+    gen(".string \"%d\\n\"");
 
     int gstr_i=0;
     char *gstr;
@@ -1110,7 +983,7 @@ void emit(int fd) {
         if (f->body_pos != 0) {
             debug("%s --------------------- ", f->name);
             //dump_atom_tree(f->body_pos, 0);
-            compile_func(f);
+            emit_function(f);
         }
     }
 }

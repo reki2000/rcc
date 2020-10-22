@@ -11,7 +11,7 @@ extern int close(int);
 extern void tokenize_file(char *);
 extern void add_include_dir(char *);
 extern int parse();
-extern void emit(int fd);
+extern void compile_file(int fd);
 
 int main(int argc, char **argv) {
     int arg_index;
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
 
     parse();
 
-    emit(output_fd);
+    compile_file(output_fd);
 
     if (output_fd != 1) {
         close(output_fd);
