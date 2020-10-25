@@ -174,14 +174,10 @@ void emit_int(long val, int size, reg_e out) {
 
 void emit_string(char* str) {
     char buf[RCC_BUF_SIZE] = {0};
-    char *d;
 
-    strcat(buf, ".string\t");
-    d = buf + strlen(buf);
-    *d++ = '"';
-    escape_string(d, str);
-    *d++ = '"';
-    *d = 0;
+    strcat(buf, ".string \"");
+    escape_string(buf + strlen(buf), str);
+    strcat(buf, "\"");
     gen(buf);
 }
 
