@@ -60,3 +60,5 @@ debug:
 debug-test:
 	gdb test/out/t test/core
 
+debug-gen2:
+	gdb bin/rcc2 test/core
