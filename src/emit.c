@@ -307,7 +307,7 @@ void emit_binop(char *binop, int size, reg_e in, reg_e out) {
 void emit_bit_shift(char* op, int size, reg_e in, reg_e out) {
     genf(" movq %%rcx, %%rax");
     genf(" movb %s,%%cl", reg(in,1));
-    genf(" sa%s%s %%cl, %s", op, size, reg(out,size));
+    genf(" sa%s%s %%cl, %s", op, opsize(size), reg(out,size));
     genf(" movq %%rax, %%rcx");
 }
 
