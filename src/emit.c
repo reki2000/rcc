@@ -688,7 +688,9 @@ void compile(int pos, reg_e reg_out) {
             break;
 
         case TYPE_RETURN:
-            compile(p->atom_pos, reg_out);
+            if (p->t != type_void) {
+                compile(p->atom_pos, reg_out);
+            }
             emit_jmp(func_return_label);
             break;
         

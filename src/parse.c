@@ -1053,7 +1053,7 @@ int parse_return_statement() {
 
     pos = parse_expr_sequence();
     if (!pos) {
-        pos = alloc_typed_int_atom(TYPE_INTEGER, 0, type_void);
+        return alloc_typed_pos_atom(TYPE_RETURN, 0, type_void);
     }
     if (!expect(T_SEMICOLON)) {
         error("invalid expr for return");
