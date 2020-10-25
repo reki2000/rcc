@@ -484,6 +484,9 @@ void compile(int pos, reg_e reg_out) {
 
         case TYPE_CONVERT:
             compile(p->atom_pos, reg_out);
+            if (!p->t->ptr_to) {
+                emit_scast(type_size(program[p->atom_pos].t), reg_out);
+            }
             break;
 
         case TYPE_CAST:

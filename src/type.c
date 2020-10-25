@@ -297,5 +297,7 @@ bool type_is_convertable(type_t *to, type_t *from) {
     from = type_unalias(from);
     if (to == from) return TRUE;
     if (to->ptr_to && from->ptr_to && type_is_convertable(to->ptr_to, from->ptr_to)) return TRUE;
+    if (to == type_long && (from == type_int || from == type_char)) return TRUE;
+    if (to == type_int && from == type_char) return TRUE;
     return FALSE;
 }

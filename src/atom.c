@@ -382,9 +382,22 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
         }
         int size = alloc_typed_int_atom(TYPE_INTEGER, type_size(lpos_t->ptr_to), type_int);
         rpos = alloc_binop_atom(TYPE_MUL, rpos, size);
+    } else if (!lpos_t->ptr_to && type != TYPE_BIND && type != TYPE_ANDTHEN && type != TYPE_ARRAY_INDEX && type != TYPE_MEMBER_OFFSET) {
+        rpos = atom_convert_type(lpos, rpos);
     }
-
     build_pos_atom(pos+1, TYPE_ARG, rpos);
+    switch (type) {
+        case TYPE_EQ_EQ:
+        case TYPE_EQ_GE:
+        case TYPE_EQ_GT:
+        case TYPE_EQ_LE:
+        case TYPE_EQ_LT:
+        case TYPE_EQ_NE:
+        case TYPE_LOG_AND:
+        case TYPE_LOG_OR:
+        case TYPE_LOG_NOT:
+        atom_set_type(pos, type_int);
+    }
     return pos;
 }
 
@@ -415,7 +428,7 @@ int atom_convert_type(int p1, int p2) {
     if (!t1->ptr_to && !t1->struct_of && !t1->enum_of && !t2->ptr_to && !t2->struct_of && !t2->enum_of) {
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
-    if (t1->ptr_to && t2->ptr_to && t2->ptr_to == type_void) {
+    if (t1->ptr_to && t2->ptr_to) {
         char buf[RCC_BUF_SIZE] = {0};
         dump_type(buf, t2);
         strcat(buf, " -> ");
@@ -431,7 +444,6 @@ int atom_convert_type(int p1, int p2) {
         debug("implicit enum conversion: %s", buf);
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
-    debug("not compatible type");
     dump_atom_tree(p1, 1);
     dump_atom_tree(p2, 1);
     error("not compatible type");
