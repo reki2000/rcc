@@ -403,6 +403,7 @@ int emit_push_struct(int size, reg_e from) {
 
 
 int func_return_label;
+int func_void_return_label;
 
 typedef struct {
     int break_label;
@@ -690,8 +691,11 @@ void compile(int pos, reg_e reg_out) {
         case TYPE_RETURN:
             if (p->t != type_void) {
                 compile(p->atom_pos, reg_out);
+                genf(" movq %s, %%rax", reg(reg_out, 8));
+                emit_jmp(func_return_label);
+            } else {
+                emit_jmp(func_void_return_label);
             }
-            emit_jmp(func_return_label);
             break;
         
         case TYPE_BREAK:
@@ -832,6 +836,7 @@ void emit_function(func *f) {
     set_token_pos(program[f->body_pos].token_pos);
 
     func_return_label = new_label();
+    func_void_return_label = new_label();
 
     genf(".globl %s", f->name);
     genf(".type	%s, @function", f->name);
@@ -884,12 +889,9 @@ void emit_function(func *f) {
     reg_e ret = reg_assign();
     compile(f->body_pos, ret);
 
-    genf(" xorq %s, %s", reg(ret, 8), reg(ret, 8)); // set default return value to $0
+    emit_label(func_void_return_label);
+    genf(" xorq %%rax, %%rax"); // set default return value to $0
     emit_label(func_return_label);
-    int size = type_size(f->ret_type);
-    if (size > 0) {
-        genf(" mov%s %s, %s", opsize(size), reg(ret, size), reg(R_AX, size));
-    }
     genf(" leave");
     genf(" ret");
     genf("");
