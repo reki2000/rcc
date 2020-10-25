@@ -760,7 +760,9 @@ void compile(int pos, reg_e reg_out) {
             }
             reg_pop_all();
             int size = type_size(f->ret_type);
-            genf(" mov%s %s, %s", opsize(size), reg(R_AX, size), reg(reg_out, size));
+            if (size > 0) {
+                genf(" mov%s %s, %s", opsize(size), reg(R_AX, size), reg(reg_out, size));
+            }
         }
             break;
         
@@ -784,11 +786,11 @@ void compile(int pos, reg_e reg_out) {
                 if (case_atom->type == TYPE_CASE) {
                     reg_e tmp = reg_assign();
                     compile((case_atom  )->atom_pos, tmp);
+                    genf(" movq %s, %%rax", reg(tmp,8));
                     reg_release(tmp);
-                    emit_jmp_ne(l_next_case, size, reg_out, tmp); // todo - should release 'tmp' before jmp
+                    emit_jmp_ne(l_next_case, size, reg_out, R_AX); 
                     pos = (case_atom+1)->atom_pos;
                 } else if (case_atom->type == TYPE_DEFAULT) {
-                    emit_label(l_fallthrough);
                     pos = case_atom->atom_pos;
                 } else {
                     dump_atom_tree(p->atom_pos, 0);
@@ -797,7 +799,7 @@ void compile(int pos, reg_e reg_out) {
 
                 emit_label(l_fallthrough);
                 compile(pos, reg_out);
-                l_fallthrough = new_label();    // points to the body of the next case
+                l_fallthrough = new_label();    // points the body of the next case
                 emit_jmp(l_fallthrough);
 
                 emit_label(l_next_case);
@@ -883,7 +885,9 @@ void emit_function(func *f) {
     genf(" xorq %s, %s", reg(ret, 8), reg(ret, 8)); // set default return value to $0
     emit_label(func_return_label);
     int size = type_size(f->ret_type);
-    genf(" mov%s %s, %s", opsize(size), reg(ret, size), reg(R_AX, size));
+    if (size > 0) {
+        genf(" mov%s %s, %s", opsize(size), reg(ret, size), reg(R_AX, size));
+    }
     genf(" leave");
     genf(" ret");
     genf("");
