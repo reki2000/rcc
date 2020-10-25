@@ -583,7 +583,7 @@ void compile(int pos, reg_e reg_out) {
         case TYPE_LOG_OR: {
                 int l_end = new_label();
                 compile(p->atom_pos, reg_out);
-                emit_jmp_false(l_end, reg_out);   // short circuit of '||'
+                emit_jmp_true(l_end, reg_out);   // short circuit of '||'
                 compile((p+1)->atom_pos, reg_out);
                 emit_label(l_end);
             }
