@@ -78,6 +78,16 @@ int stack_offset = 0;
  */
 int reg_in_use[R_LAST];
 
+void dump_reg_is_use() {
+    char b1[100] = {0}; 
+    char b0[100] = {0}; 
+    for(reg_e i=0; i<R_LAST; i++) { 
+        snprintf(b1, 100, "%d[%d] ", i, reg_in_use[i]); 
+        strcat(b0, b1); 
+    } 
+    debug("before pop_all: %s", b0);
+}
+
 bool reg_is_callee_saved(reg_e i) {
     return (i==R_BX || i==R_12 || i==R_13 || i==R_14 || i==R_15);
 }
@@ -100,6 +110,7 @@ void emit_pop(reg_e r) {
 
 void reg_push_all() {
     for (reg_e i=0; i<R_LAST; i++) {
+        if (i == R_AX) continue;
         if (reg_is_callee_saved(i)) continue;
         if (reg_in_use[i]) {
             emit_push(i);
@@ -108,7 +119,8 @@ void reg_push_all() {
 }
 
 void reg_pop_all() {
-    for (reg_e i=0; i<R_LAST; i--) {
+    for (reg_e i=0; i<R_LAST; i++) {
+        if (i == R_AX) continue;
         reg_e r = R_LAST-i-1;
         if (reg_is_callee_saved(r)) continue;
         if (reg_in_use[r]) {
@@ -124,6 +136,7 @@ reg_e reg_assign() {
     reg_e reg_min = R_LAST;
     int val_min = INT32_MAX;
     for (reg_e i=0; i<R_LAST; i++) {
+        if (i == R_AX) continue;
         if (val_min > reg_in_use[i]) {
             reg_min = i;
             val_min = reg_in_use[i];
@@ -200,15 +213,6 @@ void emit_var_arg_init(reg_e no, int offset, int size) {
     genf(" mov%s %s, %d(%%rbp)", opsize(size), reg(no, size), -offset);
 }
 
-void emit_call(char *name, int num_stack_args, char *plt, int size, reg_e out) {
-    genf(" movb $0, %%al");
-    genf(" call %s%s", name, plt);
-    if (num_stack_args > 0) {
-        genf(" addq $%d, %%rsp", num_stack_args * 8);
-    }
-    genf(" mov%s %s, %s", opsize(size), reg(R_AX, size), reg(out, size));
-}
-
 void emit_deref(int size, reg_e inout) {
     if (size == 1) {
         genf(" movzbl (%s), %s", reg(inout,8), reg(inout,4));
@@ -281,11 +285,9 @@ void emit_scast(int size, reg_e inout) {
 void emit_array_index(int item_size, reg_e in, reg_e out) {
     // out = out + in * item_size
     reg_reserve(R_DX);
-    reg_reserve(R_AX);
     genf(" movl $%d,%%eax", item_size);
     genf(" imulq %s", reg(in,8));
     genf(" addq %%rax, %s", reg(out,8));
-    reg_reserve(R_AX);
     reg_release(R_DX);
 }
 
@@ -302,22 +304,18 @@ void emit_bit_shift(char* op, int size, reg_e in, reg_e out) {
 
 void emit_mul(int size, reg_e in, reg_e inout) {
     reg_reserve(R_DX);
-    reg_reserve(R_AX);
     genf(" mov%s %s,%s", opsize(size), reg(in,size), reg(R_AX,size));
     genf(" imul%s %s", opsize(size), reg(inout,size));
     genf(" mov%s %s,%s", opsize(size), reg(R_AX,size), reg(inout,size));
-    reg_release(R_AX);
     reg_release(R_DX);
 }
 
 void emit_divmod(int size, reg_e in, reg_e out, reg_e divmod) { // in / out
     reg_reserve(R_DX);
-    reg_reserve(R_AX);
     genf(" mov%s %s,%s", opsize(size), reg(in,size), reg(R_AX,size));
     genf(" %s", (size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
     genf(" idiv%s %s", opsize(size), reg(out,size));
     genf(" mov%s %s,%s", opsize(size), reg(divmod,size), reg(out,size));
-    reg_release(R_AX);
     reg_release(R_DX);
 }
 
@@ -438,7 +436,7 @@ void compile(int pos, reg_e reg_out) {
 
     char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
-    debug("compiling atom_t: %s", ast_text);
+    debug("compiling out:R#%d atom_t: %s", reg_out, ast_text);
     set_token_pos(p->token_pos);
     //dump_token_by_id(p->token_pos);
 
@@ -522,8 +520,8 @@ void compile(int pos, reg_e reg_out) {
                 case TYPE_MUL: emit_mul(type_size(p->t), i1, reg_out); break;
                 case TYPE_EQ_EQ: emit_eq_x("e", type_size(p->t), i1, reg_out); break;
                 case TYPE_EQ_NE: emit_eq_x("ne", type_size(p->t), i1, reg_out); break;
-                case TYPE_EQ_LE: emit_eq_x("nge", type_size(p->t), i1, reg_out); break;
-                case TYPE_EQ_LT: emit_eq_x("le", type_size(p->t), i1, reg_out); break;
+                case TYPE_EQ_LE: emit_eq_x("le", type_size(p->t), i1, reg_out); break;
+                case TYPE_EQ_LT: emit_eq_x("nge", type_size(p->t), i1, reg_out); break;
                 case TYPE_EQ_GE: emit_eq_x("ge", type_size(p->t), i1, reg_out); break;
                 case TYPE_EQ_GT: emit_eq_x("nle", type_size(p->t), i1, reg_out); break;
                 case TYPE_OR: emit_binop("or", type_size(p->t), i1, reg_out); break;
@@ -679,7 +677,7 @@ void compile(int pos, reg_e reg_out) {
             break;
 
         case TYPE_RETURN:
-            compile(p->atom_pos, R_AX);
+            compile(p->atom_pos, reg_out);
             emit_jmp(func_return_label);
             break;
         
@@ -719,7 +717,7 @@ void compile(int pos, reg_e reg_out) {
             reg_push_all();
             for (int i=argc-1; i>=0; i--) {
                 if (use_reg[i]) continue;
-                debug("compiling stack passing values %d", i);
+                debug("compiling stack passing values %d, to R#%d", i, reg_out);
                 compile((p+i+2)->atom_pos, reg_out);
                 emit_push(reg_out);
                 if (struct_size[i] > 0) {
@@ -732,7 +730,7 @@ void compile(int pos, reg_e reg_out) {
             // push for register-passing
             for (int i=argc-1; i>=0; i--) {
                 if (!use_reg[i]) continue;
-                debug("compiling register passing values %d", i);
+                debug("compiling register #%d passing value, to R#%d", i, reg_out);
                 compile((p+i+2)->atom_pos, reg_out); // todo: direct assign to registers
                 emit_push(reg_out);
                 if (struct_size[i] > 0) {
@@ -743,8 +741,15 @@ void compile(int pos, reg_e reg_out) {
             for (int i=0; i<num_reg_args; i++) {
                 emit_pop(i);
             }
-            emit_call(f->name, num_stack_args, f->is_external ? "@PLT" : "", type_size(f->ret_type), reg_out);
+
+            genf(" movb $0, %%al");
+            genf(" call %s%s", f->name, f->is_external ? "@PLT" : "");
+            if (num_stack_args > 0) {
+                genf(" addq $%d, %%rsp", num_stack_args * 8);
+            }
             reg_pop_all();
+            int size = type_size(f->ret_type);
+            genf(" mov%s %s, %s", opsize(size), reg(R_AX, size), reg(reg_out, size));
         }
             break;
         
@@ -799,8 +804,10 @@ void compile(int pos, reg_e reg_out) {
             dump_atom(pos, 0);
             error("Invalid program");
     }
-    genf("# %s", ast_text);
-    debug("compiled %s", ast_text);
+    if (p->type == TYPE_EXPR_STATEMENT || p->type == TYPE_APPLY || p->type == TYPE_RETURN || p->type == TYPE_IF || p->type == TYPE_FOR || p->type == TYPE_WHILE || p->type == TYPE_DO_WHILE) {
+        genf("# %s", ast_text);
+    }
+    debug("compiled out:R#%d atom_t: %s", reg_out, ast_text);
 }
 
 void emit_function(func *f) {
@@ -859,10 +866,13 @@ void emit_function(func *f) {
         }
     }
 
-    compile(f->body_pos, reg_assign());
+    reg_e ret = reg_assign();
+    compile(f->body_pos, ret);
 
-    genf(" xorl %%eax, %%eax");
+    genf(" xorq %s, %s", reg(ret, 8), reg(ret, 8)); // set default return value to $0
     emit_label(func_return_label);
+    int size = type_size(f->ret_type);
+    genf(" mov%s %s, %s", opsize(size), reg(ret, size), reg(R_AX, size));
     genf(" leave");
     genf(" ret");
     genf("");
