@@ -130,13 +130,13 @@ void reg_pop_all() {
 }
 
 /*
- * assign a register which is the least pushed on the stack
+ * assign a register which is the least pushed on the stack, except it's the specified one.
  */
-reg_e reg_assign() {
+reg_e reg_assign_keep(reg_e keep) {
     reg_e reg_min = R_LAST;
     int val_min = INT32_MAX;
     for (reg_e i=0; i<R_LAST; i++) {
-        if (i == R_AX) continue;
+        if (i == R_AX || i == keep) continue;
         if (val_min > reg_in_use[i]) {
             reg_min = i;
             val_min = reg_in_use[i];
@@ -149,12 +149,8 @@ reg_e reg_assign() {
     return reg_min;
 }
 
-void reg_reserve(reg_e r) {
-    // todo: prevent assign if reserving register is used with *itself* (by automatically assigned) at the same time
-    if (reg_in_use[r]) {
-        emit_push(r);
-    }
-    reg_in_use[r]++;
+reg_e reg_assign() {
+    return reg_assign_keep(R_LAST);
 }
 
 void reg_release(reg_e r) {
@@ -165,6 +161,23 @@ void reg_release(reg_e r) {
         emit_pop(r);
     }
     reg_in_use[r]--;
+}
+
+reg_e reg_reserve(reg_e org, reg_e keep) {
+    emit_push(keep);
+    if (org == keep) {
+        reg_e tmp = reg_assign_keep(keep);
+        genf(" movq %s, %s", reg(org,8), reg(tmp,8));
+        return tmp;
+    }
+    return org;
+}
+
+void reg_restore(reg_e tmp, reg_e org, reg_e keep) {
+    if (tmp != org) {
+        reg_release(tmp);
+    }
+    emit_pop(keep);
 }
 
 
@@ -280,11 +293,11 @@ void emit_scast(int size, reg_e inout) {
 
 void emit_array_index(int item_size, reg_e in, reg_e out) {
     // out = out + in * item_size
-    reg_reserve(R_DX);
+    reg_e in2 = reg_reserve(in, R_DX);
     genf(" movl $%d,%%eax", item_size);
-    genf(" imulq %s", reg(in,8));
+    genf(" imulq %s", reg(in2,8));
     genf(" addq %%rax, %s", reg(out,8));
-    reg_release(R_DX);
+    reg_restore(in2, in, R_DX);
 }
 
 void emit_binop(char *binop, int size, reg_e in, reg_e out) {
@@ -292,27 +305,28 @@ void emit_binop(char *binop, int size, reg_e in, reg_e out) {
 }
 
 void emit_bit_shift(char* op, int size, reg_e in, reg_e out) {
-    reg_reserve(R_CX);
+    genf(" movq %%rcx, %%rax");
     genf(" movb %s,%%cl", reg(in,1));
     genf(" sa%s%s %%cl, %s", op, size, reg(out,size));
-    reg_release(R_CX);
+    genf(" movq %%rax, %%rcx");
 }
 
 void emit_mul(int size, reg_e in, reg_e inout) {
-    reg_reserve(R_DX);
-    genf(" mov%s %s,%s", opsize(size), reg(in,size), reg(R_AX,size));
-    genf(" imul%s %s", opsize(size), reg(inout,size));
+    reg_e in2 = reg_reserve(in, R_DX);
+    genf(" mov%s %s,%s", opsize(size), reg(inout,size), reg(R_AX,size));
+    genf(" imul%s %s", opsize(size), reg(in2,size));
     genf(" mov%s %s,%s", opsize(size), reg(R_AX,size), reg(inout,size));
-    reg_release(R_DX);
+    reg_restore(in2, in, R_DX);
 }
 
-void emit_divmod(int size, reg_e in, reg_e out, reg_e divmod) { // in / out
-    reg_reserve(R_DX);
-    genf(" mov%s %s,%s", opsize(size), reg(in,size), reg(R_AX,size));
+void emit_divmod(int size, reg_e in, reg_e out, reg_e ret_reg) { 
+    // out = out [ / | % ] in
+    reg_e in2 = reg_reserve(in, R_DX);
+    genf(" mov%s %s,%s", opsize(size), reg(out,size), reg(R_AX,size));
     genf(" %s", (size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
-    genf(" idiv%s %s", opsize(size), reg(out,size));
-    genf(" mov%s %s,%s", opsize(size), reg(divmod,size), reg(out,size));
-    reg_release(R_DX);
+    genf(" idiv%s %s", opsize(size), reg(in2,size));
+    genf(" mov%s %s,%s", opsize(size), reg(ret_reg,size), reg(out,size));
+    reg_restore(in2, in, R_DX);
 }
 
 void emit_div(int size, reg_e in, reg_e out) {
@@ -504,6 +518,7 @@ void compile(int pos, reg_e reg_out) {
         case TYPE_LSHIFT:
         case TYPE_RSHIFT:
         case TYPE_MEMBER_OFFSET:
+        case TYPE_ARRAY_INDEX:
             compile(p->atom_pos, reg_out);
             reg_e i1 = reg_assign();
             compile((p+1)->atom_pos, i1);
