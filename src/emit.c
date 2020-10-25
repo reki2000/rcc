@@ -248,7 +248,7 @@ void emit_postfix_add(int size, int ptr_size, reg_e inout) {
 
 void emit_copy(int size, reg_e in, reg_e out) {
     emit_push(in);
-    reg_e tmp = reg_assign();
+    reg_e tmp = R_AX;
     while (size>=8) {
         genf(" movq (%s), %s", reg(in,8), reg(tmp,8));
         genf(" movq %s, (%s)", reg(tmp,8), reg(out,8));
@@ -740,7 +740,7 @@ void compile(int pos, reg_e reg_out) {
 
             // push for stack-passing
             reg_push_all();
-            if (stack_size + stack_offset % 16 != 0) {
+            if ((stack_size + stack_offset) % 16 != 0) {
                 genf(" subq $8, %%rsp");
                 stack_size += 8;
             }
