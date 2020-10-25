@@ -239,38 +239,33 @@ void emit_global_var_ref(char *name, reg_e out) {
 }
 
 void emit_postfix_add(int size, int ptr_size, reg_e inout) {
-    reg_e tmp = reg_assign();
+    reg_e tmp = R_AX;
     genf(" mov%s (%s), %s", opsize(size), reg(inout, 8), reg(tmp, size));
     genf(" add%s $%d, (%s)", opsize(size), ptr_size, reg(inout,8));
     genf(" mov%s %s, %s", opsize(size), reg(tmp,size), reg(inout, size));
-    reg_release(tmp);
 }
 
 void emit_copy(int size, reg_e in, reg_e out) {
-    emit_push(in);
     reg_e tmp = R_AX;
+    int offset = 0;
     while (size>=8) {
-        genf(" movq (%s), %s", reg(in,8), reg(tmp,8));
-        genf(" movq %s, (%s)", reg(tmp,8), reg(out,8));
-        genf(" addq $8, %s", reg(in,8));
-        genf(" addq $8, %s", reg(out,8));
-        size-=8;
+        genf(" movq %d(%s), %s", offset, reg(in,8), reg(tmp,8));
+        genf(" movq %s, %d(%s)", reg(tmp,8), offset, reg(out,8));
+        size -= 8;
+        offset += 8;
     }
     while (size>=4) {
-        genf(" movl (%s), %s", reg(in,8), reg(tmp,4));
-        genf(" movl %s, (%s)", reg(tmp,4), reg(out,8));
-        genf(" addq $4, %s", reg(in,8));
-        genf(" addq $4, %s", reg(out,8));
-        size-=4;
+        genf(" movl %d(%s), %s", offset, reg(in,8), reg(tmp,4));
+        genf(" movl %s, %d(%s)", reg(tmp,4), offset, reg(out,8));
+        offset += 4;
+        size -= 4;
     }
     while (size>0) {
-        genf(" movb (%s), %s", reg(in,8), reg(tmp,1));
-        genf(" movb %s, (%s)", reg(tmp,1), reg(out,8));
-        genf(" incq %s", reg(in,8));
-        genf(" incq %s", reg(out,8));
-        size-=1;
+        genf(" movb %d(%s), %s", offset, reg(in,8), reg(tmp,1));
+        genf(" movb %s, %d(%s)", reg(tmp,1), offset, reg(out,8));
+        size--;
+        offset++;
     }
-    emit_pop(out);
 }
 
 void emit_store(int size, reg_e in, reg_e out) {
@@ -340,11 +335,13 @@ void emit_mod(int size, reg_e in, reg_e out) {
 void emit_eq_x(char *set, int size, reg_e in, reg_e out) {
     genf(" cmp%s %s, %s", opsize(size), reg(in,size), reg(out,size));
     genf(" set%s %s", set, reg(out,1));
+    genf(" andq $1,%s", reg(out, 8));
 }
 
 void emit_log_not(int size, reg_e out) {
     genf(" or%s %s, %s", opsize(size), reg(out,size), reg(out,size));
     genf(" setz %s", reg(out,1));
+    genf(" andq $1,%s", reg(out, 8));
 }
 
 void emit_neg(int size, reg_e out) {
