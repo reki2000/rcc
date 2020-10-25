@@ -712,35 +712,45 @@ void compile(int pos, reg_e reg_out) {
             int argc = (p+1)->int_value;
 
             int num_reg_args = 0;
-            int num_stack_args = 0;
 
             bool use_reg[100]; // NUM_ARGC
             int struct_size[100]; 
+            int stack_size = 0;
             for (int i=0; i<argc; i++) {
                 type_t *t = program[(p+i+2)->atom_pos].t;
                 if (t->struct_of) {
                     int size = type_size(t);
                     struct_size[i] = size;
                     use_reg[i] = ((size <= 8 && num_reg_args < ABI_NUM_GP) || (size <= 16 && num_reg_args < ABI_NUM_GP - 1));
-                    if (use_reg[i]) num_reg_args += (size <= 8) ? 1 : 2;
+                    if (use_reg[i]) {
+                        num_reg_args += (size <= 8) ? 1 : 2;
+                    } else {
+                        stack_size += align(size, 8);
+                    }
                 } else  {
                     struct_size[i] = 0;
                     use_reg[i] = (num_reg_args < ABI_NUM_GP);
-                    if (use_reg[i]) num_reg_args++;
+                    if (use_reg[i]) {
+                        num_reg_args++;
+                    } else {
+                        stack_size += 8;
+                    }
                 }
             }
 
             // push for stack-passing
             reg_push_all();
+            if (stack_size + stack_offset % 16 != 0) {
+                genf(" subq $8, %%rsp");
+                stack_size += 8;
+            }
             for (int i=argc-1; i>=0; i--) {
                 if (use_reg[i]) continue;
                 debug("compiling stack passing values %d, to R#%d", i, reg_out);
                 compile((p+i+2)->atom_pos, reg_out);
                 emit_push(reg_out);
                 if (struct_size[i] > 0) {
-                    num_stack_args += emit_push_struct(struct_size[i], reg_out);
-                } else {
-                    num_stack_args++;
+                    emit_push_struct(struct_size[i], reg_out);
                 }
             }
 
@@ -749,9 +759,10 @@ void compile(int pos, reg_e reg_out) {
                 if (!use_reg[i]) continue;
                 debug("compiling register #%d passing value, to R#%d", i, reg_out);
                 compile((p+i+2)->atom_pos, reg_out); // todo: direct assign to registers
-                emit_push(reg_out);
                 if (struct_size[i] > 0) {
                     emit_push_struct(struct_size[i], reg_out);
+                } else {
+                    emit_push(reg_out);
                 }
             }
 
@@ -761,8 +772,8 @@ void compile(int pos, reg_e reg_out) {
 
             genf(" movb $0, %%al");
             genf(" call %s%s", f->name, f->is_external ? "@PLT" : "");
-            if (num_stack_args > 0) {
-                genf(" addq $%d, %%rsp", num_stack_args * 8);
+            if (stack_size > 0) {
+                genf(" addq $%d, %%rsp", stack_size);
             }
             reg_pop_all();
             int size = type_size(f->ret_type);

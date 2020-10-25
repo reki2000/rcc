@@ -143,7 +143,7 @@
 
 - [x] function declaration for > 6 args
 - [x] function call with > 6 args
-- [ ] function call ABI stack 16bytes alignment
+- [x] function call ABI stack 16bytes alignment
 
 - [x] variadic function call/def
 - [x] va_list type, va_start, va_end macro
