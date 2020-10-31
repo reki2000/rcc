@@ -181,3 +181,13 @@ define: start_of_line '#' 'define' IDENT ( '(' IDENT ( ',' IDENT )* ) ')' )? ( t
 - 0xfff == 07777
 - 0xff == 0377
 - 0xffff_ffff == 0377_7777_7777
+
+
+## how to handle boolean type
+- convert to int when:
+  - result of order operators (0 or 1)
+  - result of logical operators (0 or 1)
+  - for conditional expression - TYPE_BOOL
+    - char -> movzbl %al, %eax, andq $1,%eax
+    - int -> andq $1,%eax
+    - pointer, long -> orq %rax, %rax, setnz %al, movzbl %al, %eax
