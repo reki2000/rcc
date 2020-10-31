@@ -17,7 +17,7 @@ $(PROG): $(OBJECTS)
 	$(CC) -o $(PROG) $(OBJECTS)
 
 $(OBJDIR)/%.s: $(SRCDIR)/%.c
-	../bin/rcc -S $(INCLUDE) $< > $@
+	../bin/rcc -o $@ -S $(INCLUDE) $<
 
 $(OBJDIR)/%.o: $(OBJDIR)/%.s
 	$(CC) $(CFLAGS) -o $@ -c $<
