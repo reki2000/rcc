@@ -141,6 +141,10 @@ void dump_file_stack() {
     }
 }
 
+char char_to_printable(char c) {
+    return (c == '\n' || c == '\t' || c == '\r') ? ' ' : c;
+}
+
 /*
  * display the part of the file in 1-line style, sorrounded by '=>' and '<='
  */
@@ -154,7 +158,7 @@ char *dump_file(int id, int start_pos, int end_pos) {
     }
     char *body = src_vec_get(srcs, id)->body;
 
-    while (line_start_pos >= 0 && body[line_start_pos] != '\n' && start_pos - line_start_pos < 40) {
+    while ((line_start_pos >= 0) && (body[line_start_pos] != '\n') && (start_pos - line_start_pos < 40)) {
         line_start_pos--;
     }
     line_start_pos++;
@@ -169,18 +173,22 @@ char *dump_file(int id, int start_pos, int end_pos) {
     char *buf = calloc(1, line_size + 4 + 4 + 1 + 10);
     char *p = buf;
     int i = line_start_pos;
-    while (i < start_pos) { *p++ = body[i++]; }
+    while (i < start_pos) { 
+        *p++ = char_to_printable(body[i++]);
+    }
     strcat(p, " => "); p+=4;
     while (i <= end_pos && i < line_end_pos) { 
         if (start_pos + 30 < i && i < end_pos - 30) {
             strcat(p, " ... "); p+=5;
             while (i < end_pos - 30) i++;
         } else {
-            *p++ = body[i++]; 
+            *p++ = char_to_printable(body[i++]);
         }
     }
     strcat(p, " <= "); p+=4;
-    while (i < line_end_pos) { *p++ = body[i++]; }
+    while (i < line_end_pos) {
+        *p++ = char_to_printable(body[i++]);
+    }
     *p = '\0';
 
     return buf;
@@ -192,7 +200,9 @@ char *file_get_part(int id, int start_pos, int end_pos) {
     char *buf = calloc(1, line_size + 3 + 5 + 5 + 2);
     char *p = buf;
     int i = start_pos;
-    while (i <= end_pos) { *p++ = body[i++]; }
+    while (i <= end_pos) {
+        *p++ = char_to_printable(body[i++]);
+    }
     return buf;
 }
 
