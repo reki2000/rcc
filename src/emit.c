@@ -482,13 +482,15 @@ void compile(int pos, reg_e reg_out) {
             }
             break;
 
-        case TYPE_CONVERT:
+        case TYPE_CONVERT: {
             compile(p->atom_pos, reg_out);
-            if (!p->t->ptr_to) {
+            int org_size = type_size(program[p->atom_pos].t);
+            int new_size = type_size(p->t);
+            if (!p->t->ptr_to && org_size < new_size) {
                 emit_scast(type_size(program[p->atom_pos].t), reg_out);
             }
             break;
-
+        }
         case TYPE_CAST:
             compile(p->atom_pos, reg_out);
             emit_scast(type_size(p->t), reg_out);
