@@ -22,7 +22,7 @@ function compile {
 }
 
 function compile-gcc {
-    $GCC -S -I$(dirname $1)/include -o $DEBUG_ASM $1 2>$DEBUG_LOG \
+    $GCC -S -I$(dirname $1)/include -I../include -o $DEBUG_ASM $1 2>$DEBUG_LOG \
     && ( $GCC -o $DEBUG_BIN $DEBUG_ASM print.c || fatal " cannot build test program in gcc" )
 }
 
