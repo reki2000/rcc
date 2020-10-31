@@ -65,6 +65,13 @@ void dump_type(char *buf, type_t *t) {
     _strcat3(buf, " size:", type_size(t_org), "");
 }
 
+char *dump_type2(type_t *t) {
+    char *buf = calloc(RCC_BUF_SIZE, 1);
+    dump_type(buf, t);
+    buf = realloc(buf, strlen(buf));
+    return buf;
+}
+
 type_t *add_type(char* name, int size, type_t *ptr_to, int array_length) {
     if (!types) types = type_vec_new();
 
