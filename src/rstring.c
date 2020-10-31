@@ -52,6 +52,7 @@ void escape_string(char *buf, const char *str) {
         str++;
         d++;
     }
+    *d = '\0';
 }
 
 void _strcati(char *dst, int i) {
