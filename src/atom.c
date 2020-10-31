@@ -415,9 +415,6 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
     int pos = alloc_atom(2);
     build_pos_atom(pos, type, lpos);
     build_pos_atom(pos+1, TYPE_ARG, rpos);
-    if (is_order_operator(type)) {
-        atom_set_type(pos, type_int);
-    }
     return pos;
 }
 
