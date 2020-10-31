@@ -12,3 +12,6 @@ extern void _strcat3(char *buf, char *s1, int i, char *s2);
 extern bool is_alpha(int c);
 extern bool is_digit(int c);
 extern bool is_space(int c);
+
+extern char unescape_char(char escaped_char);
+extern void escape_string(char *buf, const char *str);

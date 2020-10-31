@@ -26,6 +26,31 @@ char *atom_name[] = {
     "switch", "case", "default", "?:", "cast"
 };
 
+bool is_order_operator(int type) {
+    switch (type) {
+        case TYPE_EQ_EQ:
+        case TYPE_EQ_GE:
+        case TYPE_EQ_GT:
+        case TYPE_EQ_LE:
+        case TYPE_EQ_LT:
+        case TYPE_EQ_NE:
+        return TRUE;
+    }
+    return FALSE;
+}
+
+bool is_arithmetic_operator(int type) {
+    switch (type) {
+        case TYPE_ADD:
+        case TYPE_SUB:
+        case TYPE_MUL:
+        case TYPE_DIV:
+        case TYPE_MOD:
+        return TRUE;
+    }
+    return is_order_operator(type);
+}
+
 int alloc_atom(int size) {
     int current;
     current = atom_pos;
@@ -372,36 +397,34 @@ int alloc_binop_atom(int type, int lpos, int rpos) {
     int const_pos = calculate_if_constant_ops(type, lpos, rpos);
     if (const_pos) return const_pos;
 
-    int pos = alloc_atom(2);
-    build_pos_atom(pos, type, lpos);
-
     type_t *lpos_t = atom_type(lpos);
+    type_t *rpos_t = atom_type(rpos);
     if (lpos_t->ptr_to && (type == TYPE_ADD || type == TYPE_SUB)) {
-        if (atom_type(rpos)->ptr_to != 0) {
+        if (rpos_t->ptr_to) {
             error("Cannot + or - between pointers");
         }
         int size = alloc_typed_int_atom(TYPE_INTEGER, type_size(lpos_t->ptr_to), type_int);
         rpos = alloc_binop_atom(TYPE_MUL, rpos, size);
+    } else if (!lpos_t->ptr_to && !rpos_t->ptr_to && is_arithmetic_operator(type)) {
+        if (lpos_t->size > rpos_t->size) {
+            rpos = atom_convert_type(lpos, rpos);
+        } else {
+            lpos = atom_convert_type(rpos, lpos);
+        }
     }
-
+    int pos = alloc_atom(2);
+    build_pos_atom(pos, type, lpos);
     build_pos_atom(pos+1, TYPE_ARG, rpos);
     return pos;
 }
 
 int alloc_assign_op_atom(int type, int lval, int rval) {
     int lval_deref = atom_to_rvalue(lval);
-    rval = atom_to_rvalue(rval);
-    type_t *lval_t = atom_type(lval);
-    type_t *rval_t = atom_type(rval);
-    if (lval_t->ptr_to && !rval_t->ptr_to && (type == TYPE_ADD || type == TYPE_SUB)) {
-        rval = alloc_typed_pos_atom(TYPE_CONVERT, rval, type_int);
-    } else {
-        rval = atom_convert_type(lval_deref, atom_to_rvalue(rval));
-    }
-    rval = alloc_binop_atom(type, lval_deref, rval);
+    rval = alloc_binop_atom(type, lval_deref, atom_to_rvalue(rval));
     return alloc_binop_atom(TYPE_BIND, rval, lval);
 }
 
+// make p2's type to p1's type
 int atom_convert_type(int p1, int p2) {
     type_t *t1 = type_unalias(program[p1].t);
     type_t *t2 = type_unalias(program[p2].t);
@@ -415,23 +438,13 @@ int atom_convert_type(int p1, int p2) {
     if (!t1->ptr_to && !t1->struct_of && !t1->enum_of && !t2->ptr_to && !t2->struct_of && !t2->enum_of) {
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
-    if (t1->ptr_to && t2->ptr_to && t2->ptr_to == type_void) {
-        char buf[RCC_BUF_SIZE] = {0};
-        dump_type(buf, t2);
-        strcat(buf, " -> ");
-        dump_type(buf, t1);
-        warning("implicit pointer conversion:%s", buf);
+    if (t1->ptr_to && t2->ptr_to) {
+        warning("implicit pointer conversion: %s -> %s", dump_type2(t2), dump_type2(t1));
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
-    if (t1->enum_of && t2 == type_int) {
-        char buf[RCC_BUF_SIZE] = {0};
-        dump_type(buf, t2);
-        strcat(buf, " -> ");
-        dump_type(buf, t1);
-        debug("implicit enum conversion: %s", buf);
+    if ((t1->enum_of && t2 == type_int) || (t1 == type_int && t2->enum_of)) {
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
-    debug("not compatible type");
     dump_atom_tree(p1, 1);
     dump_atom_tree(p2, 1);
     error("not compatible type");

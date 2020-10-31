@@ -131,6 +131,7 @@
 - [ ] __VA_ARGS__ # C99
 
 - [ ] multiple global variable definition
+- [ ] array global variable initialization
 
 - [x] long literal (10000L)
 - [ ] concatinate sequence of string literal 
@@ -142,7 +143,7 @@
 
 - [x] function declaration for > 6 args
 - [x] function call with > 6 args
-- [ ] function call ABI stack 16bytes alignment
+- [x] function call ABI stack 16bytes alignment
 
 - [x] variadic function call/def
 - [x] va_list type, va_start, va_end macro
@@ -158,6 +159,8 @@
 - [ ] bug / expression sequence - evaluated result should reflect the last expression
 
 ## Refactorings
+
+- [x] rewrite code generation from stack-machine to register-machine (!)
 
 - [ ] atom_t refactoring 2
  - use atom_t * instead of pos

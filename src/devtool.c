@@ -57,6 +57,7 @@ void error(char *fmt, ...) {
     va_end(va);
     _log(ERROR, buf);
     dump_tokens();
+    *(char *)0 = 0; // make segv for debug
     exit(1);
 }
 

@@ -58,5 +58,7 @@ debug:
 	gdb bin/rcc test/core
 
 debug-test:
-	gdb test/out/test.out test/core
+	gdb test/out/t test/core
 
+debug-gen2:
+	gdb bin/rcc2 test/core

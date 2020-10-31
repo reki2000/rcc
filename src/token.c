@@ -128,25 +128,6 @@ bool accept_ident(char *str) {
     return FALSE;
 }
 
-char escape(char escaped_char) {
-    char c;
-    switch (escaped_char) {
-        case 'n': c = '\n'; break;
-        case '0': c = '\0'; break;
-        case 't': c = '\t'; break;
-        case 'r': c = '\r'; break;
-        case 'a': c = '\a'; break;
-        case 'b': c = '\b'; break;
-        case 'e': c = '\e'; break;
-        case 'f': c = '\f'; break;
-        case '"': c = '"'; break;
-        case '\'': c = '\''; break;
-        case '\\': c = '\\'; break;
-        default: error("Invalid letter after escape");
-    }
-    return c;
-}
-
 bool decode_digit(char c, long *value, char min, char max, int base, int radix) {
     if (c >= min && c <= max) {
         *value *= radix;
@@ -237,7 +218,7 @@ bool tokenize_char(char *retval) {
     char c = ch();
     next();
     if (c == '\\') {
-        c = escape(ch());
+        c = unescape_char(ch());
         next();
     }
     if (ch() != '\'') {
@@ -270,7 +251,7 @@ bool tokenize_string(char **retval) {
         }
         if (c == '\\') {
             next();
-            c = escape(ch());
+            c = unescape_char(ch());
         }
         buf[buf_pos++] = c;
         next();

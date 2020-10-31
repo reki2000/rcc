@@ -1052,13 +1052,13 @@ int parse_return_statement() {
     }
 
     pos = parse_expr_sequence();
-    if (!pos) {
-        pos = alloc_typed_int_atom(TYPE_INTEGER, 0, type_void);
+    if (pos) {
+        pos = atom_to_rvalue(pos);
     }
     if (!expect(T_SEMICOLON)) {
         error("invalid expr for return");
     }
-    return alloc_typed_pos_atom(TYPE_RETURN, atom_to_rvalue(pos), type_void);
+    return alloc_typed_pos_atom(TYPE_RETURN, pos, (pos == 0) ? type_void : program[pos].t);
 }
 
 int parse_statement() {
