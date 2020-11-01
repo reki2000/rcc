@@ -157,9 +157,7 @@ var_t *add_var(char *name, type_t *t) {
     }
 
     var_t *v_ptr = var_vec_push(f->vars, v);
-    char buf[RCC_BUF_SIZE] = {0};
-    dump_type(buf, t);
-    debug("add_var:'%s' frame[%d] offset:%d type:%s", name, frame_vec_len(env)-1, v.offset, buf);
+    debug("add_var:'%s' frame[%d] offset:%d type:%s", name, frame_vec_len(env)-1, v.offset, dump_type(t));
 
     return v_ptr;
 }

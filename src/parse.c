@@ -1322,14 +1322,7 @@ var_t *add_var_with_check(type_t *t, char *name) {
     }
 
     if (v->t->ptr_to && !type_is_same(v->t->ptr_to, t->ptr_to)) {
-        char buf[RCC_BUF_SIZE] = {0};
-        strcat(buf, "variable is already declared with different type: ");
-        strcat(buf, v->name);
-        strcat(buf, " ");
-        dump_type(buf, t);
-        strcat(buf, " previously ");
-        dump_type(buf, v->t);
-        error(buf);
+        error("variable is already declared with different type: %s %s previously %s", v->name, dump_type(t), dump_type(v->t));
     }
 
     if (v->t->array_length <= 0 && t->array_length >= 0) {

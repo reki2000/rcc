@@ -953,9 +953,7 @@ void emit_global_constant(var_t *v) {
     } else {
         int filled_size = emit_global_constant_by_type(v->t, v->int_value);
         if (!filled_size) {
-            char buf[RCC_BUF_SIZE] = {0};
-            dump_type(buf, v->t);
-            error("unknown size for global variable:%s %s", v->name, buf);
+            error("unknown size for global variable:%s %s", v->name, dump_type(v->t));
         }
     }
     gen("");
