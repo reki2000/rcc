@@ -131,7 +131,7 @@
 - [ ] __VA_ARGS__ # C99
 
 - [ ] multiple global variable definition
-- [ ] array global variable initialization
+- [x] array global variable initialization
 
 - [x] long literal (10000L)
 - [ ] concatinate sequence of string literal 
@@ -166,7 +166,7 @@
  - use atom_t * instead of pos
  - rename TYPE_ to K_(KIND_) / C_(CLASS_) / N_(NODE_) ...
 
-- [ ] remove print statement, replace with `void print(int i) { printf("%d\n",i); }`
+- [x] remove print statement, replace with `void print(int i) { printf("%d\n",i); }`
 
 - [ ] the parser shoud NOT consider ABI - variable offset should be calculated in emitting stage, not in parsing stage
 
