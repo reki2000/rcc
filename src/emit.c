@@ -231,7 +231,7 @@ void emit_deref(int size, reg_e inout) {
 }
 
 void emit_var_ref(int i, reg_e ret) {
-    genf(" leaq	%d(%%rbp), %s", -i, reg(ret,8));
+    genf(" leaq %d(%%rbp), %s", -i, reg(ret,8));
 }
 
 void emit_global_var_ref(char *name, reg_e out) {
@@ -346,13 +346,6 @@ void emit_log_not(int size, reg_e out) {
 
 void emit_neg(int size, reg_e out) {
     genf(" not%s %s", opsize(size), reg(out,size));
-}
-
-void emit_print(reg_e in) {
-	genf(" movl	%s, %%esi", reg(in,4));
-	genf(" leaq	.LC0(%%rip), %%rdi");
-	genf(" movl	$0, %%eax");
-	genf(" call	printf@PLT");
 }
 
 void emit_label(int i) {
@@ -591,11 +584,6 @@ void compile(int pos, reg_e reg_out) {
             }
             break;
 
-        case TYPE_PRINT:
-            compile(p->atom_pos, reg_out);
-            emit_print(reg_out);
-            break;
-            
         case TYPE_LOG_NOT:
             compile(p->atom_pos, reg_out);
             emit_log_not(type_size(p->t), reg_out);
@@ -852,12 +840,12 @@ void emit_function(func *f) {
     func_void_return_label = new_label();
 
     genf(".globl %s", f->name);
-    genf(".type	%s, @function", f->name);
+    genf(".type %s, @function", f->name);
     gen_label(f->name);
     genf(" pushq %%rbp");
     genf(" movq %%rsp, %%rbp");
 
-    genf(" subq	$%d, %%rsp", align(f->max_offset, 16));
+    genf(" subq $%d, %%rsp", align(f->max_offset, 16));
     stack_offset = 0; // at this point, %rsp must be 16-bytes aligned
     init_reg_in_use();
 
@@ -966,7 +954,7 @@ void emit_global_declaration(var_t *v) {
 void compile_file(int fd) {
     output_fd = fd;
     
-    gen(".file	\"main.c\"");
+    gen(".file \"main.c\"");
     gen("");
 
     var_vec vars = get_global_frame()->vars;
@@ -984,8 +972,6 @@ void compile_file(int fd) {
 
     gen(".text");
     gen(".section .rodata");
-    gen_label(".LC0");
-    gen(".string \"%d\\n\"");
 
     int gstr_i=0;
     char *gstr;

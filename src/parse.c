@@ -1012,20 +1012,6 @@ int parse_do_while_statement() {
     return 0;
 }
 
-int parse_print_statement() {
-    int pos;
-
-    if (expect(T_PRINT)) {
-        if (!expect(T_LPAREN)) return 0;
-        pos = parse_expr();
-        if (pos != 0 && expect(T_RPAREN) && expect(T_SEMICOLON)) {
-            int oppos = alloc_typed_pos_atom(TYPE_PRINT, atom_to_rvalue(pos), type_void);
-            return oppos;
-        }
-    }
-    return 0;
-}
-
 int parse_break_statement() {
     if (expect(T_BREAK)) {
         if (expect(T_SEMICOLON)) {
@@ -1066,9 +1052,6 @@ int parse_statement() {
         return alloc_nop_atom();
     } 
     int pos = parse_local_variable_declaration();
-    if (pos == 0) {
-        pos = parse_print_statement();
-    }
     if (pos == 0) {
         pos = parse_if_statement();
     } 

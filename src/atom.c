@@ -127,7 +127,6 @@ void dump_atom_tree(int pos, int indent) {
         case TYPE_PTR_DEREF:
         case TYPE_PTR:
         case TYPE_RETURN:
-        case TYPE_PRINT:
         case TYPE_RVALUE:
         case TYPE_CONVERT:
         case TYPE_POSTFIX_DEC:
