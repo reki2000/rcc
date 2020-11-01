@@ -42,7 +42,7 @@ char *dump_type(type_t *t) {
     }
     while (t && t->ptr_to) {
         if (t->array_length > 0) {
-            _strcat3(buf, "[", t->array_length, "]");
+            snprintf(buf+strlen(buf), RCC_BUF_SIZE, "[%d]", t->array_length);
         } else if (t->array_length == 0) {
             strcat(buf, "[]");
         } else {
@@ -64,7 +64,7 @@ char *dump_type(type_t *t) {
     } else {
         strcat(buf, t->name);
     }
-    _strcat3(buf, " size:", type_size(t_org), "");
+    snprintf(buf+strlen(buf), RCC_BUF_SIZE, " size:%d", type_size(t_org));
 
     return realloc(buf, strlen(buf));;
 }

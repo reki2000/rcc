@@ -77,7 +77,7 @@ void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
             break;
         case TYPE_VAR_REF:
         default:
-            _strcat3(buf, "", p->int_value, "");
+            snprintf(buf+strlen(buf), RCC_BUF_SIZE, "%d", p->int_value);
     }
 
     snprintf(buf+strlen(buf), RCC_BUF_SIZE, "t: %s ", dump_type(p->t));
