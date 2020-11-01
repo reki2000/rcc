@@ -15,7 +15,6 @@ typedef enum {
     T_INC, T_DEC,
     T_SIZEOF,
     T_SEMICOLON,
-    T_PRINT,
     T_IF, T_ELSE,
     T_FOR, T_WHILE, T_DO, T_BREAK, T_CONTINUE,
     T_RETURN,

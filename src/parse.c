@@ -1012,20 +1012,6 @@ int parse_do_while_statement() {
     return 0;
 }
 
-int parse_print_statement() {
-    int pos;
-
-    if (expect(T_PRINT)) {
-        if (!expect(T_LPAREN)) return 0;
-        pos = parse_expr();
-        if (pos != 0 && expect(T_RPAREN) && expect(T_SEMICOLON)) {
-            int oppos = alloc_typed_pos_atom(TYPE_PRINT, atom_to_rvalue(pos), type_void);
-            return oppos;
-        }
-    }
-    return 0;
-}
-
 int parse_break_statement() {
     if (expect(T_BREAK)) {
         if (expect(T_SEMICOLON)) {
@@ -1066,9 +1052,6 @@ int parse_statement() {
         return alloc_nop_atom();
     } 
     int pos = parse_local_variable_declaration();
-    if (pos == 0) {
-        pos = parse_print_statement();
-    }
     if (pos == 0) {
         pos = parse_if_statement();
     } 
@@ -1322,14 +1305,7 @@ var_t *add_var_with_check(type_t *t, char *name) {
     }
 
     if (v->t->ptr_to && !type_is_same(v->t->ptr_to, t->ptr_to)) {
-        char buf[RCC_BUF_SIZE] = {0};
-        strcat(buf, "variable is already declared with different type: ");
-        strcat(buf, v->name);
-        strcat(buf, " ");
-        dump_type(buf, t);
-        strcat(buf, " previously ");
-        dump_type(buf, v->t);
-        error(buf);
+        error("variable is already declared with different type: %s %s previously %s", v->name, dump_type(t), dump_type(v->t));
     }
 
     if (v->t->array_length <= 0 && t->array_length >= 0) {

@@ -46,8 +46,7 @@ extern type_t *type_char_ptr;
 extern void init_types();
 extern type_t *add_type(char *, int , type_t *, int );
 extern type_t *find_type(char *);
-extern void dump_type(char *buf, type_t *);
-extern char *dump_type2(type_t *);
+extern char *dump_type(type_t *);
 
 extern type_t *add_typedef(char *, type_t *t);
 extern type_t *add_pointer_type(type_t *);

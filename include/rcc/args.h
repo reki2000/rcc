@@ -18,3 +18,5 @@ typedef struct {
     char *overflow_arg_area;
     char *reg_save_area;
 } * __builtin_va_list;
+
+extern void print(int);

@@ -67,9 +67,7 @@ void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
         strcat(buf, " ");
     }
 
-    _strcat3(buf, "atom#", pos, ",[");
-    strcat(buf, atom_name[p->type]);
-    strcat(buf, "] value:");
+    snprintf(buf+strlen(buf), RCC_BUF_SIZE, "atom#%d,[%s] value:", pos, atom_name[p->type]);
     if (!p) {
         error("null atom for:%s", buf);
     }
@@ -79,12 +77,10 @@ void dump_atom3(char *buf, atom_t *p, int indent, int pos) {
             break;
         case TYPE_VAR_REF:
         default:
-            _strcat3(buf, "", p->int_value, "");
+            snprintf(buf+strlen(buf), RCC_BUF_SIZE, "%d", p->int_value);
     }
 
-    strcat(buf, " t:");
-    dump_type(buf, p->t);
-    strcat(buf, " ");
+    snprintf(buf+strlen(buf), RCC_BUF_SIZE, "t: %s ", dump_type(p->t));
     dump_token_simple(buf+strlen(buf), p->token_pos);
 }
 
@@ -131,7 +127,6 @@ void dump_atom_tree(int pos, int indent) {
         case TYPE_PTR_DEREF:
         case TYPE_PTR:
         case TYPE_RETURN:
-        case TYPE_PRINT:
         case TYPE_RVALUE:
         case TYPE_CONVERT:
         case TYPE_POSTFIX_DEC:
@@ -321,21 +316,14 @@ int alloc_index_atom(int base_pos, int index_pos) {
     type_t *t = atom_type(pos);
     int size = 0;
     if (t->array_length >= 0) { // base is an array
-        char buf[RCC_BUF_SIZE] = {0};
-        dump_type(buf, t);
-        debug("alloc array index for array: %s", buf);
-        //dump_atom_tree(base_pos, 0);
+        debug("alloc array index for array: %s", dump_type(t));
         t = t->ptr_to;
         size = type_size(t);
         if (!t->ptr_to || t->array_length < 0) {
             t = add_pointer_type(t);
         }
     } else if (t->ptr_to) { // base is a pointer
-        //debug("alloc array index for pointer: ");
-        //dump_atom_tree(base_pos, 0);
-        char buf[RCC_BUF_SIZE] = {0};
-        dump_type(buf, t);
-        warning("implicit convertion from pointer to array:%s", buf);
+        warning("implicit convertion from pointer to array:%s", dump_type(t));
         pos = alloc_deref_atom(pos);
         t = t->ptr_to;
         size = type_size(t->ptr_to);
@@ -439,7 +427,7 @@ int atom_convert_type(int p1, int p2) {
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
     if (t1->ptr_to && t2->ptr_to) {
-        warning("implicit pointer conversion: %s -> %s", dump_type2(t2), dump_type2(t1));
+        warning("implicit pointer conversion: %s -> %s", dump_type(t2), dump_type(t1));
         return alloc_typed_pos_atom(TYPE_CONVERT, p2, t1);
     }
     if ((t1->enum_of && t2 == type_int) || (t1 == type_int && t2->enum_of)) {

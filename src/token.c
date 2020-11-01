@@ -564,8 +564,6 @@ void tokenize() {
             add_token(T_FOR);
         } else if (accept_ident("if")) {
             add_token(T_IF);
-        } else if (accept_ident("print")) {
-            add_token(T_PRINT);
         } else if (accept_ident("return")) {
             add_token(T_RETURN);
         } else if (accept_ident("sizeof")) {

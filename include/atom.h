@@ -17,7 +17,6 @@ enum atom_type {
     TYPE_EXPR_STATEMENT,
     TYPE_ANDTHEN,
     TYPE_GLOBAL_IDENT,
-    TYPE_PRINT,
     TYPE_BIND,
     TYPE_EQ_EQ,
     TYPE_EQ_NE,

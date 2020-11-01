@@ -31,16 +31,18 @@ void init_types() {
     type_char_ptr = add_pointer_type(type_char);
 }
 
-void dump_type(char *buf, type_t *t) {
+char *dump_type(type_t *t) {
     type_t *t_org = t;
+
+    char *buf = calloc(RCC_BUF_SIZE, 1);
 
     if (!t) {
         strcat(buf, "?");
-        return;
+        return realloc(buf, strlen(buf));
     }
     while (t && t->ptr_to) {
         if (t->array_length > 0) {
-            _strcat3(buf, "[", t->array_length, "]");
+            snprintf(buf+strlen(buf), RCC_BUF_SIZE, "[%d]", t->array_length);
         } else if (t->array_length == 0) {
             strcat(buf, "[]");
         } else {
@@ -62,14 +64,9 @@ void dump_type(char *buf, type_t *t) {
     } else {
         strcat(buf, t->name);
     }
-    _strcat3(buf, " size:", type_size(t_org), "");
-}
+    snprintf(buf+strlen(buf), RCC_BUF_SIZE, " size:%d", type_size(t_org));
 
-char *dump_type2(type_t *t) {
-    char *buf = calloc(RCC_BUF_SIZE, 1);
-    dump_type(buf, t);
-    buf = realloc(buf, strlen(buf));
-    return buf;
+    return realloc(buf, strlen(buf));;
 }
 
 type_t *add_type(char* name, int size, type_t *ptr_to, int array_length) {
@@ -85,10 +82,7 @@ type_t *add_type(char* name, int size, type_t *ptr_to, int array_length) {
     t.typedef_of = (void *)0;
 
     type_t *t_ptr = type_vec_push(types, t);
-
-    char buf[RCC_BUF_SIZE] = {0};
-    dump_type(buf, t_ptr);
-    debug("added type:%s", buf);
+    debug("added type:%s", dump_type(t_ptr));
 
     return t_ptr;
 }
