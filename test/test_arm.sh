@@ -9,7 +9,7 @@ function exec_arm_gcc {
 
 function exec_arm_test {
     docker run -v $(pwd):/test --rm -ti arm64 /bin/bash -c \
-        "cd test; qemu-aarch64-static $*"    
+        "cd test; (qemu-aarch64-static $1; echo $?;) >> $2"
 }
 
 function clean {
@@ -41,8 +41,7 @@ function check_result {
     fi
 
     local result_file=out/result.txt
-    exec_arm_test $DEBUG_BIN > $result_file
-    echo $? >> $result_file
+    exec_arm_test $DEBUG_BIN $result_file
 
     check_diff $1 $result_file
 }

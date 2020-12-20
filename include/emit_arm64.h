@@ -418,7 +418,7 @@ void compile_apply(atom_t *p, reg_e reg_out) {
         emit_pop(i);
     }
 
-    genf(" mov w0,0");
+    //genf(" mov w0,0");
     genf(" bl %s%s", f->name, f->is_external ? "" : "");
     if (stack_size > 0) {
         genf(" add sp, sp, #%d", stack_size);
