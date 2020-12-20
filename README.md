@@ -5,7 +5,7 @@ Rcc is a tiny subset of C language compiler inspired by [9cc](https://github.com
 ## Architecture Overview
 
 - Subset of C89
-- Compiling stages: tokenize, parse, output-x64-asm
+- Compiling stages: tokenize, parse, output-x64|aarch64-asm
 - LL(1) hand-written parser
 - Data type model: x64 - LP64 (int:32, long:64, pointer:64)
 - Register machine with simple register assigmnent logic (round-robin within a single expression)
@@ -35,6 +35,17 @@ make test-gen2
 
 # build & test gen3 - compiled by gen2 compiler
 make test-gen3
+```
+
+## How to build and test AArch64 version on x64 Linux
+
+* aarch64 support is under development
+
+```
+docker build -t arm64 arm64
+
+make arm
+test/test_arm.sh
 ```
 
 ## Current BNF

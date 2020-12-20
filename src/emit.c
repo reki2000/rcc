@@ -100,20 +100,35 @@ void exit_break_label() {
     break_label_vec_pop(break_labels);
 }
 
-
 #ifdef TARGET_ARM64
 #include "emit_arm64.h"
 #else 
 #include "emit_x64.h"
 #endif // TARGET_ARM64
 
+void compilep(atom_t *p, reg_e reg_out);
 
 void compile(int pos, reg_e reg_out) {
     atom_t *p = &(program[pos]);
 
+#ifdef DEBUG
     char ast_text[RCC_BUF_SIZE] = {0};
     dump_atom3(ast_text, p, 0, pos);
     debug("compiling out:R#%d atom_t: %s", reg_out, ast_text);
+#endif
+
+    compilep(p, reg_out);
+
+#ifdef DEBUG
+    if (p->type == TYPE_EXPR_STATEMENT || p->type == TYPE_APPLY || p->type == TYPE_RETURN || p->type == TYPE_IF || p->type == TYPE_FOR || p->type == TYPE_WHILE || p->type == TYPE_DO_WHILE) {
+        genf("# %s", ast_text);
+    }
+    debug("compiled out:R#%d atom_t: %s", reg_out, ast_text);
+#endif
+}
+
+void compilep(atom_t *p, reg_e reg_out) {
+
     set_token_pos(p->token_pos);
     //dump_token_by_id(p->token_pos);
 
@@ -358,7 +373,6 @@ void compile(int pos, reg_e reg_out) {
             break;
 
         case TYPE_APPLY:
-            dump_atom_tree(pos,0);
             compile_apply(p, reg_out);
             break;
         
@@ -407,13 +421,9 @@ void compile(int pos, reg_e reg_out) {
 
 
         default:
-            dump_atom(pos, 0);
+            dump_atom2(p, 0, 0);
             error("Invalid program");
     }
-    if (p->type == TYPE_EXPR_STATEMENT || p->type == TYPE_APPLY || p->type == TYPE_RETURN || p->type == TYPE_IF || p->type == TYPE_FOR || p->type == TYPE_WHILE || p->type == TYPE_DO_WHILE) {
-        genf("# %s", ast_text);
-    }
-    debug("compiled out:R#%d atom_t: %s", reg_out, ast_text);
 }
 
 

@@ -8,6 +8,8 @@ SHELL=bash
 GEN1      = bin/rcc
 GEN2      = bin/rcc2
 GEN3      = bin/rcc3
+ARM       = bin/rcc_arm64
+
 SRCDIR    = ./src
 SOURCES   = $(wildcard $(SRCDIR)/*.c)
 OBJDIR    = ./out
@@ -29,6 +31,7 @@ clean:
 	$(RM) $(GEN1) $(OBJDIR)/* test/out/* core test/core
 	cd gen2 && make clean
 	cd gen3 && make clean
+	cd arm64 && make clean
 
 gen2: $(GEN2)
 
@@ -39,6 +42,9 @@ gen3: $(GEN3)
 
 $(GEN3): $(GEN2)
 	cd gen3 && make
+
+arm:  
+	cd arm64 && make
 
 unittest: clean $(OBJECTS) unittests
 
