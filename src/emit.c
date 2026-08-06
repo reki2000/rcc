@@ -383,7 +383,7 @@ void emit_jmp_ne(int i, int size, reg_e in1, reg_e in2) {
 int emit_push_struct(int size, reg_e from) {
     reg_e to = reg_assign();
     int offset = align(size, 8);
-    stack_offset += offset;
+    stack_offset -= offset;
     genf(" subq $%d, %%rsp", offset);
     genf(" movq %%rsp, %s", reg(to, 8));
     emit_copy(size, from, to);
@@ -732,15 +732,17 @@ void compile(int pos, reg_e reg_out) {
             reg_push_all();
             if ((stack_size + stack_offset) % 16 != 0) {
                 genf(" subq $8, %%rsp");
+                stack_offset -= 8;
                 stack_size += 8;
             }
             for (int i=argc-1; i>=0; i--) {
                 if (use_reg[i]) continue;
                 debug("compiling stack passing values %d, to R#%d", i, reg_out);
                 compile((p+i+2)->atom_pos, reg_out);
-                emit_push(reg_out);
                 if (struct_size[i] > 0) {
                     emit_push_struct(struct_size[i], reg_out);
+                } else {
+                    emit_push(reg_out);
                 }
             }
 
@@ -764,6 +766,7 @@ void compile(int pos, reg_e reg_out) {
             genf(" call %s%s", f->name, f->is_external ? "@PLT" : "");
             if (stack_size > 0) {
                 genf(" addq $%d, %%rsp", stack_size);
+                stack_offset += stack_size;
             }
             reg_pop_all();
             int size = type_size(f->ret_type);
