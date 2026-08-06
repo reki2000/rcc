@@ -291,8 +291,10 @@ void emit_array_index(int item_size, reg_e in, reg_e out) {
     reg_e in2 = reg_reserve(in, R_DX);
     genf(" movl $%d,%%eax", item_size);
     genf(" imulq %s", reg(in2,8));
-    genf(" addq %%rax, %s", reg(out,8));
+    // %rdx has to be restored before 'out' is written, otherwise the result
+    // is thrown away when 'out' happens to be %rdx itself
     reg_restore(in2, in, R_DX);
+    genf(" addq %%rax, %s", reg(out,8));
 }
 
 void emit_binop(char *binop, int size, reg_e in, reg_e out) {
@@ -310,8 +312,8 @@ void emit_mul(int size, reg_e in, reg_e inout) {
     reg_e in2 = reg_reserve(in, R_DX);
     genf(" mov%s %s,%s", opsize(size), reg(inout,size), reg(R_AX,size));
     genf(" imul%s %s", opsize(size), reg(in2,size));
-    genf(" mov%s %s,%s", opsize(size), reg(R_AX,size), reg(inout,size));
     reg_restore(in2, in, R_DX);
+    genf(" mov%s %s,%s", opsize(size), reg(R_AX,size), reg(inout,size));
 }
 
 void emit_divmod(int size, reg_e in, reg_e out, reg_e ret_reg) { 
@@ -320,8 +322,14 @@ void emit_divmod(int size, reg_e in, reg_e out, reg_e ret_reg) {
     genf(" mov%s %s,%s", opsize(size), reg(out,size), reg(R_AX,size));
     genf(" %s", (size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
     genf(" idiv%s %s", opsize(size), reg(in2,size));
-    genf(" mov%s %s,%s", opsize(size), reg(ret_reg,size), reg(out,size));
+    if (ret_reg != R_AX) {
+        // the remainder is in %rdx, which is about to be restored
+        genf(" mov%s %s,%s", opsize(size), reg(ret_reg,size), reg(R_AX,size));
+    }
+    // %rdx has to be restored before 'out' is written, otherwise the result
+    // is thrown away when 'out' happens to be %rdx itself
     reg_restore(in2, in, R_DX);
+    genf(" mov%s %s,%s", opsize(size), reg(R_AX,size), reg(out,size));
 }
 
 void emit_div(int size, reg_e in, reg_e out) {
