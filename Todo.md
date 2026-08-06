@@ -162,6 +162,15 @@
 
 - [x] rewrite code generation from stack-machine to register-machine (!)
 
+- [x] SSA based backend (!) - see docs/ssa.md
+  - [x] linear IR + control flow graph built from the AST
+  - [x] dominator tree, dominance frontiers, mem2reg, phi insertion/renaming
+  - [x] constant folding/propagation, branch folding, copy propagation, dead code elimination
+  - [x] phi elimination, liveness, linear scan register allocation
+  - [ ] drop the stores of promoted variables (needs an aliasing analysis)
+  - [ ] global value numbering / loop invariant code motion
+  - [ ] interval splitting and copy coalescing in the allocator
+
 - [ ] atom_t refactoring 2
  - use atom_t * instead of pos
  - rename TYPE_ to K_(KIND_) / C_(CLASS_) / N_(NODE_) ...

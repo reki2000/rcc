@@ -5,10 +5,11 @@ Rcc is a tiny subset of C language compiler inspired by [9cc](https://github.com
 ## Architecture Overview
 
 - Subset of C89
-- Compiling stages: tokenize, parse, output-x64-asm
+- Compiling stages: tokenize, parse, build SSA form IR, optimize, register allocation, output-x64-asm
 - LL(1) hand-written parser
 - Data type model: x64 - LP64 (int:32, long:64, pointer:64)
-- Register machine with simple register assigmnent logic (round-robin within a single expression)
+- SSA based backend: mem2reg, constant/copy propagation, dead code elimination, linear scan register allocation (see [docs/ssa.md](docs/ssa.md))
+- `-fno-ssa` falls back to the older emitter which walks the AST and assigns registers round-robin within a single expression
 - Depends on external assembler (as) and linker (ld)
 - Highly limited use of C standard library (listed in `include/rsys.h`)
 

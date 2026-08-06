@@ -12,6 +12,10 @@ extern void tokenize_file(char *);
 extern void add_include_dir(char *);
 extern int parse();
 extern void compile_file(int fd);
+extern void ssa_compile_file(int fd);
+
+extern bool opt_use_ssa;
+extern bool opt_dump_ssa;
 
 int main(int argc, char **argv) {
     int arg_index;
@@ -25,6 +29,14 @@ int main(int argc, char **argv) {
         }
         if (strncmp("-S", argv[arg_index], 2) == 0) {
             out_asm_source = TRUE;
+            continue;
+        }
+        if (strcmp("-fno-ssa", argv[arg_index]) == 0) {
+            opt_use_ssa = FALSE;    // fall back to the direct AST emitter
+            continue;
+        }
+        if (strcmp("-fdump-ssa", argv[arg_index]) == 0) {
+            opt_dump_ssa = TRUE;
             continue;
         }
         if (strncmp("-o", argv[arg_index], 2) == 0) {
@@ -53,7 +65,11 @@ int main(int argc, char **argv) {
 
     parse();
 
-    compile_file(output_fd);
+    if (opt_use_ssa) {
+        ssa_compile_file(output_fd);
+    } else {
+        compile_file(output_fd);
+    }
 
     if (output_fd != 1) {
         close(output_fd);
