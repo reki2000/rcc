@@ -43,7 +43,7 @@ $(GEN3): $(GEN2)
 unittest: clean $(OBJECTS) unittests
 
 unittests: $(TESTSOURCES)
-	for f in $^; do echo "testing $$f"; $(CC) $(CFLAGS) -Iinclude -o out/test.out $$f $(OBJDIR)/vec.o; out/test.out; done
+	for f in $^; do echo "testing $$f"; $(CC) $(CFLAGS) -Iinclude -o out/test.out $$f $(OBJDIR)/vec.o || exit 1; out/test.out || exit 1; done
 
 test: clean $(GEN1)
 	test/test.sh
