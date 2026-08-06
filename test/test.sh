@@ -7,18 +7,20 @@ function clean {
 }
 
 function fatal {
+    echo
     echo -n "ERROR: "
     echo "$1"
     if [ -n "$2" ]; then
         cat $2
     fi
+    TEST_FAILED=1
     [ "$EXIT_ON_ERROR" = "1" ] && exit 2
     true
 }
 
 function compile {
     $CC -S -I$(dirname $1)/include -I../include -o $DEBUG_ASM $1 2>$DEBUG_LOG \
-    && ( $GCC -o $DEBUG_BIN $DEBUG_ASM print.c || fatal " cannot build test program in $CC" )
+    && { $GCC -o $DEBUG_BIN $DEBUG_ASM print.c || fatal " cannot build test program in $CC"; }
 }
 
 function check_diff {
@@ -40,10 +42,11 @@ function check_result {
 function check_error {
     if [ ! -f "$1" ]; then
       fatal "unexpected compiler error" $DEBUG_LOG
+      return
     fi
 
     local err_file=out/error.txt
-    grep 'ERROR' $DEBUG_LOG | sed 's/\x1b\[[0-9;]*m//g' > $err_file
+    { grep 'ERROR' $DEBUG_LOG || true; } | sed 's/\x1b\[[0-9;]*m//g' > $err_file
     check_diff $1 $err_file
 }
 
@@ -51,11 +54,29 @@ function run {
     local t=$1
     echo -n "test $t: "
     clean
-    compile $t/test.c && check_result $t/expect.txt || check_error $t/expect-error.txt
-    echo "OK"
+    TEST_FAILED=0
+
+    if [ -f $t/expect-error.txt ]; then
+        # the compiler is expected to reject this source
+        compile $t/test.c || true
+        check_error $t/expect-error.txt
+    else
+        compile $t/test.c && check_result $t/expect.txt \
+        || fatal "cannot compile test program" $DEBUG_LOG
+    fi
+
+    if [ "$TEST_FAILED" = "0" ]; then
+        echo "OK"
+    else
+        echo "test $t: FAILED"
+        FAILED=$((FAILED + 1))
+    fi
 }
 
 set -e
+
+FAILED=0
+TEST_FAILED=0
 
 CC=../bin/rcc
 GCC=gcc
@@ -99,3 +120,10 @@ else
         run $t
     done
 fi
+
+if [ "$FAILED" != "0" ]; then
+    echo "$FAILED test(s) FAILED"
+    exit 1
+fi
+
+echo "all tests passed"
