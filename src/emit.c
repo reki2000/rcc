@@ -291,8 +291,10 @@ void emit_array_index(int item_size, reg_e in, reg_e out) {
     reg_e in2 = reg_reserve(in, R_DX);
     genf(" movl $%d,%%eax", item_size);
     genf(" imulq %s", reg(in2,8));
-    genf(" addq %%rax, %s", reg(out,8));
+    // %rdx has to be restored before 'out' is written, otherwise the result
+    // is thrown away when 'out' happens to be %rdx itself
     reg_restore(in2, in, R_DX);
+    genf(" addq %%rax, %s", reg(out,8));
 }
 
 void emit_binop(char *binop, int size, reg_e in, reg_e out) {
@@ -310,8 +312,8 @@ void emit_mul(int size, reg_e in, reg_e inout) {
     reg_e in2 = reg_reserve(in, R_DX);
     genf(" mov%s %s,%s", opsize(size), reg(inout,size), reg(R_AX,size));
     genf(" imul%s %s", opsize(size), reg(in2,size));
-    genf(" mov%s %s,%s", opsize(size), reg(R_AX,size), reg(inout,size));
     reg_restore(in2, in, R_DX);
+    genf(" mov%s %s,%s", opsize(size), reg(R_AX,size), reg(inout,size));
 }
 
 void emit_divmod(int size, reg_e in, reg_e out, reg_e ret_reg) { 
@@ -320,8 +322,14 @@ void emit_divmod(int size, reg_e in, reg_e out, reg_e ret_reg) {
     genf(" mov%s %s,%s", opsize(size), reg(out,size), reg(R_AX,size));
     genf(" %s", (size == 8) ? "cqo" : (size == 4) ? "cdq" : "???");
     genf(" idiv%s %s", opsize(size), reg(in2,size));
-    genf(" mov%s %s,%s", opsize(size), reg(ret_reg,size), reg(out,size));
+    if (ret_reg != R_AX) {
+        // the remainder is in %rdx, which is about to be restored
+        genf(" mov%s %s,%s", opsize(size), reg(ret_reg,size), reg(R_AX,size));
+    }
+    // %rdx has to be restored before 'out' is written, otherwise the result
+    // is thrown away when 'out' happens to be %rdx itself
     reg_restore(in2, in, R_DX);
+    genf(" mov%s %s,%s", opsize(size), reg(R_AX,size), reg(out,size));
 }
 
 void emit_div(int size, reg_e in, reg_e out) {
@@ -383,7 +391,7 @@ void emit_jmp_ne(int i, int size, reg_e in1, reg_e in2) {
 int emit_push_struct(int size, reg_e from) {
     reg_e to = reg_assign();
     int offset = align(size, 8);
-    stack_offset += offset;
+    stack_offset -= offset;
     genf(" subq $%d, %%rsp", offset);
     genf(" movq %%rsp, %s", reg(to, 8));
     emit_copy(size, from, to);
@@ -732,15 +740,17 @@ void compile(int pos, reg_e reg_out) {
             reg_push_all();
             if ((stack_size + stack_offset) % 16 != 0) {
                 genf(" subq $8, %%rsp");
+                stack_offset -= 8;
                 stack_size += 8;
             }
             for (int i=argc-1; i>=0; i--) {
                 if (use_reg[i]) continue;
                 debug("compiling stack passing values %d, to R#%d", i, reg_out);
                 compile((p+i+2)->atom_pos, reg_out);
-                emit_push(reg_out);
                 if (struct_size[i] > 0) {
                     emit_push_struct(struct_size[i], reg_out);
+                } else {
+                    emit_push(reg_out);
                 }
             }
 
@@ -764,6 +774,7 @@ void compile(int pos, reg_e reg_out) {
             genf(" call %s%s", f->name, f->is_external ? "@PLT" : "");
             if (stack_size > 0) {
                 genf(" addq $%d, %%rsp", stack_size);
+                stack_offset += stack_size;
             }
             reg_pop_all();
             int size = type_size(f->ret_type);

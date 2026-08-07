@@ -5,6 +5,7 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,6 +13,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: make test-gen3
+    - uses: actions/checkout@v4
+
+    - name: make unittest
+      run: make unittest
+
+    - name: make test (gen1 - built by gcc)
+      run: make test
+
+    - name: make test-gen2 (gen2 - built by gen1)
+      run: make test-gen2
+
+    - name: make test-gen3 (gen3 - built by gen2)
       run: make test-gen3
+
+    # gen3 is built by gen2, which is itself built by gen1. Once the compiler
+    # reaches its fixpoint gen2 and gen3 are the same program, so they have to
+    # emit the same assembly for the same input. A difference here means gen1
+    # miscompiled the compiler in a way the test suite does not cover.
+    - name: gen2 and gen3 must emit identical assembly
+      run: |
+        asm2="${RUNNER_TEMP:-/tmp}/asm2"
+        asm3="${RUNNER_TEMP:-/tmp}/asm3"
+        mkdir -p "$asm2" "$asm3"
+        for f in src/*.c; do
+          b=$(basename "$f" .c)
+          ./bin/rcc2 -S -Iinclude -o "$asm2/$b.s" "$f" 2>/dev/null \
+            || { echo "gen2 failed to compile $f"; exit 1; }
+          ./bin/rcc3 -S -Iinclude -o "$asm3/$b.s" "$f" 2>/dev/null \
+            || { echo "gen3 failed to compile $f"; exit 1; }
+        done
+        diff -r "$asm2" "$asm3"
