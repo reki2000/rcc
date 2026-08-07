@@ -13,6 +13,7 @@
 #include "gstr.h"
 
 #include "parse.h"
+#include "emit.h"
 
 int output_fd = 1;
 
@@ -44,11 +45,7 @@ int new_label() {
     return label_index++;
 }
 
-typedef enum reg {
-    R_DI, R_SI, R_DX, R_CX, R_8, R_9, R_AX, R_BX, R_10, R_11, R_12, R_13, R_14, R_15, R_LAST
-} reg_e;
-
-char *regs8[] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8" , "%r9" , "%rax", "%rbx", "%r10" , "%r11" , "%r12" , "%r13" , "%r14" , "%r15"  };
+char *regs8[] ={ "%rdi", "%rsi", "%rdx", "%rcx", "%r8" , "%r9" , "%rax", "%rbx", "%r10" , "%r11" , "%r12" , "%r13" , "%r14" , "%r15"  };
 char *regs4[] = { "%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d", "%eax", "%ebx", "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d" };
 char *regs1[] = { "%dil", "%sil", "%dl" , "%cl" , "%r8b", "%r9b", "%al" , "%bl",  "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b" };
 
@@ -919,6 +916,9 @@ int emit_global_constant_by_type(type_t *pt, int value) {
         filled_size += 4;
     } else if (pt == type_long) {
         genf(".quad %d", value);
+        filled_size += 4;
+    } else if (pt->enum_of) {
+        genf(".long %d", value);
         filled_size += 4;
     } else if (pt == type_char_ptr) {
         genf(".quad .G%d", value);
